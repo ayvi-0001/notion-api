@@ -8,12 +8,11 @@ from notion.query.filterproto import FilterTypeObject
 
 __all__: typing.Sequence[str] = ('CompoundFilter', 'AndOperator', 'OrOperator')
 
-_PropertyFilter = typing.Union[PropertyFilter, typing.Sequence[PropertyFilter]]
-
 
 class CompoundFilter(build.NotionObject, FilterTypeObject):
     """
-    :param operator: :class:`AndOperator` or :class:`OrOperator` 
+    Required:
+    :param operator: Either `notion.query.AndOperator` or notion.query.OrOperator`. 
                      array of PropertyFilter objects or CompoundFilter objects.
                      Returns pages when any of the filters inside the provided array match.
     ---
@@ -30,23 +29,36 @@ class CompoundFilter(build.NotionObject, FilterTypeObject):
         super().__init__()
 
         self._all: dict = {}
-        for x in operators:
-            if isinstance(x, build.NotionObject) or isinstance(x, dict):
-                self._all.update(x)
+        for op in operators:
+            if isinstance(op, build.NotionObject) or isinstance(op, dict):
+                self._all.update(op)
         
         self.set('filter', self._all)
 
-class AndOperator(build.NotionObject, FilterTypeObject):
-    __slots__: typing.Sequence[str] = ()
 
-    def __init__(self, *filters: FilterTypeObject) -> None:
+class AndOperator(build.NotionObject, FilterTypeObject):
+    __slots__: typing.Sequence[str] = ('_filters')
+
+    def __init__(self, *filters: FilterTypeObject | dict) -> None:
         super().__init__()
-        self.set('and', [x for x in filters])
+        self._filters: list = []
+        
+        for f in filters:
+            if isinstance(f, dict) or isinstance(f, PropertyFilter):
+                self._filters.append(f['filter'] if 'filter' in f.keys() else f)
+
+        self.set('and', self._filters)
 
 
 class OrOperator(build.NotionObject, FilterTypeObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: typing.Sequence[str] = ('_filters')
 
-    def __init__(self, *filters: FilterTypeObject) -> None:
+    def __init__(self, *filters: FilterTypeObject | dict) -> None:
         super().__init__()
-        self.set('or', [x for x in filters])
+        self._filters: list = []
+        
+        for f in filters:
+            if isinstance(f, dict) or isinstance(f, PropertyFilter):
+                self._filters.append(f['filter'] if 'filter' in f.keys() else f)
+
+        self.set('or', self._filters)
