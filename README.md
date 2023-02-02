@@ -13,12 +13,10 @@ import dotenv
 
 import notion
 
-# client will check .env for 'NOTION_TOKEN',
-dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv())
+dotenv.load_dotenv(dotenv_path=dotenv.find_dotenv()) # client will check .env for 'NOTION_TOKEN',
 
 homepage = notion.Page('773b08ff38b44521b44b115827e850f2')
-homepage.last_edited.date # out: 01/15/2023
-homepage.last_edited.time # out: 16:28:00
+parent_db = notion.Database(homepage.parent_id)
 
 homepage.retrieve_property('dependencies')
 # out: {
@@ -34,10 +32,6 @@ homepage.retrieve_property('dependencies')
 #     }
 # }
 
-# For formulas and relations, use the Database endpoint 
-# to pull information from the property schema.
-
-parent_db = notion.Database(homepage.parent_id)
 parent_db.property_schema['dependencies']
 # out: {
 #     "dependencies": {
@@ -54,6 +48,9 @@ parent_db.property_schema['dependencies']
 #         }
 #     }
 # }
+
+homepage.last_edited.date # out: 01/15/2023
+homepage.last_edited.time # out: 16:28:00
 ```
 
 ---
@@ -61,26 +58,12 @@ parent_db.property_schema['dependencies']
 Create pages/databases using classmethods, by passing an existing page/database instance as a parent.
 
 ```py
-import notion.properties as prop
-
 new_database = notion.Database.create(parent=homepage)
 
-expression_one = """prop("Text Column") == "Hello" ? " world!" : ''"""
-expression_two = """concat(prop("Text Column"), prop("Formula"))"""
+new_database.add_text_column('Text Column')
+new_database.add_formula_column('Formula', expression="prop('Text Column') == 'Hello' ? ' world!' : ''")
+new_database.add_formula_column('Message', expression="concat(prop('Text Column'), prop('Formula'))")
 
-if __name__ == '__main__':
-    new_database.update(
-        notion.request_json(
-            prop.Properties(
-                prop.RichTextPropertyObject(property_name='Text Column'),
-                prop.FormulaPropertyObject(expression_one, property_name='Formula'),
-                prop.FormulaPropertyObject(expression_two, property_name='Message')
-                )
-            )
-        )
-```
-
-```py
 new_page = notion.Page.create(new_database, page_title='Page in Database')
 new_page.update_text('Text Column', 'Hello')
 new_database.rename_property('Message', 'Say Hello')
@@ -103,20 +86,18 @@ def create_dailies():
         page_title=f"Dailies | {datetime.today().strftime(("%m/%d/%Y"))}")
     tasks_page = notion.Page.create(db_tasks, 
         page_title=f"Tasks | {datetime.today().strftime(("%m/%d/%Y"))}")
-    notes_page = notion.Page.create(db_tasks, 
+    notes_page = notion.Page.create(db_notes, 
         page_title=f"Notes | {datetime.today().strftime(("%m/%d/%Y"))}")
 
-    first_relation = notion.request_json(prop.Properties(
-        prop.RelationPropertyValue([prop.NotionUUID(tasks_page.id)], 
-            property_name='column related to db_tasks')))
+    daily_page.set_related('Related to Tasks', [tasks_page.id])
+    daily_page.set_related('Related to Notes', [notes_page.id])
 
-    db_dailies.patch_properties(payload=first_relation)
+    # if a multiselect option does not already exist,
+    # a new one will be created.
+    daily_page.set_multiselect('Tags', '...')
 
-    second_relation = notion.request_json(prop.Properties(
-        prop.RelationPropertyValue([prop.NotionUUID(notes_page.id)], 
-            property_name='column related to db_notes')))
-
-    db_dailies.patch_properties(payload=second_relation)
+    daily_page.append_to_page(notion.request_json(
+        prop.Children([prop.ReferenceSyncedBlockType(string_uuid_to_some_other_block)])))
 
 
 if __name__ == '__main__':
@@ -130,54 +111,34 @@ if __name__ == '__main__':
 ```py
 import notion.query as query
 
-query_landmarks = notion.request_json(
+query_payload = notion.request_json(
     query.CompoundFilter(
-        query.OrOperator(
-            query.PropertyFilter.text(
-                'Landmark', 'rich_text', 'contains', 'Bridge', compound=True), 
         query.AndOperator(
-            query.PropertyFilter.checkbox(
-                'Seen', 'equals', 'false', compound=True), 
-            query.PropertyFilter.number(
-                'Yearly visitor count', 'greater_than', 1000000, compound=True)
-            )
+            query.OrOperator(
+                query.PropertyFilter.text('name', 'title', 'contains', 'something'),
+                query.PropertyFilter.text('name', 'title', 'contains', 'cool'),
+                    ),
+            query.PropertyFilter.date('date', 'date', 'on_or_after', 
+                                       datetime.today().isoformat()),
+            query.PropertyFilter.date('date', 'date', 'on_or_before', 
+                                      (datetime.today() + timedelta(1)).isoformat()),
+            query.TimestampFilter.created_time('past_week', {})
         )
-    )
+    ),
+    query.SortFilter([query.EntryTimestampSort.created_time_descending()])
 )
 
-# out: {
-#     "filter": {
-#         "or": [
-#             {
-#                 "property": "Landmark",
-#                 "rich_text": {
-#                     "contains": "Bridge"
-#                 }
-#             },
-#             {
-#                 "and": [
-#                     {
-#                         "property": "Seen",
-#                         "checkbox": {
-#                             "equals": "false"
-#                         }
-#                     },
-#                     {
-#                         "property": "Yearly visitor count",
-#                         "number": {
-#                             "greater_than": 1000000
-#                         }
-#                     }
-#                 ]
-#             }
-#         ]
-#     }
-# }
+
+query_result = new_database.query(payload=query_payload, filter_property_values=['name', 'select'])
+                                                        # filter result to selected property values
 
 
-result = new_database.query(payload=query_landmarks).get('results')
+# example: extract id from query results to set as relation to another page.
+from jsonpath_ng.ext import parse
 
-print(result['Landmark'])
+list_related_ids = [match.value for match in parse("$.results[*].id").find(query_result)]
+
+new_page.set_related('related to new_database', list_related_ids)
 ```
 
 If the list result is over 100 pages (Notions max for paginated responses), you can use a cursor included at the end to continue the query.
@@ -187,47 +148,29 @@ If the list result is over 100 pages (Notions max for paginated responses), you 
 ## Exceptions & Validating Responses
 
 ```py
-my_page = notion.Page('12345')
-# Errors in Notion requests return an object with 'object', 'status', 'code', and 'message' keys.
-# Example:
+# Errors in Notion requests return an object with the keys: 'object', 'status', 'code', and 'message'
+
+homepage.patch_properties(payload={'an_incorrect_key':'value'})
+# Example error object for line above..
 # {
 #   'object': 'error', 
 #   'status': 400, 
 #   'code': 'validation_error', 
-#   'message': 'path failed validation: path.page_id should be a valid uuid, instead was `"12345"`.'
+#   'message': 'body failed validation: body.an_incorrect_key should be not present, instead was `"value"`.'
 # }
 ```
 
 ```sh
 Traceback (most recent call last):
-  File "c:\path\to\file\_.py", line 6, in <module>
-    notion.Page('12345')
-  File "c:\...\notion\api\notionpage.py", line 36, in __init__
-    super().__init__(id, token=token, notion_version=notion_version)
-  File "c:\...\notion\api\base_object.py", line 44, in __init__
-    raise NotionValidationError(__failed_instance__)
-notion.exceptions.errors.NotionObjectNotFound:
-            <page_12345> instatiation failed validation:
-            id should be a valid uuid, instead was `'12345'`
-
-Error 404: Given the bearer token used, the resource does not exist. This error can also indicate that the resource has not been shared with owner of the bearer token.
-```
-
-```py
-homepage.patch_properties(payload={'an_incorrect_key':'value'})
-```
-
-```sh
-Traceback (most recent call last):
-    ...
+File "c:\path\to\file\_.py", line 6, in <module>
+    homepage.patch_properties(payload={'an_incorrect_key':'value'})
 File "c:\...\notion\exceptions\validate.py", line 48, in validate_response
     raise NotionValidationError(args)
 notion.exceptions.errors.NotionValidationError: body failed validation: body.an_incorrect_key should be not present, instead was `"value"`.
 Error 400: The request body does not match the schema for the expected parameters.
 ```
 
-A common error to look out for is `notion.exceptions.errors.NotionObjectNotFound`:  
-"Error 404: Given the bearer token used, the resource does not exist. This error can also indicate that the resource has not been shared with owner of the bearer token."
+Another common error to look out for is `notion.exceptions.errors.NotionObjectNotFound`:  
 
 This error will throw if your bot has not been added as a connection to the page.  
 <img src="assets\directory_add_connections.png">  
