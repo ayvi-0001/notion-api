@@ -15,7 +15,6 @@ from __future__ import annotations
 import typing
 
 from notion.core import build
-from notion.core.typedefs import BlockTypeObjects
 from notion.properties.files import Icon
 from notion.properties.files import Emoji
 from notion.properties.files import InternalFile
@@ -23,6 +22,7 @@ from notion.properties.files import ExternalFile
 from notion.properties.common import NotionURL
 from notion.properties.options import CodeEnum
 from notion.properties.options import ColorEnum
+from notion.core.typedefs import BlockTypeObjects
 from notion.properties.pagepropertyvalues import RichTextPropertyValue
 
 __all__: typing.Sequence[str] = (
@@ -31,9 +31,6 @@ __all__: typing.Sequence[str] = (
     "OriginalSyncedBlockType", 
     "ReferenceSyncedBlockType", 
     "ParagraphBlocktype", 
-    # "HeadingOneBlocktype", 
-    # "HeadingTwoBlocktype", 
-    # "HeadingThreeBlocktype", 
     "CalloutBlocktype", 
     "QuoteBlocktype", 
     "BulletedListItemBlocktype", 
@@ -53,6 +50,10 @@ __all__: typing.Sequence[str] = (
     "DividerBlocktype", 
     "TableOfContentsBlocktype", 
     "BreadcrumbBlocktype", 
+    # TODO
+    # "HeadingOneBlocktype", 
+    # "HeadingTwoBlocktype", 
+    # "HeadingThreeBlocktype", 
     # "ColumnList", 
     # "ColumnBlocktype", 
     # "LinkPreviewBlocktype", 
@@ -60,7 +61,7 @@ __all__: typing.Sequence[str] = (
     # "LinkToPageBlocktype", 
     # "TableBlocktype", 
     # "TableRowBlocktype"
-)
+    )
 
 
 class Children(build.NotionObject):
@@ -68,7 +69,6 @@ class Children(build.NotionObject):
     
     def __init__(self, array_of_block_type_objects: list[BlockTypeObjects]) -> None:
         super().__init__()
-
         self.set('children', array_of_block_type_objects)
 
 
@@ -77,9 +77,7 @@ class Caption(build.NotionObject):
     
     def __init__(self, rich_text_property: RichTextPropertyValue) -> None:
         super().__init__()
-
         self.set('caption', rich_text_property)
-
 
 
 class OriginalSyncedBlockType(build.NotionObject, BlockTypeObjects): 
@@ -105,11 +103,9 @@ class OriginalSyncedBlockType(build.NotionObject, BlockTypeObjects):
 
     def __init__(self, children: Children) -> None:
         super().__init__()
-
         self._synced_block = build.NotionObject()
         self._synced_block.set('synced_from', None)
         self._synced_block.set('children', children)
-
         self.set('type', 'synced_block')
         self.set('synced_block', self._synced_block)
 
@@ -133,14 +129,11 @@ class ReferenceSyncedBlockType(build.NotionObject, BlockTypeObjects):
 
     def __init__(self, block_id: str) -> None:
         super().__init__()
-
         self._synced_block = build.NotionObject()
         self._synced_block.set('type', 'block_id')
         self._synced_block.set('block_id', block_id)
-
         self._synced_from = build.NotionObject()
         self._synced_from.set('synced_from', self._synced_block)
-
         self.set('type', 'synced_block')
         self.set('synced_block', self._synced_from)
 
@@ -161,32 +154,11 @@ class ParagraphBlocktype(build.NotionObject, BlockTypeObjects):
     def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
                  /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-
         self.set('type', 'paragraph')
         self.set('paragraph', rich_text_object)
         self.set('color', block_color)
         self.set('children', children) if children else None
 
-
-# class HeadingOneBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__()
-
-
-# class HeadingTwoBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__()
-
-
-# class HeadingThreeBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__()
 
 
 class CalloutBlocktype(build.NotionObject, BlockTypeObjects): 
@@ -200,7 +172,6 @@ class CalloutBlocktype(build.NotionObject, BlockTypeObjects):
                  icon: Icon | Emoji | None = None, 
                  block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-
         self.set('type', 'callout')
         self.set('callout', rich_text_object)
         self.set('color', block_color)
@@ -215,7 +186,6 @@ class QuoteBlocktype(build.NotionObject, BlockTypeObjects):
     def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
                  /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-
         self.set('type', 'quote')
         self.set('quote', rich_text_object)
         self.set('color', block_color)
@@ -229,7 +199,6 @@ class BulletedListItemBlocktype(build.NotionObject, BlockTypeObjects):
     def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
                  /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-
         self.set('type', 'bulleted_list_item')
         self.set('bulleted_list_item', rich_text_object)
         self.set('color', block_color)
@@ -243,7 +212,6 @@ class NumberedListItemBlocktype(build.NotionObject, BlockTypeObjects):
     def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
                  /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-
         self.set('type', 'numbered_list_item')
         self.set('numbered_list_item', rich_text_object)
         self.set('color', block_color)
@@ -261,7 +229,6 @@ class ToDoBlocktype(build.NotionObject, BlockTypeObjects):
                  /, *, 
                  block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-
         self.set('type', 'to_do')
         self.set('to_do', rich_text_object)
         self.set('color', block_color)
@@ -276,7 +243,6 @@ class ToggleBlocktype(build.NotionObject, BlockTypeObjects):
     def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
                  /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-
         self.set('type', 'toggle')
         self.set('toggle', rich_text_object)
         self.set('color', block_color)
@@ -293,7 +259,6 @@ class CodeBlocktype(build.NotionObject, BlockTypeObjects):
                  caption: Caption | None = None, 
                  language: CodeEnum | None = None) -> None:
         super().__init__()
-
         self.set('type', 'code')
         self.set('code', rich_text_object)
         self.set('caption', caption) if caption else None
@@ -311,10 +276,8 @@ class ChildPageBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, page_title: str, /) -> None:
         super().__init__()
-
         self._page_title = build.NotionObject()
         self._page_title.set('title', page_title)
-        
         self.set('type', 'child_page')
         self.set('child_page', self._page_title)
 
@@ -330,10 +293,8 @@ class ChildDatabaseBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, database_title: str, /) -> None:
         super().__init__()
-
         self._database_title = build.NotionObject()
         self._database_title.set('title', database_title)
-        
         self.set('type', 'child_database')
         self.set('child_database', self._database_title)
 
@@ -365,9 +326,9 @@ class EmbedBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, embedded_url: str, /) -> None:
         super().__init__()
-
         self.set('type', 'embed')
         self.set('embed', NotionURL(embedded_url))
+
 
 class ImageBlocktype(build.NotionObject, BlockTypeObjects): 
     """Includes supported image urls 
@@ -382,7 +343,6 @@ class ImageBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, image: InternalFile | ExternalFile, /) -> None:
         super().__init__()
-
         self.set('type', 'image')
         self.set('image', image)
 
@@ -398,9 +358,9 @@ class VideoBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, video: InternalFile | ExternalFile, /) -> None:
         super().__init__()
-
         self.set('type', 'video')
         self.set('video', video)
+
 
 class FileBlocktype(build.NotionObject, BlockTypeObjects): 
     """https://developers.notion.com/reference/block#file-blocks"""
@@ -408,7 +368,6 @@ class FileBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, file: InternalFile | ExternalFile, /, *, caption: Caption) -> None:
         super().__init__()
-
         self.set('type', 'file')
         self.set('file', file)
         self.set('caption', caption) if caption else None
@@ -420,9 +379,9 @@ class PdfBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, pdf: InternalFile | ExternalFile, /) -> None:
         super().__init__()
-
         self.set('type', 'pdf')
         self.set('pdf', pdf)
+
 
 class BookmarkBlocktype(build.NotionObject, BlockTypeObjects): 
     """https://developers.notion.com/reference/block#bookmark-blocks"""
@@ -430,7 +389,6 @@ class BookmarkBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, bookmark: str, /, *, caption: Caption) -> None:
         super().__init__()
-
         self.set('type', 'bookmark')
         self.set('bookmark', NotionURL(bookmark))
         self.set('caption', caption) if caption else None
@@ -446,10 +404,8 @@ class EquationBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, expression: str) -> None:
         super().__init__()
-
         self._expression = build.NotionObject()
         self._expression.set('expression', expression)
-
         self.set('type', 'equation')
         self.set('equation', self._expression)
 
@@ -460,7 +416,6 @@ class DividerBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self) -> None:
         super().__init__()
-
         self.set('type', 'divider')
         self.set('divider', {})
 
@@ -471,10 +426,8 @@ class TableOfContentsBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self, color: ColorEnum | str | None = ColorEnum.default.value) -> None:
         super().__init__()
-        
         self._color = build.NotionObject()
         self._color.set('color', color)
-
         self.set('type', 'table_of_contents')
         self.set('table_of_contents', self._color)
 
@@ -485,10 +438,27 @@ class BreadcrumbBlocktype(build.NotionObject, BlockTypeObjects):
     
     def __init__(self) -> None:
         super().__init__()
-
         self.set('type', 'breadcrumb')
         self.set('breadcrumb', {})
 
+
+# class HeadingOneBlocktype(build.NotionObject, BlockTypeObjects): 
+#     __slots__: typing.Sequence[str] = ()
+    
+#     def __init__(self) -> None:
+#         super().__init__()
+
+# class HeadingTwoBlocktype(build.NotionObject, BlockTypeObjects): 
+#     __slots__: typing.Sequence[str] = ()
+    
+#     def __init__(self) -> None:
+#         super().__init__()
+
+# class HeadingThreeBlocktype(build.NotionObject, BlockTypeObjects): 
+#     __slots__: typing.Sequence[str] = ()
+    
+#     def __init__(self) -> None:
+#         super().__init__()
 
 # class ColumnList(build.NotionObject, BlockTypeObjects): 
 #     __slots__: typing.Sequence[str] = ()
@@ -502,13 +472,11 @@ class BreadcrumbBlocktype(build.NotionObject, BlockTypeObjects):
 #     def __init__(self) -> None: 
 #         super().__init__()
 
-
 # class LinkPreviewBlocktype(build.NotionObject, BlockTypeObjects): 
 #     __slots__: typing.Sequence[str] = ()
     
 #     def __init__(self) -> None:
 #         super().__init__()
-
 
 # class TemplateBlocktype(build.NotionObject, BlockTypeObjects): 
 #     __slots__: typing.Sequence[str] = ()
@@ -516,20 +484,17 @@ class BreadcrumbBlocktype(build.NotionObject, BlockTypeObjects):
 #     def __init__(self) -> None:
 #         super().__init__()
 
-
 # class LinkToPageBlocktype(build.NotionObject, BlockTypeObjects): 
 #     __slots__: typing.Sequence[str] = ()
     
 #     def __init__(self) -> None:
 #         super().__init__()
 
-
 # class TableBlocktype(build.NotionObject, BlockTypeObjects): 
 #     __slots__: typing.Sequence[str] = ()
     
 #     def __init__(self) -> None:
 #         super().__init__
-
 
 # class TableRowBlocktype(build.NotionObject, BlockTypeObjects): 
 #     __slots__: typing.Sequence[str] = ()

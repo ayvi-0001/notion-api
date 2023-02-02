@@ -9,6 +9,8 @@ __all__: typing.Sequence[str] = (
     "Cursor",
     )
 
+#TODO Description
+#TODO Move Caption
 
 class Parent(build.NotionObject):
     def __init__(self, id: str, /, *, type: str) -> None:
@@ -48,6 +50,3 @@ class Cursor(build.NotionObject):
     def __init__(self, id: str, /) -> None:
         super().__init__()
         self.set('next_cursor', id)
-
-#TODO Description
-#TODO Move Caption here

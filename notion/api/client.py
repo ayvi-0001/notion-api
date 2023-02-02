@@ -1,7 +1,6 @@
 from __future__ import annotations
 import os
 from typing import Sequence
-from typing import Literal
 from typing import TypeAlias
 
 import json
@@ -30,35 +29,54 @@ class _NotionClient:
                     assert token is not None, (
                 f"<{self.__class__.__name__}> Missing Token",
                 "Check if dotenv is configured and token is named 'NOTION_TOKEN'")
+        
+        __auth__ = f'Bearer {self.token}'
             
         self.headers: dict[str, str] = {
-            "Authorization": f'Bearer {self.token}',
+            "Authorization": __auth__,
             "Content-type": __content_type__,
             "Notion-Version": __notion_version__,
-        }
+            }
 
         if notion_version is not None:
             self.headers['Notion-Version'] = notion_version
         
-
     NotionEndpoint: TypeAlias = str
     @staticmethod
-    def _endpoint(type: Literal['blocks', 'databases', 'pages'], /, 
-                  *,
-                  object_id: str | None = None, 
-                  children: bool = False, 
-                  properties: bool = False,
-                  property_id: str | None = None,
-                  query: bool = False
-        ) -> NotionEndpoint:
-
-        object_id_ = '' if object_id is None else f'/{object_id}'
-        children_ = '' if children is False else '/children'
-        properties_ = '' if properties is False else '/properties'
-        property_id_ = '' if property_id is None else f'/{property_id}'
-        query_ = '' if query is False else '/query'
+    def _workspace_endpoint(*, users: bool = False, search: bool | None = None,
+                            user_id: str | None = None, me: bool | None = None) -> NotionEndpoint:
+        _search = 'search' if search else '' # search not yet implemented in subclasses
+        _users = 'users' if users else ''
+        _user_id = f'/{user_id}' if user_id else ''
+        _me = '/me' if me else ''
         
-        return f"{__base_url__}{type}{object_id_}{children_}{properties_}{property_id_}{query_}"
+        return f"{__base_url__}{_search}{_users}{_user_id}{_me}"
+
+    @staticmethod
+    def _block_endpoint(object_id: str | None = None, /, 
+                        *, children: bool | None = None) -> NotionEndpoint:
+        _object_id = f'/{object_id}' if object_id else ''
+        _children = '/children' if children else ''
+        
+        return f"{__base_url__}blocks{_object_id}{_children}"
+
+    @staticmethod
+    def _database_endpoint(object_id: str | None = None, /, 
+                           *, query: bool = False) -> NotionEndpoint:
+        _object_id = f'/{object_id}' if object_id else ''
+        _query = '/query' if query else ''
+
+        return f"{__base_url__}databases{_object_id}{_query}"
+
+    @staticmethod
+    def _pages_endpoint(object_id: str | None = None, /, *, properties: bool = False, 
+                        property_id: str | None = None,) -> NotionEndpoint:
+        _object_id = f'/{object_id}' if object_id else ''
+        _properties = '/properties' if properties else ''
+        _property_id = f'/{property_id}' if property_id else ''
+        
+        return f"{__base_url__}pages{_object_id}{_properties}{_property_id}"
+
 
     def _get(self, url: NotionEndpoint, /, 
              *, payload: JSONObject | JSONPayload | None = None) -> JSONObject:
@@ -68,7 +86,7 @@ class _NotionClient:
             if isinstance(payload, dict):
                 payload = json.dumps(payload)
             response = requests.post(url, headers=self.headers, json=payload)
-
+        
         content = json.loads(response.text)
         validate_response(content)
         return content
@@ -81,6 +99,7 @@ class _NotionClient:
             if isinstance(payload, dict):
                 payload = json.dumps(payload)
             response = requests.post(url, headers=self.headers, data=payload)
+        
         content = json.loads(response.text)
         validate_response(content)
         return content
@@ -90,12 +109,14 @@ class _NotionClient:
         if isinstance(payload, dict):
             payload = json.dumps(payload)
         response = requests.patch(url, headers=self.headers, data=payload)
+        
         content = json.loads(response.text)
         validate_response(content)
         return content
 
     def _delete(self, url: NotionEndpoint, /) -> JSONObject:
         response = requests.delete(url, headers=self.headers)
+        
         content = json.loads(response.text)
         validate_response(content)
         return content

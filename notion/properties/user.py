@@ -7,12 +7,11 @@ __all__: typing.Sequence[str] = ["UserObject"]
 
 
 class UserObject(build.NotionObject):
-    __slots__: typing.Sequence[str] = ('_user', '_person', '_person_email', )
     """ 
     The User object represents a user in a Notion workspace. Users include full workspace members, and integrations. 
     Guests are not included.
     ---
-    :param user: (auto) Always "user"
+    :param user: Always "user"
     :param id: (required) Unique identifier for this user. *Always present
     :param type: Type of the user. Possible values are "person" and "bot"
     :param name: (optional) User's name, as displayed in Notion.
@@ -31,11 +30,13 @@ class UserObject(build.NotionObject):
     ---
     All parameters are display-only and cannot be updated in Notion.
     Parameters marked with * are always present in object.
+    ---
     https://developers.notion.com/reference/user
     """
+    __slots__: typing.Sequence[str] = ('_user', '_person', '_person_email', )
+
     def __init__(self, id: str, /, *, name: str | None = None, avatar_url: str | None = None, 
-                 person_email: str | None = None, type: str | typing.Literal['person', 'bot']
-                 ) -> None:
+                 person_email: str | None = None, type: str) -> None:
         super().__init__()
         
         self._HAS_TYPE = False
@@ -47,6 +48,7 @@ class UserObject(build.NotionObject):
         self.set('type', 'user')
 
         self._user = build.NotionObject()
+
         if self._HAS_TYPE is True:
             self._user.set('type', type)
 
@@ -67,4 +69,5 @@ class UserObject(build.NotionObject):
         cls._HAS_TYPE=True
         return cls(id, name=name, person_email=person_email, type=type)
 
-#TODO add bot type user
+    # @classmethod #TODO
+    # def bot(...)

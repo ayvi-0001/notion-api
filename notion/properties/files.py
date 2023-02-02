@@ -19,6 +19,8 @@ __all__: typing.Sequence[str] = (
     "InternalFile"
     )
 
+# TODO emoji
+# TODO cover
 
 class FilesPropertyValue(build.NotionObject, PagePropertyValue):
     """When updating a file property, the value is overwritten by the array of files passed.
@@ -63,7 +65,6 @@ class Icon(build.NotionObject):
 
         self.set('icon', _icon)
 
-# TODO add emoji to icon + split to classmethods
 
 class Emoji(build.NotionObject):
     """https://developers.notion.com/reference/emoji-object"""

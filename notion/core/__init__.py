@@ -6,7 +6,6 @@ from notion.core.build import *
 logging.basicConfig(level=logging.INFO)
 
 notion_logger = logging.getLogger("notion-api")
-
 page_logger = notion_logger.getChild("notion-page")
 database_logger = notion_logger.getChild("notion-database")
 block_logger = notion_logger.getChild("notion-block")

@@ -3,10 +3,6 @@ import typing
 import json
 
 from notion.core.typedefs import *
-from notion.core.typedefs import DateISO8601
-from notion.core.typedefs import PagePropertyValue
-from notion.core.typedefs import PropertyObject
-from notion.core.typedefs import BlockTypeObjects
 
 __all__: typing.Sequence[str] = ('NotionObject', 'request_json')
 
@@ -15,24 +11,25 @@ T_co = typing.TypeVar("T_co", covariant=True)
 
 
 @typing.overload
-def request_json(*objects: PagePropertyValue, final: dict[str, JSONish] = {}) -> JSONObject: ...
+def request_json(*objects: PagePropertyValue) -> JSONObject: ...
 @typing.overload
-def request_json(*objects: PropertyObject, final: dict[str, JSONish] = {}) -> JSONObject: ...
+def request_json(*objects: PropertyObject) -> JSONObject: ...
 @typing.overload
-def request_json(*objects: BlockTypeObjects, final: dict[str, JSONish] = {}) -> JSONObject: ...
+def request_json(*objects: BlockTypeObjects) -> JSONObject: ...
 @typing.overload
-def request_json(*objects: DateISO8601, final: dict[str, JSONish] = {}) -> JSONObject: ...
+def request_json(*objects: DateISO8601) -> JSONObject: ...
 @typing.overload
-def request_json(*objects: JSONObject, final: dict[str, JSONish] = {}) -> JSONObject: ...
+def request_json(*objects: JSONObject) -> JSONObject: ...
 @typing.overload
-def request_json(*objects: JSONish, final: dict[str, JSONish] = {}) -> JSONObject: ...
+def request_json(*objects: JSONish) -> JSONObject: ...
 @typing.overload
-def request_json(*objects: JSONPayload, final: dict[str, JSONish] = {}) -> JSONObject: ...
+def request_json(*objects: JSONPayload) -> JSONObject: ...
 
-def request_json(*objects, final = {})  -> JSONish:
-	{final.update(x) for x in objects}
-	return json.dumps(final, indent=4)
-
+def request_json(*objects) -> JSONish:
+    final: dict = {}
+    for x in objects:
+        final.update(x)
+    return json.dumps(final, indent=4)
 
 class NotionObject(typing.Dict[str, JSONish]):
     __slots__: typing.Sequence[str] = ()

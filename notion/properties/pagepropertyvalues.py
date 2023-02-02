@@ -38,9 +38,6 @@ from notion.properties.user import UserObject
 from notion.properties.common import NotionUUID
 from notion.core.typedefs import PagePropertyValue
 
-if typing.TYPE_CHECKING:
-    from notion.core.typedefs import DateISO8601
-
 __all__: typing.Sequence[str] = (
     "RichTextPropertyValue",
     "TitlePropertyValue",
@@ -105,7 +102,6 @@ class RichTextPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'rich_text')
         self.set('rich_text', array_of_rich_text)
@@ -120,15 +116,11 @@ class TitlePropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, title: list[RichText], /, *, property_name: str | None = None) -> None:
+    def __init__(self, title_: list[RichText], /) -> None:
         super().__init__()
-        if property_name:
-            self.name = property_name
-            self.set('name', self.name)
 
-        self.set('type', 'title')
-        self.setdefault('title', [])
-        self.set('title', title)
+        self.name = 'title'
+        self.set_array(self.name, title_)
 
 
 class DatePropertyValue(build.NotionObject, PagePropertyValue):
@@ -145,21 +137,28 @@ class DatePropertyValue(build.NotionObject, PagePropertyValue):
     https://developers.notion.com/reference/page-property-values#date
     """
     __slots__: typing.Sequence[str] = ('name', '_date')
-    
-    def __init__(self, start: str | datetime, end: str | DateISO8601 | None = None, 
-                 /, *, property_name: str | None = None) -> None:
+
+    @typing.overload
+    def __init__(self, /, *, start: str, end: str | None = None, 
+                 property_name: str | None = None) -> None: ...
+    @typing.overload
+    def __init__(self, /, *, start: datetime, end: datetime | None = None, 
+                 property_name: str | None = None) -> None: ...
+
+    def __init__(self, /, *, start: typing.Any, end: typing.Any | None = None, 
+                 property_name: typing.Any | None = None) -> None:
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         if isinstance(start, datetime):
             start = start.isoformat()
-        if isinstance(end, datetime):
-            end = end.isoformat()
+        if end:
+            if isinstance(end, datetime):
+                end = end.isoformat()
 
         self._date = build.NotionObject()
-        self._date.set('start', start)
+        self._date.set('start', start) 
         self._date.set('end', end)
         self.set('date', self._date)
 
@@ -183,12 +182,11 @@ class RelationPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'relation')
         self.setdefault('relation', [])
-        self.set('relation', related_ids)
-        self.setdefault('has_more', False)
+        self.set('relation', [x for x in related_ids][0])
+
         if has_more:
             self.set('has_more', True)
 
@@ -207,7 +205,6 @@ class StatusPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'status')
         self.set('status', status_option)
@@ -231,7 +228,6 @@ class SelectPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'select')
         self.set('select', select_option)
@@ -257,7 +253,6 @@ class MultiSelectPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'multi_select')
         self.set('multi_select', array_of_options)
@@ -276,7 +271,6 @@ class CheckboxPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'checkbox')
         self.set('checkbox', checkbox_value)
@@ -299,7 +293,6 @@ class PeoplePropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'people')
         self.set('people', array_of_users)
@@ -328,7 +321,6 @@ class RollupPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self._function = build.NotionObject()
         self._function.set('function', function)
@@ -345,7 +337,6 @@ class EmailPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'email')
         self.set('email', email)
@@ -359,7 +350,6 @@ class NumberPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'number')
         self.set('number', number)
@@ -377,7 +367,6 @@ class PhoneNumberPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'phone_number')
         self.set('phone_number', phone_number)
@@ -391,7 +380,6 @@ class URLPropertyValue(build.NotionObject, PagePropertyValue):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'url')
         self.set('url', url)

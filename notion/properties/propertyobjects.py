@@ -29,7 +29,7 @@ __all__: typing.Sequence[str] = (
     "MultiSelectPropertObject",
     "SelectPropertObject",
     "StatusPropertyObject",
-    "NumberPropertObject",
+    "NumberPropertyObject",
     "FormulaPropertyObject",
     "CheckboxPropertyObject",
     "PeoplePropertyObject",
@@ -48,8 +48,31 @@ __all__: typing.Sequence[str] = (
     )
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ~~~~~       Single/Dual Related Properties       ~~~~~
+class TitlePropertyObject(build.NotionObject, PropertyObject):
+    """A title database property controls the title that appears at the top of a page when a 
+    database row is opened. The title type object itself is empty; there is no additional configuration.
+
+    NOTE: All databases require one, and only one, title property.
+          The API throws errors if you send a request to Create a database without a title property, 
+          or if you attempt to Update a database to add or remove a title property.
+    ---
+    ### Title database property vs. database title
+    A title database property is a type of column in a database.
+    A database title defines the title of the database and is found on the database object.
+    Every database requires both a database title and a title database property.
+    ---
+    https://developers.notion.com/reference/property-object#title
+    """
+    __slots__: typing.Sequence[str] = ('name')
+    
+    def __init__(self, property_name: str, /) -> None:
+        super().__init__()
+        if property_name:
+            self.name = property_name
+
+        self.set('type', 'title')
+        self.set('title', {})
+
 
 class _Dual_Property(build.NotionObject, PropertyObject):
     __slots__: typing.Sequence[str] = ('name', '_property')
@@ -64,6 +87,7 @@ class _Dual_Property(build.NotionObject, PropertyObject):
         self.set('type', 'dual_property')
         self.set('dual_property', self._property)
 
+
 class _Single_Property(build.NotionObject, PropertyObject):
     __slots__: typing.Sequence[str] = ()
 
@@ -73,6 +97,7 @@ class _Single_Property(build.NotionObject, PropertyObject):
         self.set('database_id', database_id)
         self.set('type', 'single_property')
         self.set('single_property', {})
+
 
 class RelationPropertyObject(build.NotionObject, PropertyObject):
     """Use either classmethod: `dual`/`single`
@@ -85,7 +110,6 @@ class RelationPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self._related_to_: build.NotionObject | _Dual_Property | _Single_Property
 
@@ -118,8 +142,6 @@ class RelationPropertyObject(build.NotionObject, PropertyObject):
         return cls(database_id=database_id, 
                    property_name=property_name)
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ~~~~~ Select/Multi Select/Status: Options/Groups ~~~~~
 
 class Option(build.NotionObject, PropertyObject):
     """
@@ -131,11 +153,13 @@ class Option(build.NotionObject, PropertyObject):
     """
     __slots__: typing.Sequence[str] = ()
 
-    def __init__(self, option_name: str, color: PropertyColors | str, /) -> None:
+    def __init__(self, option_name: str, color: PropertyColors | str | None = None, /) -> None:
         super().__init__()
 
         self.set('name', option_name)
-        self.set('color', color)
+        if color:
+            self.set('color', color)
+
 
 class Group(build.NotionObject, PropertyObject):
     """
@@ -147,11 +171,13 @@ class Group(build.NotionObject, PropertyObject):
     """
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, group_name: str, color: PropertyColors | str, /) -> None:
+    def __init__(self, group_name: str, color: PropertyColors | str | None = None, /) -> None:
         super().__init__()
 
         self.set('name', group_name)
-        self.set('color', color)
+        if color:
+            self.set('color', color)
+
 
 class StatusOptions(build.NotionObject, PropertyObject):
     """This class is only used when describing the database schema for a Status-type property,
@@ -164,6 +190,7 @@ class StatusOptions(build.NotionObject, PropertyObject):
         super().__init__()
         self.set('options', options)
 
+
 class StatusGroups(build.NotionObject, PropertyObject):
     """This class is only used when describing the database schema for a Status-type property,
     which requires the key `groups` before the array of individual groups. The page property value
@@ -175,7 +202,6 @@ class StatusGroups(build.NotionObject, PropertyObject):
         super().__init__()
         self.set('groups', groups)
 
-# ~~~~~                                            ~~~~~
 
 class MultiSelectPropertObject(build.NotionObject, PropertyObject):
     """https://developers.notion.com/reference/property-object#multi-select"""
@@ -185,7 +211,6 @@ class MultiSelectPropertObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self._options = build.NotionObject()
         self._options.set('options', options)
@@ -202,7 +227,6 @@ class SelectPropertObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self._options = build.NotionObject()
         self._options.set('options', options)
@@ -222,7 +246,6 @@ class StatusPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self._config = build.NotionObject()
         self._config.set('groups', groups)
@@ -231,17 +254,15 @@ class StatusPropertyObject(build.NotionObject, PropertyObject):
         self.set('type', 'select')
         self.set('status', self._config)
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class NumberPropertObject(build.NotionObject, PropertyObject):
+class NumberPropertyObject(build.NotionObject, PropertyObject):
     """https://developers.notion.com/reference/property-object#number"""
     __slots__: typing.Sequence[str] = ('name', '_format')
     
-    def __init__(self, format: NumberEnum, /, *, property_name: str | None = None) -> None:
+    def __init__(self, format: NumberEnum | str, /, *, property_name: str | None = None) -> None:
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self._format = build.NotionObject()
         self._format.set('format', format)
@@ -264,7 +285,6 @@ class FormulaPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self._formula = build.NotionObject()
         self._formula.set('expression', expression)
@@ -272,8 +292,6 @@ class FormulaPropertyObject(build.NotionObject, PropertyObject):
         self.set('type', 'formula')
         self.set('formula', self._formula)
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ~~~~~   Property Objects - No Additional Config  ~~~~~
 
 class CheckboxPropertyObject(build.NotionObject, PropertyObject):
     __slots__: typing.Sequence[str] = ('name')
@@ -282,7 +300,6 @@ class CheckboxPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'checkbox')
         self.set('checkbox', {})
@@ -296,7 +313,6 @@ class PeoplePropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'people')
         self.set('people', {})
@@ -310,7 +326,6 @@ class PhoneNumberPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'phone_number')
         self.set('phone_number', {})
@@ -324,7 +339,6 @@ class RichTextPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'rich_text')
         self.set('rich_text', {})
@@ -338,7 +352,6 @@ class CreatedTimePropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'created_time')
         self.set('created_time', {})
@@ -351,7 +364,6 @@ class CreatedByPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'created_by')
         self.set('created_by', {})
@@ -365,7 +377,6 @@ class LastEditedTimePropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'last_edited_time')
         self.set('last_edited_time', {})
@@ -379,7 +390,6 @@ class LastEditedByPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'last_edited_by')
         self.set('last_edited_by', {})
@@ -393,7 +403,6 @@ class DatePropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'date')
         self.set('date', {})
@@ -407,7 +416,6 @@ class EmailPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'email')
         self.set('email', {})
@@ -421,38 +429,10 @@ class FilesPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'files')
         self.set('files', {})
-        
-
-class TitlePropertyObject(build.NotionObject, PropertyObject):
-    """A title database property controls the title that appears at the top of a page when a 
-    database row is opened. The title type object itself is empty; there is no additional configuration.
-
-    NOTE: All databases require one, and only one, title property.
-          The API throws errors if you send a request to Create a database without a title property, 
-          or if you attempt to Update a database to add or remove a title property.
-    ---
-    ### Title database property vs. database title
-    A title database property is a type of column in a database.
-    A database title defines the title of the database and is found on the database object.
-    Every database requires both a database title and a title database property.
-    ---
-    https://developers.notion.com/reference/property-object#title
-    """
-    __slots__: typing.Sequence[str] = ('name')
     
-    def __init__(self, property_name: str, /) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-            self.set('name', self.name)
-
-        self.set('type', 'title')
-        self.set('title', {})
-
 
 class URLPropertyObject(build.NotionObject, PropertyObject):
     """https://developers.notion.com/reference/property-object#url"""
@@ -462,15 +442,10 @@ class URLPropertyObject(build.NotionObject, PropertyObject):
         super().__init__()
         if property_name:
             self.name = property_name
-            self.set('name', self.name)
 
         self.set('type', 'url')
         self.set('url', {})
 
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# from ... import FunctionsEnum
 
 # class RollupPropertyObject(build.NotionObject, PropertyObject):
 #     """https://developers.notion.com/reference/property-object#rollup"""
@@ -488,5 +463,4 @@ class URLPropertyObject(build.NotionObject, PropertyObject):
 
 #         if property_name:
 #             self.name = property_name
-#             self.set('name', self.name)
 

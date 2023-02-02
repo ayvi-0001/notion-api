@@ -32,7 +32,7 @@ def validate_response(response: JSONObject | typing.Mapping[str, typing.Any]) ->
       File "c:\path\to\file\_.py", line 212, in <module>
         check_exceptions(response)
       File "c:\path\to\file\_.py", line 186, in check_exceptions
-        raise NotionValidationError(args)
+        raise NotionValidationError(message)
     notion.exceptions.errors.NotionValidationError: path failed validation: path.page_id should be a valid uuid, instead was `"12345"`.
     Error 400:
     The request body does not match the schema for the expected parameters.    
@@ -42,34 +42,34 @@ def validate_response(response: JSONObject | typing.Mapping[str, typing.Any]) ->
     """
     if 'error' in response.values():
         code = response['code']    
-        args = response['message']
+        message = response['message']
 
         if "invalid_json" in code:
-            raise NotionInvalidJson(args)
+            raise NotionInvalidJson(message)
         if "invalid_request_url" in code:
-            raise NotionInvalidRequestUrl(args)
+            raise NotionInvalidRequestUrl(message)
         if "invalid_request" in code:
-            raise NotionInvalidRequest(args)
+            raise NotionInvalidRequest(message)
         if "validation_error" in code:
-            raise NotionValidationError(args)
+            raise NotionValidationError(message)
         if "missing_version" in code:
-            raise NotionMissingVersion(args)
+            raise NotionMissingVersion(message)
         if "unauthorized" in code:
-            raise NotionUnauthorized(args)
+            raise NotionUnauthorized(message)
         if "restricted_resource" in code:
-            raise NotionRestrictedResource(args)
+            raise NotionRestrictedResource(message)
         if "object_not_found" in code:
-            raise NotionObjectNotFound(args)
+            raise NotionObjectNotFound(message)
         if "conflict_error" in code:
-            raise NotionConflictError(args)
+            raise NotionConflictError(message)
         if "rate_limited" in code:
-            raise NotionRateLimited(args)
+            raise NotionRateLimited(message)
         if "internal_server_error" in code:
-            raise NotionInternalServerError(args)
+            raise NotionInternalServerError(message)
         if "service_unavailable" in code:
-            raise NotionServiceUnavailable(args)
+            raise NotionServiceUnavailable(message)
         if "database_connection_unavailable" in code:
-            raise NotionDatabaseConnectionUnavailable(args)
+            raise NotionDatabaseConnectionUnavailable(message)
     else:
         pass
     return None

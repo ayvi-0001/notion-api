@@ -24,7 +24,7 @@ __all__: typing.Sequence[str] = (
 class RichText(build.NotionObject):
     __slots__: typing.Sequence[str] = ('_text')
 
-    def __init__(self, content: str, /, *, link: str | None = None, 
+    def __init__(self, content: str | None = None, /, *, link: str | None = None, 
                  annotations: Annotations | None = None) -> None:
         super().__init__()
 
