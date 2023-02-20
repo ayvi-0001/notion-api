@@ -32,7 +32,7 @@ from datetime import datetime
 
 from notion.core import build
 from notion.properties.propertyobjects import Option
-from notion.properties.options import FunctionsEnum
+from notion.properties.options import NotionFunctionFormats
 from notion.properties.richtext import RichText
 from notion.properties.user import UserObject
 from notion.properties.common import NotionUUID
@@ -53,10 +53,10 @@ __all__: typing.Sequence[str] = (
     "NumberPropertyValue",
     "PhoneNumberPropertyValue",
     "URLPropertyValue",
-    )
+)
 
 
-class RichTextPropertyValue(build.NotionObject, PagePropertyValue):
+class RichTextPropertyValue(PagePropertyValue, build.NotionObject):
     r"""The purpose of the rich text property value is to provide the key `rich_text`, whereas the object
     `notion.properties.RichText` has the key `text`. 
     ---
@@ -98,16 +98,13 @@ class RichTextPropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, array_of_rich_text: list[RichText], /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, array_of_rich_text: list[RichText], /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'rich_text')
         self.set('rich_text', array_of_rich_text)
 
 
-class TitlePropertyValue(build.NotionObject, PagePropertyValue):
+class TitlePropertyValue(PagePropertyValue, build.NotionObject):
     """
     (required)
     :param title: An array of rich text objects: `notion.properties.RichText`
@@ -117,53 +114,40 @@ class TitlePropertyValue(build.NotionObject, PagePropertyValue):
     __slots__: typing.Sequence[str] = ('name')
 
     def __init__(self, title_: list[RichText], /) -> None:
-        super().__init__()
-
-        self.name = 'title'
+        super().__init__(property_name='title')
         self.set_array(self.name, title_)
 
 
-class DatePropertyValue(build.NotionObject, PagePropertyValue):
+class DatePropertyValue(PagePropertyValue, build.NotionObject):
     """Notion uses ISO 8601 date and time for some endpoints, and YYYY/MM/DD for others.
     If a datetime object is passed to either parameter, they'll be converted to isoformat.
     ---
-    (required)
-    :param start: A date, with an optional time. If the "date" value is a range, then start represents the start of the range.
-    ---
-    (optional)
-    :param end: A string representing the end of a date range. If the value is null, then the date value is not a range. 
+    :param start: (required) A date, with an optional time. If the "date" value is a range, then start represents the start of the range.
+    :param end: (optional) A string representing the end of a date range. If the value is null, then the date value is not a range. 
     
     ---
     https://developers.notion.com/reference/page-property-values#date
     """
-    __slots__: typing.Sequence[str] = ('name', '_date')
+    __slots__: typing.Sequence[str] = ('name')
 
     @typing.overload
-    def __init__(self, /, *, start: str, end: str | None = None, 
-                 property_name: str | None = None) -> None: ...
+    def __init__(self, property_name: str, /, *, start: str, end: str | None = None) -> None: ...
     @typing.overload
-    def __init__(self, /, *, start: datetime, end: datetime | None = None, 
-                 property_name: str | None = None) -> None: ...
+    def __init__(self, property_name: str, /, *, start: datetime, end: datetime | None = None) -> None: ...
 
-    def __init__(self, /, *, start: typing.Any, end: typing.Any | None = None, 
-                 property_name: typing.Any | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
+    def __init__(self, property_name: str, /, *, start, end=None) -> None:
+        super().__init__(property_name=property_name)
 
         if isinstance(start, datetime):
             start = start.isoformat()
-        if end:
-            if isinstance(end, datetime):
-                end = end.isoformat()
+        self.nest('date', 'start', start)
 
-        self._date = build.NotionObject()
-        self._date.set('start', start) 
-        self._date.set('end', end)
-        self.set('date', self._date)
+        if end and isinstance(end, datetime):
+            end = end.isoformat()
+            self.nest('date', 'end', end)
 
 
-class RelationPropertyValue(build.NotionObject, PagePropertyValue):
+class RelationPropertyValue(PagePropertyValue, build.NotionObject):
     """NOTE: updating a relation property value with an empty array will clear the list.
     (required)
     :param related_ids: An array of related page references. 
@@ -178,20 +162,15 @@ class RelationPropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, *related_ids: list[NotionUUID], property_name: str | None = None, has_more: bool | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, *related_ids: list[NotionUUID], has_more: bool | None = None) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'relation')
-        self.setdefault('relation', [])
         self.set('relation', [x for x in related_ids][0])
-
         if has_more:
             self.set('has_more', True)
 
 
-class StatusPropertyValue(build.NotionObject, PagePropertyValue):
+class StatusPropertyValue(PagePropertyValue, build.NotionObject):
     """
     (required)
     :param status_option: a single status option: `notion.properties.Option` 
@@ -201,16 +180,13 @@ class StatusPropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, status_option: Option, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, status_option: Option, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'status')
         self.set('status', status_option)
 
 
-class SelectPropertyValue(build.NotionObject, PagePropertyValue):
+class SelectPropertyValue(PagePropertyValue, build.NotionObject):
     """When selecting options, If the select database property does not yet have an option by the input name, 
     then the name will be added to the database schema if the integration also has write access to the parent database.
 
@@ -224,16 +200,13 @@ class SelectPropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, select_option: Option, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, select_option: Option, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'select')
         self.set('select', select_option)
 
 
-class MultiSelectPropertyValue(build.NotionObject, PagePropertyValue):
+class MultiSelectPropertyValue(PagePropertyValue, build.NotionObject):
     """The MultiSelectPropertyValue contains an array of `notion.properties.Option` objects.
 
     When selecting options, If the multi-select database property does not yet have an option by the input name, 
@@ -249,16 +222,13 @@ class MultiSelectPropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, array_of_options: list[Option], /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, array_of_options: list[Option], /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'multi_select')
         self.set('multi_select', array_of_options)
 
 
-class CheckboxPropertyValue(build.NotionObject, PagePropertyValue):
+class CheckboxPropertyValue(PagePropertyValue, build.NotionObject):
     """
     (required)
     :param checkbox_value: Whether the checkbox is checked (true) or unchecked (false).
@@ -267,16 +237,13 @@ class CheckboxPropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
     
-    def __init__(self, checkbox_value: bool, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, checkbox_value: bool, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'checkbox')
         self.set('checkbox', checkbox_value)
 
 
-class PeoplePropertyValue(build.NotionObject, PagePropertyValue):
+class PeoplePropertyValue(PagePropertyValue, build.NotionObject):
     """
     (required)
     :param array_of_users: An array of user objects.
@@ -289,19 +256,16 @@ class PeoplePropertyValue(build.NotionObject, PagePropertyValue):
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, array_of_users: list[UserObject], /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, array_of_users: list[UserObject], /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'people')
         self.set('people', array_of_users)
 
 
-class RollupPropertyValue(build.NotionObject, PagePropertyValue):
+class RollupPropertyValue(PagePropertyValue, build.NotionObject):
     """
     (required)
-    :param function: `notion.properties.FunctionsEnum`, function to update property to.
+    :param function: `notion.properties.NotionFunctionFormats`, function to update property to.
     ---
     If the results of the rollup is a date (e.g. function = latest date), the results
     will be a DatePropertyValue.
@@ -312,50 +276,39 @@ class RollupPropertyValue(build.NotionObject, PagePropertyValue):
     and key 'array' containing a list of values.
     
     NOTE: Only the function key can be updated via the API.
+    
     ---
     https://developers.notion.com/reference/page-property-values#rollup
     """
-    __slots__: typing.Sequence[str] = ('name', '_function')
+    __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, function: FunctionsEnum, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
-        self._function = build.NotionObject()
-        self._function.set('function', function)
-
+    def __init__(self, property_name: str, function: NotionFunctionFormats, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'rollup')
-        self.set('rollup', self._function)
+        self.nest('rollup', 'function', function)
 
 
-class EmailPropertyValue(build.NotionObject, PagePropertyValue):
+class EmailPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#email"""
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, email: str, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, email: str, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'email')
         self.set('email', email)
 
 
-class NumberPropertyValue(build.NotionObject, PagePropertyValue):
+class NumberPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#number"""
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, number: float, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, number: float, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'number')
         self.set('number', number)
 
 
-class PhoneNumberPropertyValue(build.NotionObject, PagePropertyValue):
+class PhoneNumberPropertyValue(PagePropertyValue, build.NotionObject):
     """
     (required)
     :param phone_number: A string representing a phone number. No phone number format is enforced.
@@ -363,23 +316,17 @@ class PhoneNumberPropertyValue(build.NotionObject, PagePropertyValue):
     https://developers.notion.com/reference/page-property-values#phone-number"""
     __slots__: typing.Sequence[str] = ('name')
     
-    def __init__(self, phone_number: float, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, phone_number: str, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'phone_number')
         self.set('phone_number', phone_number)
 
 
-class URLPropertyValue(build.NotionObject, PagePropertyValue):
+class URLPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#url"""
     __slots__: typing.Sequence[str] = ('name')
     
-    def __init__(self, url: str, /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-
+    def __init__(self, property_name: str, url: str, /) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'url')
         self.set('url', url)

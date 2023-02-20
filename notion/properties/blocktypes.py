@@ -1,36 +1,20 @@
-""" 
-A block object represents content within Notion. Blocks can be text, lists, media, and more. A page is a type of block, too.
-Some blocks have more content nested inside them. Some examples are indented paragraphs, lists, and toggles. 
-The nested content is called children, and children are blocks, too.
-
-Block types that support children
-Block types which support children are:
-    "paragraph", "bulleted_list_item", "numbered_list_item", "toggle", "to_do", "quote", "callout", 
-    "synced_block", "template", "column", "child_page", "child_database", and "table". 
-    All heading blocks ("heading_1", "heading_2", and "heading_3") support children when the is_toggleable property is true.
----
-https://developers.notion.com/reference/block
-"""
-from __future__ import annotations
 import typing
 
 from notion.core import build
-from notion.properties.files import Icon
-from notion.properties.files import Emoji
-from notion.properties.files import InternalFile
 from notion.properties.files import ExternalFile
 from notion.properties.common import NotionURL
-from notion.properties.options import CodeEnum
-from notion.properties.options import ColorEnum
-from notion.core.typedefs import BlockTypeObjects
-from notion.properties.pagepropertyvalues import RichTextPropertyValue
+from notion.properties.options import NotionCodeLang
+from notion.properties.options import NotionColors
+from notion.properties.pagepropertyvalues import RichText
+
+# See docs in `notion.api.blockwrite` for info on block types.
 
 __all__: typing.Sequence[str] = (
     "Children", 
-    "Caption", 
     "OriginalSyncedBlockType", 
     "ReferenceSyncedBlockType", 
     "ParagraphBlocktype", 
+    "NewLineBreak", 
     "CalloutBlocktype", 
     "QuoteBlocktype", 
     "BulletedListItemBlocktype", 
@@ -38,290 +22,185 @@ __all__: typing.Sequence[str] = (
     "ToDoBlocktype", 
     "ToggleBlocktype", 
     "CodeBlocktype", 
-    "ChildPageBlocktype", 
-    "ChildDatabaseBlocktype", 
     "EmbedBlocktype", 
-    "ImageBlocktype", 
-    "VideoBlocktype", 
-    "FileBlocktype", 
-    "PdfBlocktype", 
     "BookmarkBlocktype", 
     "EquationBlocktype", 
-    "DividerBlocktype", 
     "TableOfContentsBlocktype", 
-    "BreadcrumbBlocktype", 
-    # TODO
-    # "HeadingOneBlocktype", 
-    # "HeadingTwoBlocktype", 
-    # "HeadingThreeBlocktype", 
-    # "ColumnList", 
-    # "ColumnBlocktype", 
-    # "LinkPreviewBlocktype", 
-    # "TemplateBlocktype", 
-    # "LinkToPageBlocktype", 
-    # "TableBlocktype", 
-    # "TableRowBlocktype"
-    )
+    "DividerBlock", 
+    "BreadcrumbBlock", 
+    "Heading1BlockType", 
+    "Heading2BlockType", 
+    "Heading3BlockType", 
+    "LinkToPageBlockType", 
+)
+
+
+BreadcrumbBlock = {"type":"breadcrumb","breadcrumb":{}}
+DividerBlock = {"type":"divider","divider":{}}
 
 
 class Children(build.NotionObject):
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, array_of_block_type_objects: list[BlockTypeObjects]) -> None:
+    def __init__(self, 
+        array_of_block_type_objects: list[build.NotionObject | typing.Mapping] | list[None] = []
+        ) -> None:
         super().__init__()
         self.set('children', array_of_block_type_objects)
 
 
-class Caption(build.NotionObject):
+class OriginalSyncedBlockType(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
-    
-    def __init__(self, rich_text_property: RichTextPropertyValue) -> None:
+
+    def __init__(self, children = []) -> None:
         super().__init__()
-        self.set('caption', rich_text_property)
-
-
-class OriginalSyncedBlockType(build.NotionObject, BlockTypeObjects): 
-    """Similar to the UI, there are two versions of a synced_block -- 
-    the original block that was created first and doesn't yet sync with anything else, 
-    and the reference blocks that are synced to the original synced block.
-    
-    ### Original Synced Block
-    To create a synced_block, the developer needs to create an original synced block. 
-    Developers will be able to identify the original synced_block because it does not 
-    "sync_from" any other block (synced_from property is set to null).
-    
-    Note that all of the blocks available to be synced in another synced_block must be captured in the children property.
-    
-    ---
-    :param synced_from: Value is always null to signify that this is an original synced block and that is not referring to another block
-    :param children: Any nested children blocks of the synced_block block. 
-                     These blocks will be synced across this block and references to this synced_block
-    ---
-    https://developers.notion.com/reference/block#synced-block-blocks
-    """
-    __slots__: typing.Sequence[str] = ('_synced_block')
-
-    def __init__(self, children: Children) -> None:
-        super().__init__()
-        self._synced_block = build.NotionObject()
-        self._synced_block.set('synced_from', None)
-        self._synced_block.set('children', children)
         self.set('type', 'synced_block')
-        self.set('synced_block', self._synced_block)
+        self.nest('synced_block', 'synced_from', None)
+        self.nest('synced_block', 'children', children)
 
 
-class ReferenceSyncedBlockType(build.NotionObject, BlockTypeObjects): 
-    """    
-    ### Reference Synced Block
-    To sync the content of the original synced_block with another synced_block, 
-    the developer simply needs to refer to that synced_block using the synced_from property.
-    
-    Note that only "original" synced blocks can be referenced in the synced_from property.
-    
-    ---
-    :param block_id: (required) string (UUIDv4). Identifier of an original synced_block
-    :param synced_from: Type: Synced From Object. Object that contains the id of the original synced_block
-    
-    ---
-    https://developers.notion.com/reference/block#synced-block-blocks
-    """
-    __slots__: typing.Sequence[str] = ('_synced_from', '_synced_block')
+class ReferenceSyncedBlockType(build.NotionObject): 
+    __slots__: typing.Sequence[str] = ()
 
     def __init__(self, block_id: str) -> None:
         super().__init__()
-        self._synced_block = build.NotionObject()
-        self._synced_block.set('type', 'block_id')
-        self._synced_block.set('block_id', block_id)
-        self._synced_from = build.NotionObject()
-        self._synced_from.set('synced_from', self._synced_block)
         self.set('type', 'synced_block')
-        self.set('synced_block', self._synced_from)
+        self.nest('synced_block', 'synced_from', {'type':'block_id'})
+        self.nest('synced_block', 'synced_from', {'block_id':block_id})
 
 
-class ParagraphBlocktype(build.NotionObject, BlockTypeObjects):
-    """
-    (required)
-    :param rich_text_object: A single RichText object in the paragraph block.
-    ---
-    (optional)
-    :param children: Array of block objects. Any nested children blocks of the paragraph block.
-    :param color: Color of the block. `notion.properties.options.ColorEnum`.
-    ---
-    https://developers.notion.com/reference/block#paragraph-blocks
-    """
+class ParagraphBlocktype(build.NotionObject):
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
-                 /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None) -> None:
         super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
         self.set('type', 'paragraph')
-        self.set('paragraph', rich_text_object)
-        self.set('color', block_color)
-        self.set('children', children) if children else None
+        self.nest('paragraph', 'rich_text', rich_text)
+        self.nest('paragraph', 'color', block_color)
 
 
+NewLineBreak = ParagraphBlocktype([RichText('')])
 
-class CalloutBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#callout-blocks"""
+
+class CalloutBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, 
-                 rich_text_object: RichTextPropertyValue, 
-                 children: list[BlockTypeObjects] | None = None, 
-                 /, *, 
-                 icon: Icon | Emoji | None = None, 
-                 block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 icon: str | None = None, 
+                 block_color: NotionColors | str | None = None) -> None:
         super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
         self.set('type', 'callout')
-        self.set('callout', rich_text_object)
-        self.set('color', block_color)
-        self.set('icon', icon) if icon else None
-        self.set('children', children) if children else None
+        self.nest('callout', 'rich_text', rich_text)
+        self.nest('callout', 'color', block_color)
+        if icon:
+            self.nest('callout', 'icon', ExternalFile(icon))
 
 
-class QuoteBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#quote-blocks"""
+class QuoteBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
-                 /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None) -> None:
         super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
         self.set('type', 'quote')
-        self.set('quote', rich_text_object)
-        self.set('color', block_color)
-        self.set('children', children) if children else None
+        self.nest('quote', 'rich_text', rich_text)
+        self.nest('quote', 'color', block_color)
 
 
-class BulletedListItemBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#bulleted-list-item-blocks"""
+class BulletedListItemBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
-                 /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None) -> None:
         super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
         self.set('type', 'bulleted_list_item')
-        self.set('bulleted_list_item', rich_text_object)
-        self.set('color', block_color)
-        self.set('children', children) if children else None
+        self.nest('bulleted_list_item', 'rich_text', rich_text)
+        self.nest('bulleted_list_item', 'color', block_color)
 
 
-class NumberedListItemBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#numbered-list-item-blocks"""
+class NumberedListItemBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
-                 /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None) -> None:
         super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
         self.set('type', 'numbered_list_item')
-        self.set('numbered_list_item', rich_text_object)
-        self.set('color', block_color)
-        self.set('children', children) if children else None
+        self.nest('numbered_list_item', 'rich_text', rich_text)
+        self.nest('numbered_list_item', 'color', block_color)
 
 
-class ToDoBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#to-do-blocks"""
+class ToDoBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, 
-                 rich_text_object: RichTextPropertyValue, 
-                 checked: bool | None = None, 
-                 children: list[BlockTypeObjects] | None = None, 
-                 /, *, 
-                 block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 checked: bool | None = False, 
+                 block_color: NotionColors | str | None = None) -> None:
         super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+
         self.set('type', 'to_do')
-        self.set('to_do', rich_text_object)
-        self.set('color', block_color)
-        self.set('checked', checked) if checked else None
-        self.set('children', children) if children else None
+        self.nest('to_do', 'rich_text', rich_text)
+        self.nest('to_do', 'color', block_color)
+        self.nest('to_do', 'checked', checked)
 
 
-class ToggleBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#toggle-blocks"""
+class ToggleBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, rich_text_object: RichTextPropertyValue, children: list[BlockTypeObjects] | None = None, 
-                 /, *, block_color: ColorEnum | str | None = ColorEnum.default.value) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None) -> None:
         super().__init__()
+
+        if not block_color:
+            block_color = NotionColors.default
+        
         self.set('type', 'toggle')
-        self.set('toggle', rich_text_object)
-        self.set('color', block_color)
-        self.set('children', children) if children else None
+        self.nest('toggle', 'rich_text', rich_text)
+        self.nest('toggle', 'color', block_color)
 
 
-class CodeBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#code-blocks"""
+class CodeBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, 
-                 rich_text_object: RichTextPropertyValue, 
-                 /, *, 
-                 caption: Caption | None = None, 
-                 language: CodeEnum | None = None) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 language: NotionCodeLang | str | None = None,
+                 caption: list[RichText] | None = None
+        ) -> None:
         super().__init__()
+
+        if not language:
+            language = NotionCodeLang.plain_text
+
         self.set('type', 'code')
-        self.set('code', rich_text_object)
-        self.set('caption', caption) if caption else None
-        self.set('language', language) if language else None
+        self.nest('code', 'rich_text', rich_text)
+        self.nest('code', 'language', language)
+        self.nest('code', 'caption', caption) if caption else None
 
 
-class ChildPageBlocktype(build.NotionObject, BlockTypeObjects):
-    """Creating and Updating child_pages:
-
-    To create or update child_page type blocks, use the Create Page and the Update page endpoint.
-    ---
-    https://developers.notion.com/reference/block#child-page-blocks
-    """ 
-    __slots__: typing.Sequence[str] = ('_page_title')
-    
-    def __init__(self, page_title: str, /) -> None:
-        super().__init__()
-        self._page_title = build.NotionObject()
-        self._page_title.set('title', page_title)
-        self.set('type', 'child_page')
-        self.set('child_page', self._page_title)
-
-
-class ChildDatabaseBlocktype(build.NotionObject, BlockTypeObjects):
-    """Creating and Updating child_databases:
-
-    To create or update child_database type blocks, use the Create Page and the Update page endpoint.
-    ---
-    https://developers.notion.com/reference/block#child-database-blocks
-    """ 
-    __slots__: typing.Sequence[str] = ('_database_title')
-    
-    def __init__(self, database_title: str, /) -> None:
-        super().__init__()
-        self._database_title = build.NotionObject()
-        self._database_title.set('title', database_title)
-        self.set('type', 'child_database')
-        self.set('child_database', self._database_title)
-
-
-class EmbedBlocktype(build.NotionObject, BlockTypeObjects): 
-    """
-    Embed block types are:
-    Framer, Twitter (tweets), Google Drive documents, Gist, Figma, 
-    Invision, Loom, Typeform, Codepen, PDFs, Google Maps, Whimisical, 
-    Miro, Abstract, excalidraw, Sketch, Replit
-    There is no need to specify the specific embed type, only the URL.
-
-    ### Differences in embed blocks between the Notion app and the API
-    The Notion app uses a 3rd-party service, Embedly, to validate and request metadata for embeds given a URL. 
-    This works well in a web app because Notion can kick off an asynchronous request for URL information, 
-    which might take seconds or longer to complete, and then update the block with the metadata in the UI 
-    after receiving a response from Embedly.
-
-    Embedly is not called when creating embed blocks in the API because the API needs to be able to return 
-    faster than the UI, and because the response from Embedly could actually cause us change the block type. 
-    This would result in a slow and potentially confusing experience as the block in the response would 
-    not match the block sent in the request.
-    The result is that embed blocks created via the API may not look exactly like their counterparts created in the Notion app.
-
-    ---
-    https://developers.notion.com/reference/block#embed-blocks
-    """
+class EmbedBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
     def __init__(self, embedded_url: str, /) -> None:
@@ -330,174 +209,95 @@ class EmbedBlocktype(build.NotionObject, BlockTypeObjects):
         self.set('embed', NotionURL(embedded_url))
 
 
-class ImageBlocktype(build.NotionObject, BlockTypeObjects): 
-    """Includes supported image urls 
-    (i.e. ending in .png, .jpg, .jpeg, .gif, .tif, .tiff, .bmp, .svg, or .heic). 
-    Note that the url property only accepts direct urls to an image. 
-    The image must be directly hosted. 
-    In other words, the url cannot point to a service that retrieves the image.
-    
-    ---
-    https://developers.notion.com/reference/block#image-blocks"""
+class BookmarkBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, image: InternalFile | ExternalFile, /) -> None:
-        super().__init__()
-        self.set('type', 'image')
-        self.set('image', image)
-
-
-class VideoBlocktype(build.NotionObject, BlockTypeObjects): 
-    """Includes supported video urls 
-    (e.g. ending in .mkv, .flv, .gifv, .avi, .mov, .qt, .wmv, 
-        .asf, .amv, .mp4, .m4v, .mpeg, .mpv, .mpg, .f4v, etc.)
-
-    ---
-    https://developers.notion.com/reference/block#video-blocks"""
-    __slots__: typing.Sequence[str] = ()
-    
-    def __init__(self, video: InternalFile | ExternalFile, /) -> None:
-        super().__init__()
-        self.set('type', 'video')
-        self.set('video', video)
-
-
-class FileBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#file-blocks"""
-    __slots__: typing.Sequence[str] = ()
-    
-    def __init__(self, file: InternalFile | ExternalFile, /, *, caption: Caption) -> None:
-        super().__init__()
-        self.set('type', 'file')
-        self.set('file', file)
-        self.set('caption', caption) if caption else None
-
-
-class PdfBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#pdf-blocks"""
-    __slots__: typing.Sequence[str] = ()
-    
-    def __init__(self, pdf: InternalFile | ExternalFile, /) -> None:
-        super().__init__()
-        self.set('type', 'pdf')
-        self.set('pdf', pdf)
-
-
-class BookmarkBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#bookmark-blocks"""
-    __slots__: typing.Sequence[str] = ()
-    
-    def __init__(self, bookmark: str, /, *, caption: Caption) -> None:
+    def __init__(self, bookmark_url: str, /, *, caption: str | None = None) -> None:
         super().__init__()
         self.set('type', 'bookmark')
-        self.set('bookmark', NotionURL(bookmark))
-        self.set('caption', caption) if caption else None
+        self.set('bookmark', NotionURL(bookmark_url))
+        self.nest('bookmark', 'caption', [RichText(caption)]) if caption else None
 
 
-class EquationBlocktype(build.NotionObject, BlockTypeObjects): 
-    """
-    (required)
-    :param expression: A KaTeX compatible string
-    ---
-    https://developers.notion.com/reference/block#equation-blocks"""
-    __slots__: typing.Sequence[str] = ('_expression')
+class EquationBlocktype(build.NotionObject): 
+    __slots__: typing.Sequence[str] = ()
     
     def __init__(self, expression: str) -> None:
         super().__init__()
-        self._expression = build.NotionObject()
-        self._expression.set('expression', expression)
         self.set('type', 'equation')
-        self.set('equation', self._expression)
+        self.nest('equation', 'expression', expression)
 
 
-class DividerBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#divider-blocks"""
+class TableOfContentsBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self) -> None:
+    def __init__(self, block_color: NotionColors | str | None = None) -> None:
         super().__init__()
-        self.set('type', 'divider')
-        self.set('divider', {})
 
-
-class TableOfContentsBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#table-of-contents-blocks"""
-    __slots__: typing.Sequence[str] = ('_color')
-    
-    def __init__(self, color: ColorEnum | str | None = ColorEnum.default.value) -> None:
-        super().__init__()
-        self._color = build.NotionObject()
-        self._color.set('color', color)
+        if not block_color:
+            block_color = NotionColors.default
+        
         self.set('type', 'table_of_contents')
-        self.set('table_of_contents', self._color)
+        self.nest('table_of_contents', 'color', block_color)
 
 
-class BreadcrumbBlocktype(build.NotionObject, BlockTypeObjects): 
-    """https://developers.notion.com/reference/block#breadcrumb-blocks"""
+class Heading1BlockType(build.NotionObject):
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self) -> None:
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None,
+                 is_toggleable: bool | None = False) -> None:
         super().__init__()
-        self.set('type', 'breadcrumb')
-        self.set('breadcrumb', {})
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
+        self.set('type', 'heading_1')
+        self.nest('heading_1', 'rich_text', rich_text)
+        self.nest('heading_1', 'color', block_color)
+        self.nest('heading_1', 'is_toggleable', is_toggleable)
 
 
-# class HeadingOneBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
+class Heading2BlockType(build.NotionObject):
+    __slots__: typing.Sequence[str] = ()
     
-#     def __init__(self) -> None:
-#         super().__init__()
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None,
+                 is_toggleable: bool | None = False) -> None:
+        super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
+        self.set('type', 'heading_2')
+        self.nest('heading_2', 'rich_text', rich_text)
+        self.nest('heading_2', 'color', block_color)
+        self.nest('heading_2', 'is_toggleable', is_toggleable)
 
-# class HeadingTwoBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__()
 
-# class HeadingThreeBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
+class Heading3BlockType(build.NotionObject):
+    __slots__: typing.Sequence[str] = ()
     
-#     def __init__(self) -> None:
-#         super().__init__()
+    def __init__(self, rich_text: list[RichText], /, *, 
+                 block_color: NotionColors | str | None = None,
+                 is_toggleable: bool | None = False) -> None:
+        super().__init__()
+        
+        if not block_color:
+            block_color = NotionColors.default
+        
+        self.set('type', 'heading_3')
+        self.nest('heading_3', 'rich_text', rich_text)
+        self.nest('heading_3', 'color', block_color)
+        self.nest('heading_3', 'is_toggleable', is_toggleable)
 
-# class ColumnList(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None: 
-#         super().__init__()
 
-# class ColumnBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
+class LinkToPageBlockType(build.NotionObject):
+    __slots__: typing.Sequence[str] = ()
     
-#     def __init__(self) -> None: 
-#         super().__init__()
-
-# class LinkPreviewBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__()
-
-# class TemplateBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__()
-
-# class LinkToPageBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__()
-
-# class TableBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__
-
-# class TableRowBlocktype(build.NotionObject, BlockTypeObjects): 
-#     __slots__: typing.Sequence[str] = ()
-    
-#     def __init__(self) -> None:
-#         super().__init__
+    def __init__(self, page_id: str) -> None:
+        super().__init__()
+        
+        self.set('type', 'link_to_page')
+        self.nest('link_to_page', 'type', 'page_id')
+        self.nest('link_to_page', 'page_id', page_id)

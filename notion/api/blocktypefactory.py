@@ -1,0 +1,370 @@
+""" 
+A block object represents content within Notion. Blocks can be text, lists, media, and more. A page is a type of block, too.
+Some blocks have more content nested inside them. Some examples are indented paragraphs, lists, and toggles. 
+The nested content is called children, and children are blocks, too.
+
+Block types that support children
+Block types which support children are:
+    "paragraph", "bulleted_list_item", "numbered_list_item", "toggle", "to_do", "quote", "callout", 
+    "synced_block", "template", "column", "child_page", "child_database", and "table". 
+    All heading blocks ("heading_1", "heading_2", and "heading_3") support children when the is_toggleable property is true.
+
+NOTE: The link_preview block will only be returned as part of a response. It cannot be created via the API.
+
+---
+https://developers.notion.com/reference/block
+"""
+from __future__ import annotations
+import typing
+from functools import singledispatchmethod
+from operator import methodcaller
+
+from notion.properties import *
+from notion.core.typedefs import *
+from notion.api.notionblock import Block
+from notion.api.client import _NotionClient
+from notion.api.notionpage import Page
+
+__all__: typing.Sequence[str] = ['BlockFactory']
+
+ 
+class BlockFactory(_NotionClient):
+    """ Factory to write block types as a child of target 
+        `notion.api.notionblock.Block` or `notion.api.notionpage.Page` 
+
+    To recurisvely set children blocks, each method will return the new block object,
+    which contains the `block_id` that can be extracted for the `target`
+    OR
+    nest `Blockfactory` with the outermost method being the last nested block.
+    ```py
+    notion.BlockFactory.divider(
+        notion.BlockFactory.paragraph(
+            notion.BlockFactory.paragraph(
+                notion.Block('87aadab8ce4b407682197c922e51511f'
+                ), ['This is the parent']
+            ), ['This is the child']
+        )
+    )
+    ```
+    will output in Notion:
+    ```md
+    This is block 87aadab8ce4b407682197c922e51511f
+        This is the parent
+            This is the child
+                ---
+    ```
+    NOTE: Nested Children
+    For blocks that allow children, we allow up to two levels of nesting in a single request.
+    """
+    def __init__(self) -> None:
+        pass
+
+
+    @singledispatchmethod
+    @staticmethod
+    def _append(target, payload) -> JSONObject: ...
+    
+    @_append.register
+    @staticmethod
+    def _(target: Page | Block, payload) -> JSONObject:
+        _append_method = methodcaller('_append', payload=payload)
+        return _append_method(target)
+    
+    @_append.register
+    @staticmethod
+    def _(target: dict, payload) -> JSONObject:
+        assert 'type' in target.keys() and target['block'] == {}
+        return Block(target['results'][0].get('id'))._append(payload)
+
+
+    @staticmethod
+    def reference_synced_block(target: Page | Block | JSONObject, block_id: str) -> JSONObject:
+        """    
+        ### Reference Synced Block
+        To sync the content of the original synced_block with another synced_block, 
+        the developer simply needs to refer to that synced_block using the synced_from property.
+        
+        Note that only "original" synced blocks can be referenced in the synced_from property.
+        
+        ---
+        :param block_id: (required) string (UUIDv4). Identifier of an original synced_block
+        
+        ---
+        https://developers.notion.com/reference/block#synced-block-blocks
+        """
+        payload = Children([ReferenceSyncedBlockType(block_id)])
+        return BlockFactory._append(target, payload)
+
+  
+    @staticmethod
+    def new_synced_block(target: Page | Block | JSONObject) -> JSONObject:
+        """Similar to the UI, there are two versions of a synced_block -- 
+        the original block that was created first and doesn't yet sync with anything else, 
+        and the reference blocks that are synced to the original synced block.
+        
+        ### Original Synced Block
+        To create a synced_block, the developer needs to create an original synced block. 
+        Developers will be able to identify the original synced_block because it does not 
+        "sync_from" any other block (synced_from property is set to null).
+        
+        Note that all of the blocks available to be synced in another synced_block must be captured in the children property.
+        
+        `synced_from` Value is always null to signify that this is an original synced block and that is not referring to another block
+        
+        ---
+        This method will create a new _empty_ synced block that can be 
+        appended to other blocks with `BlockWrite.reference_synced_block(...)`.
+        return it to get the new block id and use as a target to append new children.
+
+        View `notion.properties.blocktypes.OriginalSyncedBlock`, or Notion API reference
+        for more information.
+        
+        ---
+        https://developers.notion.com/reference/block#synced-block-blocks
+        """
+        payload = Children([OriginalSyncedBlockType(children=[])])
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def breadcrumb(target: Page | Block | JSONObject) -> JSONObject:
+        """https://developers.notion.com/reference/block#breadcrumb-blocks"""
+        return BlockFactory._append(target, Children([BreadcrumbBlock]))
+  
+
+    @staticmethod
+    def divider(target: Page | Block | JSONObject) -> JSONObject:
+        """https://developers.notion.com/reference/block#divider-blocks"""
+        return BlockFactory._append(target, Children([DividerBlock]))
+
+
+    @staticmethod
+    def newline(target: Page | Block | JSONObject) -> JSONObject:
+        return BlockFactory._append(target, Children([NewLineBreak]))
+
+
+    @staticmethod
+    def quote(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+              block_color: NotionColors | str | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#quote-blocks"""
+        payload = Children(
+            [
+                QuoteBlocktype(rich_text, block_color=block_color)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+  
+
+    @staticmethod
+    def callout(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+                icon: str | None = None,
+                block_color: NotionColors | str | None = None) -> JSONObject:
+        """
+        :param icon: url to external source for icon. 
+    
+        ---        
+        https://developers.notion.com/reference/block#callout-blocks
+        """
+        payload = Children(
+            [
+                CalloutBlocktype(rich_text, icon=icon, block_color=block_color)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def paragraph(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+                  block_color: NotionColors | str | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#paragraph-blocks"""
+        payload = Children(
+            [
+                ParagraphBlocktype(rich_text, block_color=block_color)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def heading1(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+                  block_color: NotionColors | str | None = None,
+                  is_toggleable: bool | None = False) -> JSONObject:
+        """https://developers.notion.com/reference/block#heading-one-blocks"""
+        payload = Children(
+            [
+                Heading1BlockType(rich_text, block_color=block_color, is_toggleable=is_toggleable)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def heading2(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+                  block_color: NotionColors | str | None = None,
+                  is_toggleable: bool | None = False) -> JSONObject:
+        """https://developers.notion.com/reference/block#heading-two-blocks"""
+        payload = Children(
+            [
+                Heading2BlockType(rich_text, block_color=block_color, is_toggleable=is_toggleable)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def heading3(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+                  block_color: NotionColors | str | None = None,
+                  is_toggleable: bool | None = False) -> JSONObject:
+        """https://developers.notion.com/reference/block#heading-three-blocks"""
+        payload = Children(
+            [
+                Heading3BlockType(rich_text, block_color=block_color, is_toggleable=is_toggleable)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def bulleted_list(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+                      block_color: NotionColors | str | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#bulleted-list-item-blocks"""
+        payload = Children(
+            [
+                BulletedListItemBlocktype(rich_text, block_color=block_color)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def numbered_list(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+                      block_color: NotionColors | str | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#numbered-list-item-blocks"""
+        payload = Children(
+            [
+                NumberedListItemBlocktype(rich_text, block_color=block_color)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def to_do(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+              block_color: NotionColors | str | None = None,
+              checked: bool | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#to-do-blocks"""
+        payload = Children(
+            [
+                ToDoBlocktype(rich_text, block_color=block_color, checked=checked)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def toggle(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+               block_color: NotionColors | str | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#toggle-blocks"""
+        payload = Children(
+            [
+                ToggleBlocktype(rich_text, block_color=block_color)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def code(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
+             language: NotionCodeLang | str | None = None,
+             caption: list[RichText] | None = None) -> JSONObject:
+        """
+        raises:
+        ```py
+        notion.exceptions.errors.NotionValidationError: body failed validation: 
+        body.children[0].code.rich_text[0].text.content.length should be ≤ `2000`, instead was `57839`.
+
+        ---
+        https://developers.notion.com/reference/block#code-blocks
+        """
+        payload = Children(
+            [
+                CodeBlocktype(rich_text, language=language, caption=caption)
+                ]
+            )
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def embed_url(target: Page | Block | JSONObject, embedded_url: str, /) -> JSONObject:
+        """
+        Embed block types are:
+        Framer, Twitter (tweets), Google Drive documents, Gist, Figma, 
+        Invision, Loom, Typeform, Codepen, PDFs, Google Maps, Whimisical, 
+        Miro, Abstract, excalidraw, Sketch, Replit
+        There is no need to specify the specific embed type, only the URL.
+
+        ### Differences in embed blocks between the Notion app and the API
+        The Notion app uses a 3rd-party service, Embedly, to validate and request metadata for embeds given a URL. 
+        This works well in a web app because Notion can kick off an asynchronous request for URL information, 
+        which might take seconds or longer to complete, and then update the block with the metadata in the UI 
+        after receiving a response from Embedly.
+
+        Embedly is not called when creating embed blocks in the API because the API needs to be able to return 
+        faster than the UI, and because the response from Embedly could actually cause us change the block type. 
+        This would result in a slow and potentially confusing experience as the block in the response would 
+        not match the block sent in the request.
+        The result is that embed blocks created via the API may not look exactly like their counterparts created in the Notion app.
+
+        ---
+        https://developers.notion.com/reference/block#embed-blocks
+        """
+        payload = Children([EmbedBlocktype(embedded_url)])
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def bookmark(target: Page | Block | JSONObject, bookmark_url: str, /, *,
+                 caption: str | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#bookmark-blocks"""
+        payload = Children([BookmarkBlocktype(bookmark_url, caption=caption)])
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def link_to_page(target: Page | Block | JSONObject, page_id: str, /, *,
+                 caption: str | None = None) -> JSONObject:
+        """ https://developers.notion.com/reference/block#link-to-page-blocks """
+        payload = Children([LinkToPageBlockType(page_id)])
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def equation(target: Page | Block | JSONObject, expression: str, /) -> JSONObject:
+        """
+        :param expression: (required) A KaTeX compatible string
+        
+        ---
+        https://developers.notion.com/reference/block#equation-blocks
+        """
+        payload = Children([EquationBlocktype(expression)])
+        return BlockFactory._append(target, payload)
+
+
+    @staticmethod
+    def table_of_contents(target: Page | Block | JSONObject, /, *, 
+                          block_color: NotionColors | str | None = None) -> JSONObject:
+        """https://developers.notion.com/reference/block#table-of-contents-blocks"""
+        payload = Children([TableOfContentsBlocktype(block_color=block_color)])
+        return BlockFactory._append(target, payload)
+
+
+# TODO: remaining block types
+    # "FileBlocktype", 
+    # "PdfBlocktype", 
+    # ImageBlocktype,
+    # VideoBlocktype,
+    # "TemplateBlocktype", 
+    # "ColumnBlocktype", 
+    # "ColumnList", 
+    # "TableBlocktype", 
+    # "TableRowBlocktype"

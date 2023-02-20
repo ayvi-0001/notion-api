@@ -38,35 +38,18 @@ class UserObject(build.NotionObject):
     def __init__(self, id: str, /, *, name: str | None = None, avatar_url: str | None = None, 
                  person_email: str | None = None, type: str) -> None:
         super().__init__()
-        
-        self._HAS_TYPE = False
-
-        self._user = build.NotionObject()
-        self._user.set('object', 'user')
-        self._user.set('id', id)
-
         self.set('type', 'user')
 
-        self._user = build.NotionObject()
-
-        if self._HAS_TYPE is True:
-            self._user.set('type', type)
-
         if type == 'person':
-            self._person = build.NotionObject()
-            self._person_email = build.NotionObject()
-            self._person_email.set('email', person_email)
-            self._person.set('object', 'user')
-            self._person.set('id', id)
-            self._person.set('name', name) if name else None
-            self._person.set('person', self._person_email) if person_email else None
-            self._person.set('avatar_url', avatar_url) if avatar_url else None
-            self.set('user', self._person)
+            self.nest('user', 'object', 'person')
+            self.nest('user', 'id', id)
+            self.nest('user', 'name', name) if name else None
+            self.nest('user', 'person', {'email':person_email}) if person_email else None
+            self.nest('user', 'avatar_url', avatar_url) if avatar_url else None
 
     @classmethod
     def person(cls, id: str, /, *, name: str | None = None, person_email: str | None = None, 
                avatar_url: str | None = None, type: str='person') -> UserObject:
-        cls._HAS_TYPE=True
         return cls(id, name=name, person_email=person_email, type=type)
 
     # @classmethod #TODO

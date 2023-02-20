@@ -7,25 +7,22 @@ from notion.properties.pagepropertyvalues import TitlePropertyValue
 
 __all__: typing.Sequence[str] = ["Properties"]
 
+__property_error__ = """
+`notion.properties.propbuild.Properties` is only used for combining named properties.
+Check to see if `property_name` has been assigned."""
+
 
 class Properties(build.NotionObject):
-    __slots__: typing.Sequence[str] = ('_combined_properties')
+    __slots__: typing.Sequence[str] = ()
     
     def __init__(self, *properties: PropertyObject | PagePropertyValue) -> None:
         super().__init__()
 
-        self._combined_properties = build.NotionObject()
-
         for prop in properties:
-            if hasattr(prop, 'name') is False:
-                raise AttributeError("""
-                `notion.properties.Properties` is only used for combining named properties.
-                Check to see if `property_name` has been assigned.""")
-
-            else:
-                if isinstance(prop, TitlePropertyValue):
-                    self._combined_properties.set(prop.name, prop['title'])
-                else:      
-                    self._combined_properties.set(prop.name, prop) # type: ignore[union-attr]
-
-        self.set('properties', self._combined_properties)
+            if not hasattr(prop, 'name'):
+                raise AttributeError(__property_error__)
+            
+            if isinstance(prop, TitlePropertyValue):
+                self.nest('properties', prop.name, prop['title'])
+            else:      
+                self.nest('properties', prop.name, prop) 

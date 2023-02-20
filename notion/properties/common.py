@@ -6,20 +6,16 @@ __all__: typing.Sequence[str] = (
     "Parent",
     "NotionUUID",
     "NotionURL",
-    "Cursor",
-    )
+)
 
-#TODO Description
-#TODO Move Caption
 
 class Parent(build.NotionObject):
+    __slots__: typing.Sequence[str] = ()
+
     def __init__(self, id: str, /, *, type: str) -> None:
         super().__init__()
-
-        self._parent = build.NotionObject()
-        self._parent.set('type', type)
-        self._parent.set(type, id)
-        self.set('parent', self._parent)
+        self.nest('parent', 'type', type)
+        self.nest('parent', type, id)
 
     @classmethod
     def page(cls, id: str, /, *, type: str='page_id'):
@@ -35,18 +31,20 @@ class Parent(build.NotionObject):
 
 
 class NotionURL(build.NotionObject):
+    __slots__: typing.Sequence[str] = ()
+    
     def __init__(self, url: str | None = None, /) -> None:
         super().__init__()
         self.set('url', url)
 
 
 class NotionUUID(build.NotionObject):
-    def __init__(self, id: str, /) -> None:
+    __slots__: typing.Sequence[str] = ()
+
+    def __init__(self, id: str) -> None:
         super().__init__()
         self.set('id', id)
 
-
-class Cursor(build.NotionObject):
-    def __init__(self, id: str, /) -> None:
-        super().__init__()
-        self.set('next_cursor', id)
+#TODO 
+    # Database Description
+    # Cursor

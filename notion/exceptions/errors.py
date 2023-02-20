@@ -15,16 +15,15 @@ __all__: Sequence[str] = (
     "NotionInternalServerError",
     "NotionServiceUnavailable",
     "NotionDatabaseConnectionUnavailable"
-    )
+)
 
 
 class _NotionErrors(BaseException):
-    """Base for an error raised by this API.
-    Any exceptions should derive from this.
+    """Base for an error raised by this API. Any exceptions should derive from this.
 
     More info on Errors and Request Limits at:
-    https://developers.notion.com/reference/errors
-    https://developers.notion.com/reference/request-limits
+     - https://developers.notion.com/reference/errors
+     - https://developers.notion.com/reference/request-limits
     """
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
@@ -56,7 +55,7 @@ class NotionValidationError(_NotionErrors):
         super().__init__(*args)
 
         self.__notes__ = ["Error 400: The request body does not match the schema for the expected parameters."]
-
+        
 
 class NotionMissingVersion(_NotionErrors):
     def __init__(self, *args: object) -> None:

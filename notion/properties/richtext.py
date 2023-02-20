@@ -9,7 +9,7 @@ import typing
 
 from notion.core import build 
 from notion.properties.user import UserObject
-from notion.properties.options import ColorEnum
+from notion.properties.options import NotionColors
 from notion.properties.common import NotionURL
 from notion.properties.common import NotionUUID
 
@@ -18,35 +18,29 @@ __all__: typing.Sequence[str] = (
     "RichText",
     "Equation",
     "Mention",
-    )
+)
 
 
 class RichText(build.NotionObject):
-    __slots__: typing.Sequence[str] = ('_text')
+    __slots__: typing.Sequence[str] = ()
 
-    def __init__(self, content: str | None = None, /, *, link: str | None = None, 
-                 annotations: Annotations | None = None) -> None:
+    def __init__(self, content: str | None = None, /, annotations: Annotations | None = None, 
+                 *, link: str | None = None) -> None:
         super().__init__()
-
-        self._text = build.NotionObject()
-        self._text.set('content', content)
-        self._text.set('link', NotionURL(link)) if link else None
         self.set('type', 'text')
-        self.set('text', self._text)
+        self.nest('text', 'content', content)
+        self.nest('text', 'link', NotionURL(link)) if link else None
         if annotations is not None and annotations != {}:
             self.set('annotations', annotations)
 
 
 class Equation(build.NotionObject):
-    __slots__: typing.Sequence[str] = ('_equation')
+    __slots__: typing.Sequence[str] = ()
 
     def __init__(self, expression: str, /, *, annotations: Annotations | None = None) -> None:
         super().__init__()
-
-        self._equation = build.NotionObject()
-        self._equation.set('expression', expression)
         self.set('type', 'equation')
-        self.set('equation', self._equation)
+        self.nest('equation', 'expression', expression)
         if annotations is not None and annotations != {}:
             self.set('annotations', annotations)
 
@@ -57,7 +51,6 @@ class Mention(build.NotionObject):
     def __init__(self, /, *, annotations: Annotations | None = None,
                  _mention_object: typing.Any | None = None, ) -> None:
         super().__init__()
-
         self.set('type', 'mention')
         self.set('mention', _mention_object)
         if annotations is not None and annotations != {}:
@@ -65,15 +58,15 @@ class Mention(build.NotionObject):
     
     @classmethod
     def user(cls, user_object: UserObject, /, *, annotations: Annotations | None = None):
+        """ Cannot mention Bots
+        :raises: `notion.exceptions.errors.NotionValidationError`: Content creation Failed."""
         return cls(_mention_object=user_object, annotations=annotations)
 
     @classmethod
     def link(cls, url, /, *, annotations: Annotations | None = None):
         link_preview = build.NotionObject()
-        _url = build.NotionObject()
-        _url.set('url', url)
         link_preview.set('type', 'link_preview')
-        link_preview.set('link_preview', _url)
+        link_preview.nest('link_preview', 'url', url)
         return cls(_mention_object=link_preview, annotations=annotations)
 
     @classmethod
@@ -93,31 +86,25 @@ class Mention(build.NotionObject):
     @classmethod
     def today(cls, /, *, annotations: Annotations | None = None):
         today = build.NotionObject()
-        template_mention_date = build.NotionObject()
-        template_mention_date.set('type', 'template_mention_date')
-        template_mention_date.set('template_mention_date', 'today')
         today.set('type', 'template_mention')
-        today.set('template_mention', template_mention_date)
+        today.nest('template_mention', 'type', 'template_mention_date')
+        today.nest('template_mention', 'template_mention_date', 'today')
         return cls(_mention_object=today, annotations=annotations)
 
     @classmethod
     def now(cls, /, *, annotations: Annotations | None = None):
         now = build.NotionObject()
-        template_mention_date = build.NotionObject()
-        template_mention_date.set('type', 'template_mention_date')
-        template_mention_date.set('template_mention_date', 'now')
         now.set('type', 'template_mention')
-        now.set('template_mention', template_mention_date)
+        now.nest('template_mention', 'type', 'template_mention_date')
+        now.nest('template_mention', 'template_mention_date', 'now')
         return cls(_mention_object=now, annotations=annotations)
 
     @classmethod
     def me(cls, /, *, annotations: Annotations | None = None):
         me = build.NotionObject()
-        template_mention_user = build.NotionObject()
-        template_mention_user.set('type', 'template_mention_user')
-        template_mention_user.set('template_mention_user', 'me')
         me.set('type', 'template_mention')
-        me.set('template_mention', template_mention_user)
+        me.nest('template_mention', 'type', 'template_mention_user')
+        me.nest('template_mention', 'template_mention_user', 'me')
         return cls(_mention_object=me, annotations=annotations)
 
 
@@ -125,20 +112,21 @@ class Annotations(build.NotionObject):
     __slots__: typing.Sequence[str] = ()
 
     def __init__(self,
-                 bold: bool | None = False,
-                 italic: bool | None = False,
-                 strike: bool | None = False,
-                 underline: bool | None = False,
-                 code: bool | None = False,
-                 color: ColorEnum | None = None ) -> None:
+                 bold: bool | None = None,
+                 italic: bool | None = None,
+                 strike: bool | None = None,
+                 underline: bool | None = None,
+                 code: bool | None = None,
+                 color: NotionColors | None = None ) -> None:
         super().__init__()
 
-        if any([bold, italic, strike, underline, code, color]):
-            self.set('bold', bold)
-            self.set('italic', italic)
-            self.set('strike', strike)
-            self.set('underline', underline)
-            self.set('code', code)
-            self.set('color', color)
-        else:
-            pass
+        self.set('bold', bold) if bold else None
+        self.set('italic', italic) if italic else None
+        self.set('strike', strike) if strike else None
+        self.set('underline', underline) if underline else None
+        self.set('color', color) if color else None
+        self.set('color', NotionColors.default) if not color else None
+        self.set('code', code) if code else None
+        
+        if not any([[bold, italic, strike, underline, code, color]]):
+            pass # annotations must be defined or non-existent, or Notion will return error

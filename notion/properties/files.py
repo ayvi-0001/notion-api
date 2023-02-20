@@ -12,14 +12,13 @@ from notion.properties.common import NotionURL
 from notion.core.typedefs import PagePropertyValue
 
 __all__: typing.Sequence[str] = (
-    "FilesPropertyValue", 
     "Icon", 
-    "Emoji", 
     "ExternalFile", 
-    "InternalFile"
-    )
+    "InternalFile",
+    "FilesPropertyValue", 
+    # "Emoji", 
+)
 
-# TODO emoji
 # TODO cover
 
 class FilesPropertyValue(build.NotionObject, PagePropertyValue):
@@ -53,26 +52,24 @@ class FilesPropertyValue(build.NotionObject, PagePropertyValue):
         self.set('files', array_of_files)
 
 
+# Internal file type Icons currently not supported.
 class Icon(build.NotionObject):
-    def __init__(self, file_type: typing.Literal['internal', 'external'], file_url: str, /) -> None:
+    __slots__: typing.Sequence[str] = ()
+
+    def __init__(self, file_url: str, /) -> None:
         super().__init__()
-
-        _icon = build.NotionObject()
-        if file_type == 'internal':
-            _icon = InternalFile(file_url)
-        if file_type == 'external':
-            _icon = InternalFile(file_url)
-
-        self.set('icon', _icon)
+        self.set('type', 'icon')
+        self.set('icon', ExternalFile(file_url))
 
 
-class Emoji(build.NotionObject):
-    """https://developers.notion.com/reference/emoji-object"""
-    def __init__(self, emoji_character, /) -> None:
-        super().__init__()
+# class Emoji(build.NotionObject):
+#     """https://developers.notion.com/reference/emoji-object"""
+#     __slots__: typing.Sequence[str] = ()
 
-        self.set('type', 'emoji')
-        self.set('emoji', emoji_character)
+#     def __init__(self, emoji_character, /) -> None:
+#         super().__init__()
+#         self.set('type', 'emoji')
+#         self.set('emoji', emoji_character)
 
 
 class ExternalFile(build.NotionObject):
@@ -82,13 +79,14 @@ class ExternalFile(build.NotionObject):
     ---
     https://developers.notion.com/reference/file-object#external-files
     """
-    def __init__(self, url, /, *, name: str | None = None, caption: list[RichText] | None = None) -> None:
-        super().__init__()
+    __slots__: typing.Sequence[str] = ()
 
+    def __init__(self, url, /, *, name: str | None = None, caption: str | None = None) -> None:
+        super().__init__()
         self.set('type', 'external')            
         self.set('external', NotionURL(url))
         self.set('name', name) if name else None
-        self.set('caption', caption) if caption else None
+        self.set('caption', [RichText(caption)]) if caption else None
 
 
 class InternalFile(build.NotionObject):
@@ -97,10 +95,11 @@ class InternalFile(build.NotionObject):
     ---
     https://developers.notion.com/reference/file-object#notion-hosted-files
     """
-    def __init__(self, url, /, *, name: str | None = None, caption: list[RichText] | None = None) -> None:
+    __slots__: typing.Sequence[str] = ()
+    
+    def __init__(self, url, /, *, name: str | None = None, caption: str | None = None) -> None:
         super().__init__()
-
         self.set('type', 'file')    
         self.set('file', NotionURL(url))
         self.set('name', name) if name else None
-        self.set('caption', caption) if caption else None
+        self.set('caption', [RichText(caption)]) if caption else None

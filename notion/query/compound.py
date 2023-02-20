@@ -2,63 +2,36 @@ from __future__ import annotations
 import typing
 
 from notion.core import build
-from notion.query.conditions import *
 from notion.query.propfilter import PropertyFilter
-from notion.query.filterproto import FilterTypeObject
+from notion.query.timestamp import TimestampFilter
 
-__all__: typing.Sequence[str] = ('CompoundFilter', 'AndOperator', 'OrOperator')
+__all__: typing.Sequence[str] = ['CompoundFilter']
 
 
-class CompoundFilter(build.NotionObject, FilterTypeObject):
-    """
-    Required:
-    :param operator: Either `notion.query.AndOperator` or notion.query.OrOperator`. 
-                     array of PropertyFilter objects or CompoundFilter objects.
-                     Returns pages when any of the filters inside the provided array match.
-    ---
-    Combines several filter objects together using a logical operator `and` or `or`.  
-    Can also be combined within a compound filter, 
-    NOTE: only up to two nesting levels deep.
+class CompoundFilter(build.NotionObject):
+    """ NOTE: only up to two nesting levels deep.
 
+    :method __and__(): combine all filters in an `and` grouping.
+    :method __or__(): combine all filters in an `or` grouping.
+
+    Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
+    
     ---
     https://developers.notion.com/reference/post-database-query-filter#compound-filter-object
     """
-    __slots__: typing.Sequence[str] = ('_all')
+    __slots__: typing.Sequence[str] = ()
 
-    def __init__(self, *operators: AndOperator | OrOperator) -> None:
+    def __init__(self) -> None:
         super().__init__()
+    
+    def __and__(
+        self, *filters: PropertyFilter | CompoundFilter | TimestampFilter
+    ) -> None:
+        filters_ = [f['filter'] if 'filter' in f.keys() else f for f in filters]
+        self.nest('filter', 'and', filters_)
 
-        self._all: dict = {}
-        for op in operators:
-            if isinstance(op, build.NotionObject) or isinstance(op, dict):
-                self._all.update(op)
-        
-        self.set('filter', self._all)
-
-
-class AndOperator(build.NotionObject, FilterTypeObject):
-    __slots__: typing.Sequence[str] = ('_filters')
-
-    def __init__(self, *filters: FilterTypeObject | dict) -> None:
-        super().__init__()
-        self._filters: list = []
-        
-        for f in filters:
-            if isinstance(f, dict) or isinstance(f, PropertyFilter):
-                self._filters.append(f['filter'] if 'filter' in f.keys() else f)
-
-        self.set('and', self._filters)
-
-
-class OrOperator(build.NotionObject, FilterTypeObject):
-    __slots__: typing.Sequence[str] = ('_filters')
-
-    def __init__(self, *filters: FilterTypeObject | dict) -> None:
-        super().__init__()
-        self._filters: list = []
-        
-        for f in filters:
-            if isinstance(f, dict) or isinstance(f, PropertyFilter):
-                self._filters.append(f['filter'] if 'filter' in f.keys() else f)
-
-        self.set('or', self._filters)
+    def __or__(
+        self, *filters: PropertyFilter | CompoundFilter | TimestampFilter
+    ) -> None:
+        filters_ = [f['filter'] if 'filter' in f.keys() else f for f in filters]
+        self.nest('filter', 'or', filters_)

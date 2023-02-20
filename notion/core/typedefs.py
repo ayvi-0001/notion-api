@@ -4,22 +4,22 @@ import abc
 __all__: typing.Sequence[str] = (
     'PagePropertyValue', 
     'PropertyObject', 
-    'BlockTypeObjects',
-    'DateISO8601',
     'JSONObject',
     'JSONArray',
-    'JSONish',
-    'JSONPayload'
-    )
+    'JSONPayload',
+    'JSON',
+)
 
-class PropertyObject(metaclass=abc.ABCMeta): ...
-class PagePropertyValue(metaclass=abc.ABCMeta): ...
-class BlockTypeObjects(metaclass=abc.ABCMeta): ...
-
-class DateISO8601(typing.Protocol):
-    def isoformat(self, sep='T', timespec='auto') -> str: ...
 
 JSONObject = typing.Mapping[str, typing.Any]
 JSONArray = typing.Sequence[typing.Any]
 JSONPayload = typing.Union[typing.Iterable[bytes], str, bytes]
-JSONish = typing.Union[str, int, float, bool, JSONArray, JSONObject, None]
+JSON = typing.Union[str, int, float, bool, JSONArray, JSONObject, None]
+
+class PropertyObject(metaclass=abc.ABCMeta): 
+    def __init__(self, property_name: str) -> None:
+        self.name = property_name
+
+class PagePropertyValue(metaclass=abc.ABCMeta):
+    def __init__(self, property_name: str) -> None:
+        self.name = property_name

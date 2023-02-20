@@ -2,15 +2,16 @@ from typing import Sequence
 from enum import Enum
 
 __all__: Sequence[str] = (
-    "CodeEnum",
-    "ColorEnum",
-    "FunctionsEnum",
-    "NumberEnum",
+    "NotionCodeLang",
+    "NotionColors",
+    "NotionFunctionFormats",
+    "NotionNumberFormats",
+    "NotionInternalIcons",
     "PropertyColors"
-    )
+)
 
 
-class CodeEnum(str, Enum):
+class NotionCodeLang(str, Enum):
     abap = "abap"
     arduino = "arduino"
     bash = "bash"
@@ -85,7 +86,7 @@ class CodeEnum(str, Enum):
     java_or_c = "java/c/c++/c#"
 
 
-class FunctionsEnum(str, Enum):
+class NotionFunctionFormats(str, Enum):
     average = "average"
     checked = "checked"
     count_ = "count"
@@ -112,7 +113,7 @@ class FunctionsEnum(str, Enum):
     unique = "unique"
 
 
-class NumberEnum(str, Enum):
+class NotionNumberFormats(str, Enum):
     number = "number"
     number_with_commas = "number_with_commas"
     percent = "percent"
@@ -154,7 +155,7 @@ class NumberEnum(str, Enum):
     singapore_dollar = "singapore_dollar"
 
 
-class ColorEnum(str, Enum):
+class NotionColors(str, Enum):
     default = "default"
     gray = "gray"
     brown = "brown"
@@ -189,3 +190,10 @@ class PropertyColors(str, Enum):
     purple = "purple"
     pink = "pink"
     yellow = "yellow"
+
+
+class NotionInternalIcons(str, Enum):
+    reference_grey = "https://www.notion.so/icons/reference_gray.svg"
+
+
+
