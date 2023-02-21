@@ -12,6 +12,7 @@ from notion.core import notion_logger
 from notion.core import request_json
 
 from notion.exceptions.errors import NotionInvalidJson
+from notion.exceptions.errors import NotionObjectNotFound
 from notion.api.notionblock import Block
 from notion.api.notiondatabase import Database
 from notion.api.blockmixin import _TokenBlockMixin
@@ -81,7 +82,12 @@ class Page(_TokenBlockMixin):
 
         return cls(new_page['id'])
 
-
+    def __getitem__(self, property_name: str) -> JSONObject:
+        try:
+            return self.properties[property_name]
+        except KeyError:
+            raise NotionObjectNotFound(f"{property_name} not found in page property values.")
+    
     @cached_property
     def __page__(self) -> JSONObject:
         return self.retrieve(filter_properties=None)
@@ -202,7 +208,7 @@ class Page(_TokenBlockMixin):
 
     def _append(self, payload: JSONObject | JSONPayload) -> JSONObject:
         """ 
-        Used internally by `notion.api.blocktypefactory.BlockWrite`.
+        Used internally by `notion.api.blocktypefactory.BlockFactory`.
 
         https://developers.notion.com/reference/patch-block-children """
         return self._patch(self._block_endpoint(self.id, children=True), payload=payload)

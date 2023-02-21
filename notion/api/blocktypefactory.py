@@ -17,6 +17,8 @@ https://developers.notion.com/reference/block
 from __future__ import annotations
 import typing
 from functools import singledispatchmethod
+from functools import reduce
+from operator import getitem
 from operator import methodcaller
 
 from notion.properties import *
@@ -29,8 +31,9 @@ __all__: typing.Sequence[str] = ['BlockFactory']
 
  
 class BlockFactory(_NotionClient):
-    """ Factory to write block types as a child of target 
-        `notion.api.notionblock.Block` or `notion.api.notionpage.Page` 
+    """ Factory to write block types as a child of the target 
+        `notion.api.notionblock.Block` or `notion.api.notionpage.Page`.
+        Returns an instance of `notion.api.notionblock.Block`.
 
     To recurisvely set children blocks, each method will return the new block object,
     which contains the `block_id` that can be extracted for the `target`
@@ -62,23 +65,67 @@ class BlockFactory(_NotionClient):
 
     @singledispatchmethod
     @staticmethod
-    def _append(target, payload) -> JSONObject: ...
+    def _append(target, payload) -> Block: ...
     
     @_append.register
     @staticmethod
-    def _(target: Page | Block, payload) -> JSONObject:
+    def _(target: Page | Block, payload: JSONObject) -> Block:
         _append_method = methodcaller('_append', payload=payload)
-        return _append_method(target)
+        new_block = _append_method(target)
+        id_ = str(reduce(getitem, eval("['results', 0, 'id']"), new_block))
+        return Block(id_)
     
     @_append.register
     @staticmethod
-    def _(target: dict, payload) -> JSONObject:
-        assert 'type' in target.keys() and target['block'] == {}
-        return Block(target['results'][0].get('id'))._append(payload)
+    def _(target: dict, payload: JSONObject) -> Block:
+        """
+        If target is not an instance of Page or Block,
+        It can also be a block object from a list of results
+        ```json
+        {
+            "object": "list",
+            "results": [
+                {
+                    "object": "block",
+                    "id": "9dd8e0d6-8370-4f19-914b-39abc9863c1a",
+                    // ...
+                }
+            ],
+            "next_cursor": null,
+            "has_more": false,
+            "type": "block",
+            "block": {}
+        }
+        ```
+        or a block object directly
+        ```json
+        {
+            "object": "block",
+            "id": "647eec30-e714-4c5f-908f-73ab2f6e8c99"
+            // ...
+        }
+        ```
+        """
+        if target['object'] == 'list':
+            assert 'type' in target.keys() and target['block'] == {}
+            id_target = str(reduce(
+                getitem, eval("['results', 0, 'id']"), target))
+            new_block = Block(id_target)._append(payload)
+            id_new_block = str(reduce(
+                getitem, eval("['results', 0, 'id']"), new_block))
+            
+            return Block(id_new_block)
+        else:
+            assert target['object'] == 'block'
+            new_block = Block(target['id'])._append(payload)
+            id_new_block = str(reduce(
+                getitem, eval("['results', 0, 'id']"), new_block))
+            
+            return Block(id_new_block)
 
 
     @staticmethod
-    def reference_synced_block(target: Page | Block | JSONObject, block_id: str) -> JSONObject:
+    def reference_synced_block(target: Page | Block | JSONObject, block_id: str) -> Block:
         """    
         ### Reference Synced Block
         To sync the content of the original synced_block with another synced_block, 
@@ -92,12 +139,16 @@ class BlockFactory(_NotionClient):
         ---
         https://developers.notion.com/reference/block#synced-block-blocks
         """
-        payload = Children([ReferenceSyncedBlockType(block_id)])
+        payload = Children(
+            [
+                ReferenceSyncedBlockType(block_id)
+                ]
+            )
         return BlockFactory._append(target, payload)
 
   
     @staticmethod
-    def new_synced_block(target: Page | Block | JSONObject) -> JSONObject:
+    def new_synced_block(target: Page | Block | JSONObject) -> Block:
         """Similar to the UI, there are two versions of a synced_block -- 
         the original block that was created first and doesn't yet sync with anything else, 
         and the reference blocks that are synced to the original synced block.
@@ -122,30 +173,34 @@ class BlockFactory(_NotionClient):
         ---
         https://developers.notion.com/reference/block#synced-block-blocks
         """
-        payload = Children([OriginalSyncedBlockType(children=[])])
+        payload = Children(
+            [
+                OriginalSyncedBlockType(children=[])
+                ]
+            )
         return BlockFactory._append(target, payload)
 
 
     @staticmethod
-    def breadcrumb(target: Page | Block | JSONObject) -> JSONObject:
+    def breadcrumb(target: Page | Block | JSONObject) -> Block:
         """https://developers.notion.com/reference/block#breadcrumb-blocks"""
         return BlockFactory._append(target, Children([BreadcrumbBlock]))
   
 
     @staticmethod
-    def divider(target: Page | Block | JSONObject) -> JSONObject:
+    def divider(target: Page | Block | JSONObject) -> Block:
         """https://developers.notion.com/reference/block#divider-blocks"""
         return BlockFactory._append(target, Children([DividerBlock]))
 
 
     @staticmethod
-    def newline(target: Page | Block | JSONObject) -> JSONObject:
+    def newline(target: Page | Block | JSONObject) -> Block:
         return BlockFactory._append(target, Children([NewLineBreak]))
 
 
     @staticmethod
     def quote(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-              block_color: NotionColors | str | None = None) -> JSONObject:
+              block_color: NotionColors | str | None = None) -> Block:
         """https://developers.notion.com/reference/block#quote-blocks"""
         payload = Children(
             [
@@ -158,7 +213,7 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def callout(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
                 icon: str | None = None,
-                block_color: NotionColors | str | None = None) -> JSONObject:
+                block_color: NotionColors | str | None = None) -> Block:
         """
         :param icon: url to external source for icon. 
     
@@ -175,7 +230,7 @@ class BlockFactory(_NotionClient):
 
     @staticmethod
     def paragraph(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                  block_color: NotionColors | str | None = None) -> JSONObject:
+                  block_color: NotionColors | str | None = None) -> Block:
         """https://developers.notion.com/reference/block#paragraph-blocks"""
         payload = Children(
             [
@@ -188,11 +243,13 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def heading1(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
                   block_color: NotionColors | str | None = None,
-                  is_toggleable: bool | None = False) -> JSONObject:
+                  is_toggleable: bool | None = False) -> Block:
         """https://developers.notion.com/reference/block#heading-one-blocks"""
         payload = Children(
             [
-                Heading1BlockType(rich_text, block_color=block_color, is_toggleable=is_toggleable)
+                Heading1BlockType(rich_text, 
+                                  block_color=block_color, 
+                                  is_toggleable=is_toggleable)
                 ]
             )
         return BlockFactory._append(target, payload)
@@ -201,11 +258,13 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def heading2(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
                   block_color: NotionColors | str | None = None,
-                  is_toggleable: bool | None = False) -> JSONObject:
+                  is_toggleable: bool | None = False) -> Block:
         """https://developers.notion.com/reference/block#heading-two-blocks"""
         payload = Children(
             [
-                Heading2BlockType(rich_text, block_color=block_color, is_toggleable=is_toggleable)
+                Heading2BlockType(rich_text, 
+                                  block_color=block_color, 
+                                  is_toggleable=is_toggleable)
                 ]
             )
         return BlockFactory._append(target, payload)
@@ -214,11 +273,13 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def heading3(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
                   block_color: NotionColors | str | None = None,
-                  is_toggleable: bool | None = False) -> JSONObject:
+                  is_toggleable: bool | None = False) -> Block:
         """https://developers.notion.com/reference/block#heading-three-blocks"""
         payload = Children(
             [
-                Heading3BlockType(rich_text, block_color=block_color, is_toggleable=is_toggleable)
+                Heading3BlockType(rich_text, 
+                                  block_color=block_color, 
+                                  is_toggleable=is_toggleable)
                 ]
             )
         return BlockFactory._append(target, payload)
@@ -226,7 +287,7 @@ class BlockFactory(_NotionClient):
 
     @staticmethod
     def bulleted_list(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                      block_color: NotionColors | str | None = None) -> JSONObject:
+                      block_color: NotionColors | str | None = None) -> Block:
         """https://developers.notion.com/reference/block#bulleted-list-item-blocks"""
         payload = Children(
             [
@@ -238,7 +299,7 @@ class BlockFactory(_NotionClient):
 
     @staticmethod
     def numbered_list(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                      block_color: NotionColors | str | None = None) -> JSONObject:
+                      block_color: NotionColors | str | None = None) -> Block:
         """https://developers.notion.com/reference/block#numbered-list-item-blocks"""
         payload = Children(
             [
@@ -251,7 +312,7 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def to_do(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
               block_color: NotionColors | str | None = None,
-              checked: bool | None = None) -> JSONObject:
+              checked: bool | None = False) -> Block:
         """https://developers.notion.com/reference/block#to-do-blocks"""
         payload = Children(
             [
@@ -263,7 +324,7 @@ class BlockFactory(_NotionClient):
 
     @staticmethod
     def toggle(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-               block_color: NotionColors | str | None = None) -> JSONObject:
+               block_color: NotionColors | str | None = None) -> Block:
         """https://developers.notion.com/reference/block#toggle-blocks"""
         payload = Children(
             [
@@ -276,7 +337,7 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def code(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
              language: NotionCodeLang | str | None = None,
-             caption: list[RichText] | None = None) -> JSONObject:
+             caption: list[RichText] | None = None) -> Block:
         """
         raises:
         ```py
@@ -295,7 +356,7 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def embed_url(target: Page | Block | JSONObject, embedded_url: str, /) -> JSONObject:
+    def embed_url(target: Page | Block | JSONObject, embedded_url: str, /) -> Block:
         """
         Embed block types are:
         Framer, Twitter (tweets), Google Drive documents, Gist, Figma, 
@@ -318,43 +379,62 @@ class BlockFactory(_NotionClient):
         ---
         https://developers.notion.com/reference/block#embed-blocks
         """
-        payload = Children([EmbedBlocktype(embedded_url)])
+        payload = Children(
+            [
+                EmbedBlocktype(embedded_url)
+                ]
+            )
         return BlockFactory._append(target, payload)
 
 
     @staticmethod
     def bookmark(target: Page | Block | JSONObject, bookmark_url: str, /, *,
-                 caption: str | None = None) -> JSONObject:
+                 caption: list[RichText] | None = None) -> Block:
         """https://developers.notion.com/reference/block#bookmark-blocks"""
-        payload = Children([BookmarkBlocktype(bookmark_url, caption=caption)])
+        payload = Children(
+            [
+                BookmarkBlocktype(bookmark_url, caption=caption)
+                ]
+            )
         return BlockFactory._append(target, payload)
 
 
     @staticmethod
-    def link_to_page(target: Page | Block | JSONObject, page_id: str, /, *,
-                 caption: str | None = None) -> JSONObject:
+    def link_to_page(target: Page | Block | JSONObject, page_id: str, /) -> Block:
         """ https://developers.notion.com/reference/block#link-to-page-blocks """
-        payload = Children([LinkToPageBlockType(page_id)])
+        payload = Children(
+            [
+                LinkToPageBlockType(page_id)
+                ]
+            )
         return BlockFactory._append(target, payload)
 
 
     @staticmethod
-    def equation(target: Page | Block | JSONObject, expression: str, /) -> JSONObject:
+    def equation(target: Page | Block | JSONObject, expression: str, /) -> Block:
         """
         :param expression: (required) A KaTeX compatible string
         
         ---
         https://developers.notion.com/reference/block#equation-blocks
         """
-        payload = Children([EquationBlocktype(expression)])
+        payload = Children(
+            [
+                EquationBlocktype(expression)
+                ]
+            )
         return BlockFactory._append(target, payload)
 
 
     @staticmethod
     def table_of_contents(target: Page | Block | JSONObject, /, *, 
-                          block_color: NotionColors | str | None = None) -> JSONObject:
+                          block_color: NotionColors | str | None = None) -> Block:
         """https://developers.notion.com/reference/block#table-of-contents-blocks"""
-        payload = Children([TableOfContentsBlocktype(block_color=block_color)])
+        payload = Children(
+            [
+                TableOfContentsBlocktype(block_color=block_color)
+                ]
+            )
         return BlockFactory._append(target, payload)
 
 

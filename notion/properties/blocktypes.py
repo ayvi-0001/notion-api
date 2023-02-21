@@ -212,11 +212,11 @@ class EmbedBlocktype(build.NotionObject):
 class BookmarkBlocktype(build.NotionObject): 
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, bookmark_url: str, /, *, caption: str | None = None) -> None:
+    def __init__(self, bookmark_url: str, /, *, caption: list[RichText] | None = None) -> None:
         super().__init__()
         self.set('type', 'bookmark')
         self.set('bookmark', NotionURL(bookmark_url))
-        self.nest('bookmark', 'caption', [RichText(caption)]) if caption else None
+        self.nest('bookmark', 'caption', caption) if caption else None
 
 
 class EquationBlocktype(build.NotionObject): 

@@ -111,10 +111,10 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
     @classmethod
     def dual(cls, property_name: str, database_id: str, synced_property_name: str, /):
         """
-        ---
-        :param database_id: (required) The database that the relation property refers to.
-                            The corresponding linked page values must belong to the database in order to be valid.
-        :param synced_property_name: (required) The name of the corresponding property that is updated in the related database when this property is changed.
+        :param database_id: (required) The database that the relation property refers to. \
+            The corresponding linked page values must belong to the database in order to be valid.
+        :param synced_property_name: (required) The name of the corresponding property that is \
+            updated in the related database when this property is changed.
         """
         cls._related_to_ = _Dual_Property(database_id, synced_property_name)
         return cls(property_name, database_id=database_id,
@@ -123,9 +123,8 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
     @classmethod
     def single(cls, property_name: str, database_id: str, /):
         """
-        ---
-        :param database_id: (required)The database that the relation property refers to.
-                            The corresponding linked page values must belong to the database in order to be valid.
+        :param database_id: (required) The database that the relation property refers to. \
+            The corresponding linked page values must belong to the database in order to be valid.
         """
         cls._related_to_ = _Single_Property(database_id)
         return cls(property_name, database_id=database_id)
@@ -133,11 +132,10 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
 
 class Option(build.NotionObject):
     """
-    (required)
-    :param name: The name of the option as it appears in the Notion UI.
-                 Note: Commas (",") are not valid for select values.
-    :param color: The color of the option as rendered in the Notion UI.
-                  Use `notion.properties.PropertyColor` for reference.
+    :param name: (required) The name of the option as it appears in the Notion UI. \
+        Note: Commas (",") are not valid for select values.
+    :param color: (required) The color of the option as rendered in the Notion UI. \
+        Use `notion.properties.PropertyColor` for reference.
     """
     __slots__: typing.Sequence[str] = ()
 
@@ -151,7 +149,7 @@ class Option(build.NotionObject):
 
 
 class MultiSelectPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#multi-select"""
+    """ https://developers.notion.com/reference/property-object#multi-select """
     __slots__: typing.Sequence[str] = ('name')
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
@@ -161,7 +159,7 @@ class MultiSelectPropertyObject(PropertyObject, build.NotionObject):
 
 
 class SelectPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#select"""
+    """ https://developers.notion.com/reference/property-object#select """
     __slots__: typing.Sequence[str] = ('name')
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
@@ -171,7 +169,7 @@ class SelectPropertyObject(PropertyObject, build.NotionObject):
 
 
 class NumberPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#number"""
+    """ https://developers.notion.com/reference/property-object#number """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, format: NotionNumberFormats | str | None = None, /) -> None:
@@ -185,9 +183,8 @@ class NumberPropertyObject(PropertyObject, build.NotionObject):
 
 class FormulaPropertyObject(PropertyObject, build.NotionObject):
     """
-    (required)
-    :param expression: The formula that is used to compute the values for this property.
-                       Refer to the Notion help center for information about formula syntax.
+    :param expression: (required) The formula that is used to compute the values for this property. \
+        Refer to the Notion help center for information about formula syntax.
     ---
     https://developers.notion.com/reference/property-object#formula
     """
@@ -209,7 +206,7 @@ class CheckboxPropertyObject(PropertyObject, build.NotionObject):
         
 
 class PeoplePropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#people"""
+    """ https://developers.notion.com/reference/property-object#people """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -219,7 +216,7 @@ class PeoplePropertyObject(PropertyObject, build.NotionObject):
 
 
 class PhoneNumberPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#phone-number"""
+    """ https://developers.notion.com/reference/property-object#phone-number """
     __slots__: typing.Sequence[str] = ('name')
 
     def __init__(self, property_name: str, /) -> None:
@@ -229,7 +226,7 @@ class PhoneNumberPropertyObject(PropertyObject, build.NotionObject):
 
 
 class RichTextPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#rich-text"""
+    """ https://developers.notion.com/reference/property-object#rich-text """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -239,7 +236,7 @@ class RichTextPropertyObject(PropertyObject, build.NotionObject):
 
 
 class CreatedTimePropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#created-time"""
+    """ https://developers.notion.com/reference/property-object#created-time """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -258,7 +255,7 @@ class CreatedByPropertyObject(PropertyObject, build.NotionObject):
         
 
 class LastEditedTimePropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#last-edited-time"""
+    """ https://developers.notion.com/reference/property-object#last-edited-time """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -268,7 +265,7 @@ class LastEditedTimePropertyObject(PropertyObject, build.NotionObject):
         
 
 class LastEditedByPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#last-edited-by"""
+    """ https://developers.notion.com/reference/property-object#last-edited-by """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -278,7 +275,7 @@ class LastEditedByPropertyObject(PropertyObject, build.NotionObject):
         
   
 class DatePropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#date"""
+    """ https://developers.notion.com/reference/property-object#date """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -288,7 +285,7 @@ class DatePropertyObject(PropertyObject, build.NotionObject):
         
 
 class EmailPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#email"""
+    """ https://developers.notion.com/reference/property-object#email """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -298,7 +295,7 @@ class EmailPropertyObject(PropertyObject, build.NotionObject):
         
 
 class FilesPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#files"""
+    """ https://developers.notion.com/reference/property-object#files """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -308,7 +305,7 @@ class FilesPropertyObject(PropertyObject, build.NotionObject):
     
 
 class URLPropertyObject(PropertyObject, build.NotionObject):
-    """https://developers.notion.com/reference/property-object#url"""
+    """ https://developers.notion.com/reference/property-object#url """
     __slots__: typing.Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
@@ -318,13 +315,7 @@ class URLPropertyObject(PropertyObject, build.NotionObject):
 
 
 class RollupPropertyObject(PropertyObject, build.NotionObject):
-    """
-    NOTE: at time of writing, the api reference warns 
-    "The API doesn't support creating, updating, or deleting rollup database properties."
-    This is out of date, and rollup properties _can_ be created, updated, and deleted.
-
-    ---
-    https://developers.notion.com/reference/property-object#rollup"""
+    """ https://developers.notion.com/reference/property-object#rollup """
     __slots__: typing.Sequence[str] = ('name')
 
     def __init__(self, property_name: str, relation_property_name: str, rollup_property_name: str, 

@@ -65,14 +65,14 @@ class _TokenBlockMixin(_NotionClient):
         return self.__block__['parent']['type']
     
     @property
-    def parent_id(self) -> str | object:
+    def parent_id(self) -> str:
         _parent_id = self.__block__['parent'][self.parent_type]
         if _parent_id is True:
             # sets key to 'workspace' rather than 'True'
             _parent_id = self.parent_type 
         else:
             _parent_id = _parent_id.replace('-','')
-        return _parent_id
+        return str(_parent_id)
    
     def set_default_tz(self, timezone: Optional[tzinfo | str]) -> None:
         """

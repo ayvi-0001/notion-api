@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from functools import cached_property
-from typing import TYPE_CHECKING
 from typing import Sequence
+from typing import TYPE_CHECKING
+from functools import cached_property
 
 import orjson
 
 from notion.properties import *
 from notion.core.typedefs import *
 from notion.core import notion_logger
-from notion.exceptions import NotionInvalidRequest
-from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.notionblock import Block
+from notion.exceptions import NotionInvalidRequest
+from notion.exceptions.errors import NotionObjectNotFound
+from notion.api.blockmixin import _TokenBlockMixin
 
 if TYPE_CHECKING:
     from notion.api.notionpage import Page
@@ -95,7 +96,10 @@ class Database(_TokenBlockMixin):
         return cls(new_db['id'])
 
     def __getitem__(self, property_name: str) -> JSONObject:
-        return self._property_schema[property_name]
+        try:
+            return self._property_schema[property_name]
+        except KeyError:
+            raise NotionObjectNotFound(f"{property_name} not found in page property values.")
 
     @cached_property
     def retrieve(self) -> JSONObject:

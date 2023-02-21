@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import  Sequence
+from typing import Sequence
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.core import notion_logger
@@ -63,7 +63,7 @@ class Block(_TokenBlockMixin):
         """ Creates/appends new children blocks to the parent block_id specified. 
         Returns a paginated list of newly created children block objects. 
 
-        Used internally by `notion.api.blocktypefactory.BlockWrite`.
+        Used internally by `notion.api.blocktypefactory.BlockFactory`.
         
         ---
         https://developers.notion.com/reference/patch-block-children 
@@ -121,3 +121,15 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/update-a-block
         """ 
         return self._patch(self._block_endpoint(self.id), payload=payload)       
+
+
+# testing methods for specific block types
+
+class ToDoBlock(Block):
+    def __init__(self, id: str, /, *, token: str | None = None, notion_version: str | None = None):
+        super().__init__(id, token=token, notion_version=notion_version)
+
+    def checked(self, checked: bool, /) -> None:
+        payload = self.__block__['to_do']
+        payload['checked']= checked
+        self.update({'to_do':payload})

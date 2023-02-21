@@ -21,33 +21,25 @@ __all__: typing.Sequence[str] = (
 
 # TODO cover
 
-class FilesPropertyValue(build.NotionObject, PagePropertyValue):
+class FilesPropertyValue(PagePropertyValue, build.NotionObject):
     """When updating a file property, the value is overwritten by the array of files passed.
     Although Notion doesn't support uploading files, if you pass a file object containing a file hosted by Notion, 
     it remains one of the files. To remove any file, just don't pass it in the update response.
-    ---
+
     InternalFiles are a file object corresponding to a file that has been uploaded to Notion.
     ExternalFiles are a file object corresponding to an external file that has been linked to in Notion.
+
     ---
-    (required)
-    :param array_of_files: An array of objects containing information about the files.
-                           Either InternalFile(), ExternalFile() or a combination of both.
-    ---
-    (optional)
-    :param property_name: Adds a `name` key with the input property name, and a `name` attribute
-                          to be used with `notion.properties.PropertySchema` to set the `name` as the first key.
-                          (Required for certain page/database endpoints.)
+    :param array_of_files: (required) An array of objects containing information about the files. \
+        Either InternalFile(), ExternalFile() or a combination of both.
+
     ---
     https://developers.notion.com/reference/page-property-values#files
     """
     __slots__: typing.Sequence[str] = ('name')
 
-    def __init__(self, array_of_files: list[InternalFile | ExternalFile], /, *, property_name: str | None = None) -> None:
-        super().__init__()
-        if property_name:
-            self.name = property_name
-            self.set('name', self.name)
-
+    def __init__(self, property_name: str, array_of_files: list[InternalFile | ExternalFile]) -> None:
+        super().__init__(property_name=property_name)
         self.set('type', 'files')
         self.set('files', array_of_files)
 
@@ -81,12 +73,12 @@ class ExternalFile(build.NotionObject):
     """
     __slots__: typing.Sequence[str] = ()
 
-    def __init__(self, url, /, *, name: str | None = None, caption: str | None = None) -> None:
+    def __init__(self, url, /, *, name: str | None = None, caption: RichText | None = None) -> None:
         super().__init__()
         self.set('type', 'external')            
         self.set('external', NotionURL(url))
         self.set('name', name) if name else None
-        self.set('caption', [RichText(caption)]) if caption else None
+        self.set('caption', caption) if caption else None
 
 
 class InternalFile(build.NotionObject):
@@ -97,9 +89,9 @@ class InternalFile(build.NotionObject):
     """
     __slots__: typing.Sequence[str] = ()
     
-    def __init__(self, url, /, *, name: str | None = None, caption: str | None = None) -> None:
+    def __init__(self, url, /, *, name: str | None = None, caption: RichText | None = None) -> None:
         super().__init__()
         self.set('type', 'file')    
         self.set('file', NotionURL(url))
         self.set('name', name) if name else None
-        self.set('caption', [RichText(caption)]) if caption else None
+        self.set('caption', caption) if caption else None

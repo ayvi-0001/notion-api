@@ -6,7 +6,6 @@ __all__: Sequence[str] = (
     "NotionColors",
     "NotionFunctionFormats",
     "NotionNumberFormats",
-    "NotionInternalIcons",
     "PropertyColors"
 )
 
@@ -190,10 +189,3 @@ class PropertyColors(str, Enum):
     purple = "purple"
     pink = "pink"
     yellow = "yellow"
-
-
-class NotionInternalIcons(str, Enum):
-    reference_grey = "https://www.notion.so/icons/reference_gray.svg"
-
-
-

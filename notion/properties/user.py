@@ -16,6 +16,7 @@ class UserObject(build.NotionObject):
     :param type: Type of the user. Possible values are "person" and "bot"
     :param name: (optional) User's name, as displayed in Notion.
     :param avatar_url: (optional) Chosen avatar image.
+    
     ---
     User objects appear in the API in nearly all objects returned by the API, including:
         - Block object under created_by and last_edited_by.
@@ -27,9 +28,11 @@ class UserObject(build.NotionObject):
     User objects will always contain object and id keys. 
     The remaining properties may appear if the user is being rendered in a rich text or 
     page property context, and the bot has the correct capabilities to access those properties. 
+    
     ---
     All parameters are display-only and cannot be updated in Notion.
     Parameters marked with * are always present in object.
+    
     ---
     https://developers.notion.com/reference/user
     """
