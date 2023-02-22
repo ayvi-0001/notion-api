@@ -105,12 +105,12 @@ from notion.query import *
 filter = CompoundFilter()
 nested_filter = CompoundFilter()
 
-nested_filter.__or__(
+nested_filter._or_(
     PropertyFilter.text('name', 'title', 'contains', 'your page title'),
     PropertyFilter.text('name', 'title', 'contains', 'your other page title')
 )
 
-filter.__and__(
+filter._and_(
     nested_filter, 
     PropertyFilter.date('date', 'date', 'on_or_after', datetime.today().isoformat()),
     PropertyFilter.date('date', 'date', 'before', (datetime.today()+timedelta(1)).isoformat())
