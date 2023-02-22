@@ -1,9 +1,13 @@
+from __future__ import annotations
 import typing
+from typing import Sequence
+from typing import Union
+from typing import Optional
 
 from notion.core import build
 from notion.query.conditions import DateConditions
 
-__all__: typing.Sequence[str] = ['TimestampFilter']
+__all__: Sequence[str] = ['TimestampFilter']
 
 
 class TimestampFilter(build.NotionObject):
@@ -25,20 +29,20 @@ class TimestampFilter(build.NotionObject):
     ---
     https://developers.notion.com/reference/post-database-query-filter#timestamp-filter-object
     """
-    __slots__: typing.Sequence[str] = ('_filter_condition', '_filter_type', '_type')
+    __slots__: Sequence[str] = ('_filter_condition', '_filter_type', '_type')
 
-    def __init__(self, filter_condition: DateConditions, filter_value: str | dict, /,
-                 *, _type: str | None = None) -> None:
+    def __init__(self, filter_condition: DateConditions, filter_value: Union[str, dict], /,
+                 *, _type: Optional[str] = None) -> None:
         super().__init__()
         self.nest('filter', 'timestamp', _type)
         self.nest('filter', _type, {filter_condition:filter_value})
 
     @classmethod
-    def created_time(cls, filter_condition: DateConditions, filter_value: str | dict, /,
-                     *, _type: str | None = None):
+    def created_time(cls, filter_condition: DateConditions, filter_value: Union[str, dict], /,
+                     *, _type: Optional[str] = None) -> TimestampFilter:
         return cls(filter_condition, filter_value, _type='created_time')
 
     @classmethod
-    def last_edited_time(cls, filter_condition: DateConditions, filter_value: str | dict, /,
-                         *, _type: str | None = None):
+    def last_edited_time(cls, filter_condition: DateConditions, filter_value: Union[str, dict], /,
+                         *, _type: Optional[str] = None) -> TimestampFilter:
         return cls(filter_condition, filter_value, _type='last_edited_time')

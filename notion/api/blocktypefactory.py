@@ -15,7 +15,9 @@ NOTE: The link_preview block will only be returned as part of a response. It can
 https://developers.notion.com/reference/block
 """
 from __future__ import annotations
-import typing
+from typing import Sequence
+from typing import Union
+from typing import Optional
 from functools import singledispatchmethod
 from functools import reduce
 from operator import getitem
@@ -23,11 +25,12 @@ from operator import methodcaller
 
 from notion.properties import *
 from notion.core.typedefs import *
+from notion.api.notionpage import Page
 from notion.api.notionblock import Block
 from notion.api.client import _NotionClient
-from notion.api.notionpage import Page
+from notion.properties.richtext import RichTextTypeObject
 
-__all__: typing.Sequence[str] = ['BlockFactory']
+__all__: Sequence[str] = ['BlockFactory']
 
  
 class BlockFactory(_NotionClient):
@@ -62,14 +65,13 @@ class BlockFactory(_NotionClient):
     def __init__(self) -> None:
         pass
 
-
     @singledispatchmethod
     @staticmethod
     def _append(target, payload) -> Block: ...
     
     @_append.register
     @staticmethod
-    def _(target: Page | Block, payload: JSONObject) -> Block:
+    def _(target: Union[Page, Block], payload: JSONObject) -> Block:
         _append_method = methodcaller('_append', payload=payload)
         new_block = _append_method(target)
         id_ = str(reduce(getitem, eval("['results', 0, 'id']"), new_block))
@@ -125,7 +127,7 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def reference_synced_block(target: Page | Block | JSONObject, block_id: str) -> Block:
+    def reference_synced_block(target: Union[Page, Block, JSONObject], block_id: str) -> Block:
         """    
         ### Reference Synced Block
         To sync the content of the original synced_block with another synced_block, 
@@ -148,7 +150,7 @@ class BlockFactory(_NotionClient):
 
   
     @staticmethod
-    def new_synced_block(target: Page | Block | JSONObject) -> Block:
+    def new_synced_block(target: Union[Page, Block, JSONObject]) -> Block:
         """Similar to the UI, there are two versions of a synced_block -- 
         the original block that was created first and doesn't yet sync with anything else, 
         and the reference blocks that are synced to the original synced block.
@@ -182,25 +184,27 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def breadcrumb(target: Page | Block | JSONObject) -> Block:
+    def breadcrumb(target: Union[Page, Block, JSONObject]) -> Block:
         """https://developers.notion.com/reference/block#breadcrumb-blocks"""
         return BlockFactory._append(target, Children([BreadcrumbBlock]))
   
 
     @staticmethod
-    def divider(target: Page | Block | JSONObject) -> Block:
+    def divider(target: Union[Page, Block, JSONObject]) -> Block:
         """https://developers.notion.com/reference/block#divider-blocks"""
         return BlockFactory._append(target, Children([DividerBlock]))
 
 
     @staticmethod
-    def newline(target: Page | Block | JSONObject) -> Block:
+    def newline(target: Union[Page, Block, JSONObject]) -> Block:
         return BlockFactory._append(target, Children([NewLineBreak]))
 
 
     @staticmethod
-    def quote(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-              block_color: NotionColors | str | None = None) -> Block:
+    def quote(target: Union[Page, Block, JSONObject], 
+              rich_text: list[RichTextTypeObject], 
+              /, *, 
+              block_color: NotionColors | Optional[str] = None) -> Block:
         """https://developers.notion.com/reference/block#quote-blocks"""
         payload = Children(
             [
@@ -211,9 +215,11 @@ class BlockFactory(_NotionClient):
   
 
     @staticmethod
-    def callout(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                icon: str | None = None,
-                block_color: NotionColors | str | None = None) -> Block:
+    def callout(target: Union[Page, Block, JSONObject], 
+                rich_text: list[RichTextTypeObject], 
+                /, *, 
+                icon: Optional[str] = None,
+                block_color: NotionColors | Optional[str] = None) -> Block:
         """
         :param icon: url to external source for icon. 
     
@@ -229,8 +235,10 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def paragraph(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                  block_color: NotionColors | str | None = None) -> Block:
+    def paragraph(target: Union[Page, Block, JSONObject], 
+                  rich_text: list[RichTextTypeObject], 
+                  /, *, 
+                  block_color: NotionColors | Optional[str] = None) -> Block:
         """https://developers.notion.com/reference/block#paragraph-blocks"""
         payload = Children(
             [
@@ -241,9 +249,11 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def heading1(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                  block_color: NotionColors | str | None = None,
-                  is_toggleable: bool | None = False) -> Block:
+    def heading1(target: Union[Page, Block, JSONObject], 
+                 rich_text: list[RichTextTypeObject], 
+                 /, *, 
+                 block_color: NotionColors | Optional[str] = None,
+                 is_toggleable: Optional[bool] = False) -> Block:
         """https://developers.notion.com/reference/block#heading-one-blocks"""
         payload = Children(
             [
@@ -256,9 +266,11 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def heading2(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                  block_color: NotionColors | str | None = None,
-                  is_toggleable: bool | None = False) -> Block:
+    def heading2(target: Union[Page, Block, JSONObject], 
+                 rich_text: list[RichTextTypeObject], 
+                 /, *, 
+                 block_color: NotionColors | Optional[str] = None,
+                 is_toggleable: Optional[bool] = False) -> Block:
         """https://developers.notion.com/reference/block#heading-two-blocks"""
         payload = Children(
             [
@@ -271,9 +283,11 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def heading3(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                  block_color: NotionColors | str | None = None,
-                  is_toggleable: bool | None = False) -> Block:
+    def heading3(target: Union[Page, Block, JSONObject], 
+                 rich_text: list[RichTextTypeObject], 
+                 /, *, 
+                 block_color: NotionColors | Optional[str] = None,
+                 is_toggleable: Optional[bool] = False) -> Block:
         """https://developers.notion.com/reference/block#heading-three-blocks"""
         payload = Children(
             [
@@ -286,8 +300,10 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def bulleted_list(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                      block_color: NotionColors | str | None = None) -> Block:
+    def bulleted_list(target: Union[Page, Block, JSONObject], 
+                      rich_text: list[RichTextTypeObject], 
+                      /, *, 
+                      block_color: NotionColors | Optional[str] = None) -> Block:
         """https://developers.notion.com/reference/block#bulleted-list-item-blocks"""
         payload = Children(
             [
@@ -298,8 +314,10 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def numbered_list(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-                      block_color: NotionColors | str | None = None) -> Block:
+    def numbered_list(target: Union[Page, Block, JSONObject], 
+                      rich_text: list[RichTextTypeObject], 
+                      /, *, 
+                      block_color: NotionColors | Optional[str] = None) -> Block:
         """https://developers.notion.com/reference/block#numbered-list-item-blocks"""
         payload = Children(
             [
@@ -310,9 +328,11 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def to_do(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-              block_color: NotionColors | str | None = None,
-              checked: bool | None = False) -> Block:
+    def to_do(target: Union[Page, Block, JSONObject], 
+              rich_text: list[RichTextTypeObject], 
+              /, *, 
+              block_color: NotionColors | Optional[str] = None,
+              checked: Optional[bool] = False) -> Block:
         """https://developers.notion.com/reference/block#to-do-blocks"""
         payload = Children(
             [
@@ -323,8 +343,10 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def toggle(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-               block_color: NotionColors | str | None = None) -> Block:
+    def toggle(target: Union[Page, Block, JSONObject], 
+               rich_text: list[RichTextTypeObject], 
+               /, *, 
+               block_color: NotionColors | Optional[str] = None) -> Block:
         """https://developers.notion.com/reference/block#toggle-blocks"""
         payload = Children(
             [
@@ -335,9 +357,11 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def code(target: Page | Block | JSONObject, rich_text: list[RichText], /, *, 
-             language: NotionCodeLang | str | None = None,
-             caption: list[RichText] | None = None) -> Block:
+    def code(target: Union[Page, Block, JSONObject], 
+             rich_text: list[RichTextTypeObject], 
+             /, *, 
+             language: NotionCodeLang | Optional[str] = None,
+             caption: list[RichTextTypeObject] | None = None) -> Block:
         """
         raises:
         ```py
@@ -356,7 +380,7 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def embed_url(target: Page | Block | JSONObject, embedded_url: str, /) -> Block:
+    def embed_url(target: Union[Page, Block, JSONObject], embedded_url: str, /) -> Block:
         """
         Embed block types are:
         Framer, Twitter (tweets), Google Drive documents, Gist, Figma, 
@@ -388,8 +412,8 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def bookmark(target: Page | Block | JSONObject, bookmark_url: str, /, *,
-                 caption: list[RichText] | None = None) -> Block:
+    def bookmark(target: Union[Page, Block, JSONObject], bookmark_url: str, /, *,
+                 caption: list[RichTextTypeObject] | None = None) -> Block:
         """https://developers.notion.com/reference/block#bookmark-blocks"""
         payload = Children(
             [
@@ -400,7 +424,7 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def link_to_page(target: Page | Block | JSONObject, page_id: str, /) -> Block:
+    def link_to_page(target: Union[Page, Block, JSONObject], page_id: str, /) -> Block:
         """ https://developers.notion.com/reference/block#link-to-page-blocks """
         payload = Children(
             [
@@ -411,7 +435,7 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def equation(target: Page | Block | JSONObject, expression: str, /) -> Block:
+    def equation(target: Union[Page, Block, JSONObject], expression: str, /) -> Block:
         """
         :param expression: (required) A KaTeX compatible string
         
@@ -427,8 +451,8 @@ class BlockFactory(_NotionClient):
 
 
     @staticmethod
-    def table_of_contents(target: Page | Block | JSONObject, /, *, 
-                          block_color: NotionColors | str | None = None) -> Block:
+    def table_of_contents(target: Union[Page, Block, JSONObject], /, *, 
+                          block_color: NotionColors | Optional[str] = None) -> Block:
         """https://developers.notion.com/reference/block#table-of-contents-blocks"""
         payload = Children(
             [

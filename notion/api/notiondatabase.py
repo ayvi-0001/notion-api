@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from typing import Sequence
+from typing import Optional
+from typing import Union
 from typing import TYPE_CHECKING
 from functools import cached_property
 
@@ -58,7 +60,11 @@ class Database(_TokenBlockMixin):
             raise NotionInvalidRequest(f"{database_block.__repr__()} does not reference a Database") 
         return super().__new__(cls)
     
-    def __init__(self, id: str, /, *, token: str | None = None, notion_version: str | None = None):
+    def __init__(
+        self, id: str, /, *, 
+        token: Optional[str] = None, 
+        notion_version: Optional[str] = None
+    ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
 
         self.logger = notion_logger.getChild(f"{self.__repr__()}")
@@ -90,10 +96,11 @@ class Database(_TokenBlockMixin):
         
         new_db = cls._post(parent_instance, cls._database_endpoint(), payload=schema)
 
-        cls(new_db['id']).logger.info(f"New database created in `{parent_instance.__repr__()}`")
-        cls(new_db['id']).logger.info(f"Url: {new_db['url']}")
+        cls_ = cls(new_db['id'])
+        cls_.logger.info(f"New database created in `{parent_instance.__repr__()}`")
+        cls_.logger.info(f"Url: {new_db['url']}")
 
-        return cls(new_db['id'])
+        return cls_
 
     def __getitem__(self, property_name: str) -> JSONObject:
         try:
@@ -156,18 +163,12 @@ class Database(_TokenBlockMixin):
         self.logger.info(f"deleted property `{name_or_id}`")
     
     def rename_property(self, old_name: str, new_name: str) -> None:
-        """ https://developers.notion.com/reference/update-property-schema-object#renaming-a-property
-        
-        ---
-        :param old_name: (required)
-        :param new_name: (required)
-        """ 
+        """ https://developers.notion.com/reference/update-property-schema-object#renaming-a-property """ 
         self._update(payload=orjson.dumps({'properties':{old_name:{'name':new_name}}}))
         self.logger.info(f"renamed property `{old_name}` to `{new_name}`")
     
-    def query(self, *, payload: JSONObject | JSONPayload | None = None,
-                    #    page_size: int | None = None,
-                       filter_property_values: list[str] | None = None) -> JSONObject:
+    def query(self, *, payload: Optional[Union[JSONObject, JSONPayload]] = None,
+                       filter_property_values: Optional[list[str]] = None) -> JSONObject:
         """ Gets a list of Pages contained in the database, 
         filtered/ordered to the filter conditions/sort criteria provided in request. 
 
@@ -198,39 +199,50 @@ class Database(_TokenBlockMixin):
             return self._post(query_url, payload=payload)
 
     
-    def add_dual_relation_column(self, property_name: str, database_id: str, synced_property_name: str) -> None:
+    def add_dual_relation_column(self, property_name: str, 
+                                       database_id: str, 
+                                       synced_property_name: str) -> None:
         """ 
         :param database_id: (required) The database that the relation property refers to.
             The corresponding linked page values must belong to the database in order to be valid.
         :param synced_property_name: (required) The name of the corresponding property that is 
             updated in the related database when this property is changed.
         """
-        self._update(Properties(RelationPropertyObject.dual(property_name, database_id, synced_property_name)))
+        self._update(Properties(
+            RelationPropertyObject.dual(property_name, database_id, synced_property_name)))
+
         # NOTE: there is an issue with the current API version and `synced_property_name`, 
         # Notion UI will default to `Related to {original database name} ({property name})`,
         # regardless of what name is included in the request.
         # TEMP fix to default synced property name
         Database(database_id).rename_property(
             f"Related to {self.title} ({property_name})", synced_property_name)
-        self.logger.info(f"Created new dual_relation property `{property_name}` linked to database id: `{database_id}`.")
+        msg1 = f"Created new dual_relation property `{property_name}`"
+        msg2 = f" linked to database id: `{database_id}`."
+        self.logger.info(msg1 + msg2)
             
     
     def add_single_relation_column(self, property_name: str, database_id) -> None:
-        self._update(Properties(RelationPropertyObject.single(property_name, database_id)))
-        self.logger.info(f"Created new single relation property `{property_name}` linked to database id: `{database_id}`.")
+        self._update(Properties(
+            RelationPropertyObject.single(property_name, database_id)))
+        msg1 = f"Created new single relation property `{property_name}`"
+        msg2 = f" linked to database id: `{database_id}`."
+        self.logger.info(msg1 + msg2)
 
     
-    def add_rollup_column(self, property_name: str, relation_property_name, rollup_property_name, 
-                          function: NotionFunctionFormats | str) -> None:
+    def add_rollup_column(self, property_name: str, 
+                                relation_property_name: str, 
+                                rollup_property_name: str, 
+                                function: Union[NotionFunctionFormats, str]) -> None:
         """
         :param property_name: name for the new rollup column
         :param relation_property_name: name of relation column to other database
         :param rollup_property_name: name of column in other database to calculate
         :param function: `notion.properties.options.NotionFunctionFormats` or refer to api reference.
         """
-        rollup_column = RollupPropertyObject(property_name, relation_property_name, 
-                                             rollup_property_name, function)
-        self._update(request_json(Properties(rollup_column)))
+        self._update((Properties(
+            RollupPropertyObject(property_name, relation_property_name, 
+                                 rollup_property_name, function))))
         self.logger.info(f"Created new rollup property `{property_name}`.")
 
     
@@ -245,8 +257,7 @@ class Database(_TokenBlockMixin):
         You can pass an empty list to `options` to clear the available options, 
         and then readd them with custom colors.
         """
-        self._update(Properties(SelectPropertyObject(
-                                property_name, options=options)))
+        self._update(Properties(SelectPropertyObject(property_name, options=options)))
         self.logger.info(f"Created new select property `{property_name}`.")
     
     
@@ -282,7 +293,9 @@ class Database(_TokenBlockMixin):
     
     
     def add_number_column(self, property_name: str, /, *, 
-                          format: NotionNumberFormats | str | None = NotionNumberFormats.number) -> None:
+                          format: Optional[Union[NotionNumberFormats, str]] = None) -> None:
+        if not format:
+            format = NotionNumberFormats.number
         self._update(Properties(NumberPropertyObject(property_name, format)))
         self.logger.info(f"Created new number property `{property_name}`.")
 
@@ -336,8 +349,6 @@ class Database(_TokenBlockMixin):
         self._update(Properties(PeoplePropertyObject(property_name)))
         self.logger.info(f"Created new people property `{property_name}`.")
 
-    
-    # def add_status_column(self, ...) 
     # NOTE: 
     # It is not possible to update a status database property in the current API version. 
     # Update these values from the Notion UI, instead.

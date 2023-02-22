@@ -1,9 +1,11 @@
 from __future__ import annotations
-import typing
+from typing import Union
+from typing import Sequence
+from typing import Optional
 
 from notion.core import build
 
-__all__: typing.Sequence[str] = ('SortFilter', 'PropertyValueSort', 'EntryTimestampSort')
+__all__: Sequence[str] = ('SortFilter', 'PropertyValueSort', 'EntryTimestampSort')
 
 
 class SortFilter(build.NotionObject):
@@ -20,9 +22,9 @@ class SortFilter(build.NotionObject):
 
     ---
     https://developers.notion.com/reference/post-database-query-sort#sort-object """
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
-    def __init__(self, sort_object: list[PropertyValueSort | EntryTimestampSort]) -> None:
+    def __init__(self, sort_object: list[Union[PropertyValueSort, EntryTimestampSort]]) -> None:
         super().__init__()
         self.set('sorts', sort_object)
 
@@ -31,19 +33,19 @@ class PropertyValueSort(build.NotionObject):
     """ This sort orders the database query by a particular property.
     https://developers.notion.com/reference/post-database-query-sort#sort-object 
     """
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
-    def __init__(self, property_name: str, /, *, direction: str | None = None) -> None:
+    def __init__(self, property_name: str, /, *, direction: Optional[str] = None) -> None:
         super().__init__()
         self.set('property', property_name)
         self.set('direction', direction) 
 
     @classmethod
-    def ascending(cls, property_name: str, /, *, direction: str | None = None):
+    def ascending(cls, property_name: str, /, *, direction: Optional[str] = None) -> PropertyValueSort:
         return cls(property_name, direction='ascending')
 
     @classmethod
-    def descending(cls, property_name: str, /, *, direction: str | None = None):
+    def descending(cls, property_name: str, /, *, direction: Optional[str] = None) -> PropertyValueSort:
         return cls(property_name, direction='descending')
 
 
@@ -57,7 +59,7 @@ class EntryTimestampSort(build.NotionObject):
     ---
     https://developers.notion.com/reference/post-database-query-sort#entry-timestamp-sort 
     """
-    __slots__: typing.Sequence[str] = ('_timestamp', '_direction')
+    __slots__: Sequence[str] = ('_timestamp', '_direction')
 
     def __init__(self) -> None:
         super().__init__()
@@ -68,25 +70,25 @@ class EntryTimestampSort(build.NotionObject):
         self.set('direction', self._direction)
 
     @classmethod
-    def created_time_ascending(cls):
+    def created_time_ascending(cls) -> EntryTimestampSort:
         cls._timestamp = 'created_time'
         cls._direction = 'ascending'
         return cls()
 
     @classmethod
-    def created_time_descending(cls):
+    def created_time_descending(cls) -> EntryTimestampSort:
         cls._timestamp = 'created_time'
         cls._direction = 'descending'
         return cls()
 
     @classmethod
-    def last_edited_time_ascending(cls):
+    def last_edited_time_ascending(cls) -> EntryTimestampSort:
         cls._timestamp = 'last_edited_time'
         cls._direction = 'ascending'
         return cls()
 
     @classmethod
-    def last_edited_time_descending(cls):
+    def last_edited_time_descending(cls) -> EntryTimestampSort:
         cls._timestamp = 'last_edited_time'
         cls._direction = 'descending'
         return cls()

@@ -1,6 +1,8 @@
 from __future__ import annotations
-
+from functools import cached_property
 from typing import Sequence
+from typing import Optional
+from typing import Union
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.core import notion_logger
@@ -29,11 +31,16 @@ class Block(_TokenBlockMixin):
     ---
     https://developers.notion.com/reference/block 
     """ 
-    def __init__(self, id: str, /, *, token: str | None = None, notion_version: str | None = None):
+    def __init__(
+        self, id: str, /, *, 
+        token: Optional[str] = None, 
+        notion_version: Optional[str] = None
+    ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
 
         self.logger = notion_logger.getChild(f"{self.__repr__()}")
 
+    @cached_property
     def retrieve(self) -> JSONObject:
         """ Retrieves a Block object using the ID specified.
 
@@ -42,8 +49,8 @@ class Block(_TokenBlockMixin):
         """ 
         return self._get(self._block_endpoint(self.id))
     
-    def retrieve_children(self, start_cursor: str | None = None, 
-                                page_size: int | None = None) -> JSONObject:
+    def retrieve_children(self, start_cursor: Optional[str] = None, 
+                                page_size: Optional[int] = None) -> JSONObject:
         """ Returns a paginated array of child block objects contained 
         in the block using the ID specified.
 
@@ -59,7 +66,7 @@ class Block(_TokenBlockMixin):
         """ 
         return self._get(self._block_endpoint(self.id, children=True, page_size=page_size, start_cursor=start_cursor))
 
-    def _append(self, payload: JSONObject | JSONPayload) -> JSONObject:
+    def _append(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
         """ Creates/appends new children blocks to the parent block_id specified. 
         Returns a paginated list of newly created children block objects. 
 
@@ -103,7 +110,7 @@ class Block(_TokenBlockMixin):
             self._patch(self._block_endpoint(self.id), payload=b'{"archived": false}')
             self.logger.info(f"Restored child block `{id}`.")
 
-    def update(self, payload: JSONObject | JSONPayload) -> JSONObject:
+    def update(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
         """ Updates content for the specified block_id based on the block 
         type. Supported fields based on the block object type. 
         Note: The update replaces the entire value for a given field. 
@@ -126,10 +133,11 @@ class Block(_TokenBlockMixin):
 # testing methods for specific block types
 
 class ToDoBlock(Block):
-    def __init__(self, id: str, /, *, token: str | None = None, notion_version: str | None = None):
+    def __init__(self, id: str, /, *, 
+                 token: Optional[str] = None, notion_version: Optional[str] = None):
         super().__init__(id, token=token, notion_version=notion_version)
 
     def checked(self, checked: bool, /) -> None:
-        payload = self.__block__['to_do']
+        payload = self.retrieve['to_do']
         payload['checked']= checked
         self.update({'to_do':payload})

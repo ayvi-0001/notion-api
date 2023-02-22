@@ -1,4 +1,5 @@
 import typing
+from typing import Optional
 from operator import methodcaller
 
 from jsonpath_ng.ext import parse
@@ -16,13 +17,19 @@ __all__: typing.Sequence[str] = ['Workspace']
 
 class Workspace(_NotionClient):
     """ `notion.api.notionworkspace.Workspace` uses all static methods and doesn't require an instance. """
-    def __init__(self, *, token: str | None = None, notion_version: str | None = None):
+    def __init__(
+        self, *, 
+        token: Optional[str] = None, 
+        notion_version: Optional[str] = None
+    ) -> None:
         super().__init__(token=token, notion_version=notion_version)
 
     NotionEndpoint: typing.TypeAlias = str
     @staticmethod
-    def _workspace_endpoint(*, users: bool = False, search: bool | None = None,
-                            user_id: str | None = None, me: bool | None = None) -> NotionEndpoint:
+    def _workspace_endpoint(
+        *, users: Optional[bool] = False, search: Optional[bool] = None,
+        user_id: Optional[str] = None, me: Optional[bool] = None
+    ) -> NotionEndpoint:
         _search = 'search' if search else ''
         _users = 'users' if users else ''
         _user_id = f'/{user_id}' if user_id else ''
@@ -43,7 +50,7 @@ class Workspace(_NotionClient):
         return methodcaller('_get', url)(Workspace())
     
     @staticmethod
-    def list_all_users(*, page_size: int | None = None, cursor: str | None = None) -> JSONObject:
+    def list_all_users(*, page_size: int | None = None, cursor: Optional[str] = None) -> JSONObject:
         """ Returns a paginated list of Users for the workspace. 
         The response may contain fewer than page_size of results.
         
@@ -61,8 +68,8 @@ class Workspace(_NotionClient):
         return methodcaller('_get', url)(Workspace())
 
     @staticmethod
-    def retrieve_user(*, user_name: str | None = None,
-                         user_id: str | None = None) -> JSONObject:
+    def retrieve_user(*, user_name: Optional[str] = None,
+                         user_id: Optional[str] = None) -> JSONObject:
         """ Retrieves a User using either the user name or ID specified.
         
         ---
@@ -93,12 +100,12 @@ class Workspace(_NotionClient):
         return methodcaller('_get', url)(Workspace())
 
     @staticmethod
-    def search(*, page_size: int = 100, 
-                  query: str | None = None, 
-                  filter_pages: bool = False, 
-                  filter_databases: bool = False,
-                  start_cursor: str | None = None,
-                  sort_ascending: bool | None = None) -> JSONObject:
+    def search(*, page_size: Optional[int] = 100, 
+                  query: Optional[str] = None, 
+                  filter_pages: Optional[bool] = False, 
+                  filter_databases: Optional[bool] = False,
+                  start_cursor: Optional[str] = None,
+                  sort_ascending: Optional[bool] = None) -> JSONObject:
         """ 
         ### Searches all original pages, databases, and child pages/databases that are shared with the integration. 
         It will not return linked databases, since these duplicate their source databases.

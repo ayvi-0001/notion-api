@@ -1,8 +1,9 @@
-import typing
+from typing import Sequence
+from typing import Optional
 
 from notion.core import build
 
-__all__: typing.Sequence[str] = (
+__all__: Sequence[str] = (
     "Parent",
     "NotionUUID",
     "NotionURL",
@@ -10,7 +11,7 @@ __all__: typing.Sequence[str] = (
 
 
 class Parent(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
     def __init__(self, id: str, /, *, type: str) -> None:
         super().__init__()
@@ -31,15 +32,15 @@ class Parent(build.NotionObject):
 
 
 class NotionURL(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, url: str | None = None, /) -> None:
+    def __init__(self, url: Optional[str] = None, /) -> None:
         super().__init__()
         self.set('url', url)
 
 
 class NotionUUID(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
     def __init__(self, id: str) -> None:
         super().__init__()

@@ -2,11 +2,15 @@ from notion.exceptions.errors import *
 from notion.core.typedefs import *
 
 import typing
+from typing import Sequence
+from typing import Mapping
+from typing import Union
+from typing import Any
 
-__all__: typing.Sequence[str] = ['validate_response']
+__all__: Sequence[str] = ['validate_response']
 
 
-def validate_response(response: JSONObject | typing.Mapping[str, typing.Any]) -> _NotionErrors | None:
+def validate_response(response: Union[JSONObject, Mapping[str, Any]]) -> _NotionErrors | None:
     r"""
     To be used on responses from notion.Page | notion.Database | notion.Block.
 

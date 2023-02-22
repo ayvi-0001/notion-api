@@ -1,10 +1,11 @@
 from __future__ import annotations
-import typing
+from typing import Sequence
+from typing import Any
 
 from notion.core import build
 from notion.query.conditions import *
 
-__all__: typing.Sequence[str] = ['PropertyFilter']
+__all__: Sequence[str] = ['PropertyFilter']
 
 
 class PropertyFilter(build.NotionObject):
@@ -26,12 +27,12 @@ class PropertyFilter(build.NotionObject):
     ---
     https://developers.notion.com/reference/post-database-query-filter#type-specific-filter-conditions
     """
-    __slots__: typing.Sequence[str] = ('_property_name', '_property_type', )
+    __slots__: Sequence[str] = ('_property_name', '_property_type', )
         
     def __init__(self, 
                  property_name: str, 
                  filter_condition: FilterConditions, 
-                 filter_value: typing.Any, /) -> None:
+                 filter_value: Any, /) -> None:
         super().__init__()
         self._property_type: str
         self._property_name: str = property_name
@@ -43,50 +44,50 @@ class PropertyFilter(build.NotionObject):
 
     @classmethod
     def text(cls, property_name: str, property_type: TextTypes, filter_condition: TextConditions, 
-                  filter_value: typing.Any, /) -> PropertyFilter:
+                  filter_value: Any, /) -> PropertyFilter:
         cls._property_type = property_type
         return cls(property_name, filter_condition, filter_value)
 
     @classmethod
     def checkbox(cls, property_name: str, filter_condition: CheckboxConditions, 
-                      filter_value: typing.Any, /) -> PropertyFilter:
+                      filter_value: Any, /) -> PropertyFilter:
         cls._property_type = 'checkbox'
         return cls(property_name, filter_condition, filter_value)
  
     @classmethod
     def number(cls, property_name: str, filter_condition: NumberConditions, 
-                    filter_value: typing.Any, /) -> PropertyFilter:
+                    filter_value: Any, /) -> PropertyFilter:
         cls._property_type = 'number'
         return cls(property_name, filter_condition, filter_value)
 
     @classmethod
     def select(cls, property_name: str, filter_condition: SelectConditions, 
-                    filter_value: typing.Any, /) -> PropertyFilter:
+                    filter_value: Any, /) -> PropertyFilter:
         cls._property_type = 'select'
         return cls(property_name, filter_condition, filter_value)
 
     @classmethod
     def multi_select(cls, property_name: str, filter_condition: MultiSelectConditions, 
-                          filter_value: typing.Any, /) -> PropertyFilter:
+                          filter_value: Any, /) -> PropertyFilter:
         cls._property_type = 'multi_select'
         return cls(property_name, filter_condition, filter_value)
 
     @classmethod
     def status(cls, property_name: str, filter_condition: StatusConditions, 
-                    filter_value: typing.Any, /) -> PropertyFilter:
+                    filter_value: Any, /) -> PropertyFilter:
         cls._property_type = 'status'
         return cls(property_name, filter_condition, filter_value)
 
     @classmethod
     def date(cls, property_name: str, property_type: DateTypes, filter_condition: DateConditions, 
-                  filter_value: typing.Any, /) -> PropertyFilter:
+                  filter_value: Any, /) -> PropertyFilter:
         """When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`"""
         cls._property_type = property_type
         return cls(property_name, filter_condition, filter_value)
 
     @classmethod
     def people(cls, property_name: str, property_type: PeopleTypes, filter_condition: PeopleConditions, 
-                   filter_value: typing.Any, /) -> PropertyFilter:
+                   filter_value: Any, /) -> PropertyFilter:
         cls._property_type = property_type
         return cls(property_name, filter_condition, filter_value)
 
@@ -104,6 +105,6 @@ class PropertyFilter(build.NotionObject):
 
     @classmethod
     def relation(cls, property_name: str, filter_condition: RelationConditions, 
-                      filter_value: typing.Any, /) -> PropertyFilter:
+                      filter_value: Any, /) -> PropertyFilter:
         cls._property_type = 'relation'
         return cls(property_name, filter_condition, filter_value)
