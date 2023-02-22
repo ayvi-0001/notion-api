@@ -1,21 +1,22 @@
 from __future__ import annotations
-import typing
+from typing import Sequence
+from typing import Optional
 
 from notion.core import build
 
-__all__: typing.Sequence[str] = ["UserObject"]
+__all__: Sequence[str] = ["UserObject"]
 
 
 class UserObject(build.NotionObject):
     """ 
     The User object represents a user in a Notion workspace. Users include full workspace members, and integrations. 
     Guests are not included.
+
     ---
-    :param user: Always "user"
     :param id: (required) Unique identifier for this user. *Always present
-    :param type: Type of the user. Possible values are "person" and "bot"
     :param name: (optional) User's name, as displayed in Notion.
-    :param avatar_url: (optional) Chosen avatar image.
+    :param avatar_url: (optional)
+    :param email: (optional)
     
     ---
     User objects appear in the API in nearly all objects returned by the API, including:
@@ -31,29 +32,22 @@ class UserObject(build.NotionObject):
     
     ---
     All parameters are display-only and cannot be updated in Notion.
-    Parameters marked with * are always present in object.
     
     ---
     https://developers.notion.com/reference/user
     """
-    __slots__: typing.Sequence[str] = ('_user', '_person', '_person_email', )
+    __slots__: Sequence[str] = ()
 
-    def __init__(self, id: str, /, *, name: str | None = None, avatar_url: str | None = None, 
-                 person_email: str | None = None, type: str) -> None:
+    def __init__(self, id: str, name: Optional[str] = None, avatar_url: Optional[str] = None, 
+                 email: Optional[str] = None) -> None:
         super().__init__()
-        self.set('type', 'user')
-
-        if type == 'person':
-            self.nest('user', 'object', 'person')
-            self.nest('user', 'id', id)
-            self.nest('user', 'name', name) if name else None
-            self.nest('user', 'person', {'email':person_email}) if person_email else None
-            self.nest('user', 'avatar_url', avatar_url) if avatar_url else None
-
-    @classmethod
-    def person(cls, id: str, /, *, name: str | None = None, person_email: str | None = None, 
-               avatar_url: str | None = None, type: str='person') -> UserObject:
-        return cls(id, name=name, person_email=person_email, type=type)
-
-    # @classmethod #TODO
-    # def bot(...)
+        self.set('object', 'user')
+        self.set('id', id)
+        self.set('name', name) if name else None
+        self.set('avatar_url', avatar_url) if avatar_url else None
+        self.set('type', 'person')
+        if email:
+            self.nest('person', 'email', email)
+        else:
+            self.set('person', {}) # must be at least an empty object.
+        

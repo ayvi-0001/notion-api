@@ -12,7 +12,9 @@ NOTE: It is not possible to update a status database property in the current ver
 ---
 https://developers.notion.com/reference/property-object
 """
-import typing
+from typing import Sequence
+from typing import Optional
+from typing import Union
 
 from notion.core import build
 from notion.exceptions import errors
@@ -21,7 +23,7 @@ from notion.properties.options import NotionNumberFormats
 from notion.properties.options import NotionFunctionFormats
 from notion.core.typedefs import PropertyObject
 
-__all__: typing.Sequence[str] = (
+__all__: Sequence[str] = (
     "RelationPropertyObject",
     "MultiSelectPropertyObject",
     "SelectPropertyObject",
@@ -62,7 +64,7 @@ class TitlePropertyObject(PropertyObject, build.NotionObject):
     ---
     https://developers.notion.com/reference/property-object#title
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -71,7 +73,7 @@ class TitlePropertyObject(PropertyObject, build.NotionObject):
 
 
 class _Dual_Property(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
     def __init__(self, database_id: str, synced_property_name: str) -> None:
         super().__init__()
@@ -81,7 +83,7 @@ class _Dual_Property(build.NotionObject):
 
 
 class _Single_Property(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
     def __init__(self, database_id: str, /) -> None:
         super().__init__()
@@ -94,10 +96,10 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
     """Use either classmethod: `dual`/`single`
     https://developers.notion.com/reference/property-object#relation
     """
-    __slots__: typing.Sequence[str] = ('name', '_related_to_')
+    __slots__: Sequence[str] = ('name', '_related_to_')
 
     def __init__(self, property_name: str, /, *, database_id: str, 
-                 synced_property_name: str | None = None) -> None:
+                 synced_property_name: Optional[str] = None) -> None:
         super().__init__(property_name=property_name)
         self._related_to_: _Dual_Property | _Single_Property
 
@@ -137,9 +139,9 @@ class Option(build.NotionObject):
     :param color: (required) The color of the option as rendered in the Notion UI. \
         Use `notion.properties.PropertyColor` for reference.
     """
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
-    def __init__(self, option_name: str, color: PropertyColors | str | None = None, /) -> None:
+    def __init__(self, option_name: str, color: Optional[Union[PropertyColors, str]] = None, /) -> None:
         super().__init__()
         self.set('name', option_name)
         if not color:
@@ -150,7 +152,7 @@ class Option(build.NotionObject):
 
 class MultiSelectPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#multi-select """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
         super().__init__(property_name=property_name)
@@ -160,7 +162,7 @@ class MultiSelectPropertyObject(PropertyObject, build.NotionObject):
 
 class SelectPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#select """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
         super().__init__(property_name=property_name)
@@ -170,9 +172,9 @@ class SelectPropertyObject(PropertyObject, build.NotionObject):
 
 class NumberPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#number """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
-    def __init__(self, property_name: str, format: NotionNumberFormats | str | None = None, /) -> None:
+    def __init__(self, property_name: str, format: Optional[Union[NotionNumberFormats, str]] = None, /) -> None:
         super().__init__(property_name=property_name)
         self.set('type', 'number')
         if not format:
@@ -188,7 +190,7 @@ class FormulaPropertyObject(PropertyObject, build.NotionObject):
     ---
     https://developers.notion.com/reference/property-object#formula
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, expression: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -197,7 +199,7 @@ class FormulaPropertyObject(PropertyObject, build.NotionObject):
 
 
 class CheckboxPropertyObject(PropertyObject, build.NotionObject):
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -207,7 +209,7 @@ class CheckboxPropertyObject(PropertyObject, build.NotionObject):
 
 class PeoplePropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#people """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -217,7 +219,7 @@ class PeoplePropertyObject(PropertyObject, build.NotionObject):
 
 class PhoneNumberPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#phone-number """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -227,7 +229,7 @@ class PhoneNumberPropertyObject(PropertyObject, build.NotionObject):
 
 class RichTextPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#rich-text """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -237,7 +239,7 @@ class RichTextPropertyObject(PropertyObject, build.NotionObject):
 
 class CreatedTimePropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#created-time """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -246,7 +248,7 @@ class CreatedTimePropertyObject(PropertyObject, build.NotionObject):
         
 
 class CreatedByPropertyObject(PropertyObject, build.NotionObject):
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -256,7 +258,7 @@ class CreatedByPropertyObject(PropertyObject, build.NotionObject):
 
 class LastEditedTimePropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#last-edited-time """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -266,7 +268,7 @@ class LastEditedTimePropertyObject(PropertyObject, build.NotionObject):
 
 class LastEditedByPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#last-edited-by """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -276,7 +278,7 @@ class LastEditedByPropertyObject(PropertyObject, build.NotionObject):
   
 class DatePropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#date """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -286,7 +288,7 @@ class DatePropertyObject(PropertyObject, build.NotionObject):
 
 class EmailPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#email """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -296,7 +298,7 @@ class EmailPropertyObject(PropertyObject, build.NotionObject):
 
 class FilesPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#files """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -306,7 +308,7 @@ class FilesPropertyObject(PropertyObject, build.NotionObject):
 
 class URLPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#url """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -316,10 +318,10 @@ class URLPropertyObject(PropertyObject, build.NotionObject):
 
 class RollupPropertyObject(PropertyObject, build.NotionObject):
     """ https://developers.notion.com/reference/property-object#rollup """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, relation_property_name: str, rollup_property_name: str, 
-                 function: NotionFunctionFormats | str, /) -> None:
+                 function: Union[NotionFunctionFormats, str], /) -> None:
         super().__init__(property_name=property_name)
         self.set('type', 'rollup')
         self.nest('rollup', 'relation_property_name', relation_property_name)

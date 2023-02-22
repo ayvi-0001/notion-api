@@ -4,22 +4,24 @@ Page, embed, image, video, file, pdf, and bookmark block types all contain file 
 Icon and cover page object values also contain file objects.
 """
 from __future__ import annotations
-import typing
+from typing import Sequence
+from typing import Union
+from typing import Optional
 
 from notion.core import build
-from notion.properties.richtext import RichText
+from notion.properties.richtext import RichTextTypeObject
 from notion.properties.common import NotionURL
 from notion.core.typedefs import PagePropertyValue
 
-__all__: typing.Sequence[str] = (
+__all__: Sequence[str] = (
     "Icon", 
     "ExternalFile", 
     "InternalFile",
     "FilesPropertyValue", 
-    # "Emoji", 
 )
 
 # TODO cover
+# TODO Emoji
 
 class FilesPropertyValue(PagePropertyValue, build.NotionObject):
     """When updating a file property, the value is overwritten by the array of files passed.
@@ -36,9 +38,10 @@ class FilesPropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#files
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
-    def __init__(self, property_name: str, array_of_files: list[InternalFile | ExternalFile]) -> None:
+    def __init__(self, property_name: str, 
+                 array_of_files: list[Union[InternalFile, ExternalFile]]) -> None:
         super().__init__(property_name=property_name)
         self.set('type', 'files')
         self.set('files', array_of_files)
@@ -46,22 +49,12 @@ class FilesPropertyValue(PagePropertyValue, build.NotionObject):
 
 # Internal file type Icons currently not supported.
 class Icon(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
     def __init__(self, file_url: str, /) -> None:
         super().__init__()
         self.set('type', 'icon')
         self.set('icon', ExternalFile(file_url))
-
-
-# class Emoji(build.NotionObject):
-#     """https://developers.notion.com/reference/emoji-object"""
-#     __slots__: typing.Sequence[str] = ()
-
-#     def __init__(self, emoji_character, /) -> None:
-#         super().__init__()
-#         self.set('type', 'emoji')
-#         self.set('emoji', emoji_character)
 
 
 class ExternalFile(build.NotionObject):
@@ -71,9 +64,11 @@ class ExternalFile(build.NotionObject):
     ---
     https://developers.notion.com/reference/file-object#external-files
     """
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
-    def __init__(self, url, /, *, name: str | None = None, caption: RichText | None = None) -> None:
+    def __init__(self, url, /, *, 
+                 name: Optional[str] = None, 
+                 caption: Optional[RichTextTypeObject] = None) -> None:
         super().__init__()
         self.set('type', 'external')            
         self.set('external', NotionURL(url))
@@ -87,9 +82,11 @@ class InternalFile(build.NotionObject):
     ---
     https://developers.notion.com/reference/file-object#notion-hosted-files
     """
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, url, /, *, name: str | None = None, caption: RichText | None = None) -> None:
+    def __init__(self, url, /, *, 
+                 name: Optional[str] = None, 
+                 caption: Optional[RichTextTypeObject] = None) -> None:
         super().__init__()
         self.set('type', 'file')    
         self.set('file', NotionURL(url))

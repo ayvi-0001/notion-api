@@ -3,8 +3,11 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Sequence
 from typing import Union
+from typing import Optional
 from datetime import datetime
 import pytz 
+
+from jsonpath_ng.ext import parse
 
 from notion.properties import *
 from notion.core.typedefs import *
@@ -46,7 +49,11 @@ class Page(_TokenBlockMixin):
     ---
     https://developers.notion.com/reference/page
     """
-    def __init__(self, id: str, /, *, token: str | None = None, notion_version: str | None = None):
+    def __init__(
+        self, id: str, /, *, 
+        token: Optional[str] = None, 
+        notion_version: Optional[str] = None
+    ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
 
         self.logger = notion_logger.getChild(f"{self.__repr__()}")
@@ -77,10 +84,11 @@ class Page(_TokenBlockMixin):
 
         new_page = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
 
-        cls(new_page['id']).logger.info(f"Page created in `{parent_instance.__repr__()}`")
-        cls(new_page['id']).logger.info(f"Url: {new_page['url']}")
+        cls_ = cls(new_page['id'])
+        cls_.logger.info(f"Page created in `{parent_instance.__repr__()}`")
+        cls_.logger.info(f"Url: {new_page['url']}")
 
-        return cls(new_page['id'])
+        return cls_
 
     def __getitem__(self, property_name: str) -> JSONObject:
         try:
@@ -89,31 +97,31 @@ class Page(_TokenBlockMixin):
             raise NotionObjectNotFound(f"{property_name} not found in page property values.")
     
     @cached_property
-    def __page__(self) -> JSONObject:
+    def _retrieve(self) -> JSONObject:
         return self.retrieve(filter_properties=None)
     
+    @cached_property
+    def properties(self) -> JSONObject:
+        return self._retrieve['properties']
+
     @property
     def url(self) -> JSONObject:
-        return self.__page__['url']
+        return self._retrieve['url']
     
     @property
     def icon(self) -> JSONObject:
-        return self.__page__['icon']
+        return self._retrieve['icon']
     
     @property
     def cover(self) -> JSONObject:
-        return self.__page__['cover']
+        return self._retrieve['cover']
 
     @property
     def delete_self(self) -> None:
         Block(self.id).delete_self()
         self.logger.info('Deleted Self.')
     
-    @property
-    def properties(self) -> JSONObject:
-        return self.retrieve()['properties']
-
-    def retrieve(self, *, filter_properties: list[str] | None = None) -> JSONObject:
+    def retrieve(self, *, filter_properties: Optional[list[str]] = None) -> JSONObject:
         """ Retrieves a Page object using the ID specified.
 
         ---
@@ -121,6 +129,7 @@ class Page(_TokenBlockMixin):
             Use this param to limit the response to a specific page property value or values. \
             To retrieve multiple properties, specify each page property ID. \
             E.g. ?filter_properties=iAk8&filter_properties=b7dh.
+        
         --- 
         https://developers.notion.com/reference/retrieve-a-page 
         """
@@ -144,8 +153,8 @@ class Page(_TokenBlockMixin):
             raise NotionInvalidJson('Property name not found in page parent schema.')
 
     def retrieve_property_item(self, property_name: str, /, *, 
-                               results_only: bool = False,
-                               property_item_only: bool = False
+                               results_only: Optional[bool] = False,
+                               property_item_only: Optional[bool] = False
                             #    payload: JSONObject | JSONPayload | None = None
                                ) -> JSONObject:
         """ Retrieves a property_item object for a given page_id and property_id. 
@@ -173,7 +182,7 @@ class Page(_TokenBlockMixin):
 
         return property_item
 
-    def _patch_properties(self, payload: JSONObject | JSONPayload) -> JSONObject:
+    def _patch_properties(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
         """ Updates page property values for the specified page. 
         Properties that are not set via the properties parameter will remain unchanged.
 
@@ -184,9 +193,9 @@ class Page(_TokenBlockMixin):
         """
         return self._patch(self._pages_endpoint(self.id), payload=payload)
 
-    def retrieve_page_content(self, start_cursor: str | None = None, 
-                                    page_size: int | None = None,
-                                    results_only: bool = False) -> JSONObject:
+    def retrieve_page_content(self, start_cursor: Optional[str] = None, 
+                                    page_size: Optional[int] = None,
+                                    results_only: Optional[bool] = False) -> JSONObject:
         """
         Returns only the first level of children for the specified block. 
         See block objects for more detail on determining if that block has nested children.
@@ -206,7 +215,7 @@ class Page(_TokenBlockMixin):
 
         return child_blocks
 
-    def _append(self, payload: JSONObject | JSONPayload) -> JSONObject:
+    def _append(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
         """ 
         Used internally by `notion.api.blocktypefactory.BlockFactory`.
 
@@ -256,8 +265,11 @@ class Page(_TokenBlockMixin):
         :param status_option: (required) unlike select/multi-select, status option must already exist \
             when using this endpoint. to create a new status option, use the database endpoints.
         """
+        expr = f"$.status.options[?(@.name=='{status_option}')].color"
+        color = [m.value for m in parse(expr).find(Database(self.parent_id)[column_name])]
+
         self._patch_properties(Properties(
-            StatusPropertyValue(column_name, Option(status_option))))
+            StatusPropertyValue(column_name, Option(status_option, color[0]))))
 
     def set_multiselect(self, column_name: str, multi_select_options: list[str], /) -> None:
         """ 
@@ -273,7 +285,7 @@ class Page(_TokenBlockMixin):
         self._patch_properties(Properties(
             MultiSelectPropertyValue(column_name, selected_options)))
 
-    def set_date(self, column_name: str, start: datetime, end=None) -> None:
+    def set_date(self, column_name: str, start: datetime, end: Optional[datetime] = None) -> None:
         """ 
         :param column_name: (required) column name in Notion UI
         :param start: (required) A date, with an optional time. If the "date" value is a range, \

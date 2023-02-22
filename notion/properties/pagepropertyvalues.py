@@ -27,18 +27,20 @@ FilesPropertyValue can be found in `notion.properties.files`.
 https://developers.notion.com/reference/page-property-values
 """
 from __future__ import annotations
-import typing
+from typing import Sequence
+from typing import Optional
+from typing import overload
 from datetime import datetime
 
 from notion.core import build
 from notion.properties.propertyobjects import Option
 from notion.properties.options import NotionFunctionFormats
-from notion.properties.richtext import RichText
+from notion.properties.richtext import RichTextTypeObject
 from notion.properties.user import UserObject
 from notion.properties.common import NotionUUID
 from notion.core.typedefs import PagePropertyValue
 
-__all__: typing.Sequence[str] = (
+__all__: Sequence[str] = (
     "RichTextPropertyValue",
     "TitlePropertyValue",
     "DatePropertyValue",
@@ -97,9 +99,10 @@ class RichTextPropertyValue(PagePropertyValue, build.NotionObject):
     :The RichText Object: https://developers.notion.com/reference/rich-text
     :The RichText Property Value: https://developers.notion.com/reference/page-property-values#rich-text
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
-    def __init__(self, property_name: str, array_of_rich_text: list[RichText], /) -> None:
+    def __init__(self, property_name: str, 
+                 array_of_rich_text: list[RichTextTypeObject], /) -> None:
         super().__init__(property_name=property_name)
         self.set('type', 'rich_text')
         self.set('rich_text', array_of_rich_text)
@@ -112,9 +115,9 @@ class TitlePropertyValue(PagePropertyValue, build.NotionObject):
     --- 
     https://developers.notion.com/reference/page-property-values#title
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
-    def __init__(self, title_: list[RichText], /) -> None:
+    def __init__(self, title_: list[RichTextTypeObject], /) -> None:
         super().__init__(property_name='title')
         self.set_array(self.name, title_)
 
@@ -132,12 +135,12 @@ class DatePropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#date
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
-    @typing.overload
-    def __init__(self, property_name: str, /, *, start: str, end: str | None = None) -> None: ...
-    @typing.overload
-    def __init__(self, property_name: str, /, *, start: datetime, end: datetime | None = None) -> None: ...
+    @overload
+    def __init__(self, property_name: str, /, *, start: str, end: Optional[str] = None) -> None: ...
+    @overload
+    def __init__(self, property_name: str, /, *, start: datetime, end: Optional[datetime] = None) -> None: ...
 
     def __init__(self, property_name: str, /, *, start, end=None) -> None:
         super().__init__(property_name=property_name)
@@ -166,9 +169,10 @@ class RelationPropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#relation
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
-    def __init__(self, property_name: str, *related_ids: list[NotionUUID], has_more: bool | None = None) -> None:
+    def __init__(self, property_name: str, 
+                *related_ids: list[NotionUUID], has_more: Optional[bool] = None) -> None:
         super().__init__(property_name=property_name)
         self.set('type', 'relation')
         self.set('relation', [x for x in related_ids][0])
@@ -184,7 +188,7 @@ class StatusPropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#status
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, status_option: Option, /) -> None:
         super().__init__(property_name=property_name)
@@ -204,7 +208,7 @@ class SelectPropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#select
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, select_option: Option, /) -> None:
         super().__init__(property_name=property_name)
@@ -225,7 +229,7 @@ class MultiSelectPropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#multi-select
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, array_of_options: list[Option], /) -> None:
         super().__init__(property_name=property_name)
@@ -240,7 +244,7 @@ class CheckboxPropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#checkbox
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, checkbox_value: bool, /) -> None:
         super().__init__(property_name=property_name)
@@ -259,7 +263,7 @@ class PeoplePropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#people
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, array_of_users: list[UserObject], /) -> None:
         super().__init__(property_name=property_name)
@@ -285,7 +289,7 @@ class RollupPropertyValue(PagePropertyValue, build.NotionObject):
     ---
     https://developers.notion.com/reference/page-property-values#rollup
     """
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, function: NotionFunctionFormats, /) -> None:
         super().__init__(property_name=property_name)
@@ -295,7 +299,7 @@ class RollupPropertyValue(PagePropertyValue, build.NotionObject):
 
 class EmailPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#email"""
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, email: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -305,7 +309,7 @@ class EmailPropertyValue(PagePropertyValue, build.NotionObject):
 
 class NumberPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#number"""
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
 
     def __init__(self, property_name: str, number: float, /) -> None:
         super().__init__(property_name=property_name)
@@ -319,7 +323,7 @@ class PhoneNumberPropertyValue(PagePropertyValue, build.NotionObject):
 
     ---
     https://developers.notion.com/reference/page-property-values#phone-number"""
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, phone_number: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -329,7 +333,7 @@ class PhoneNumberPropertyValue(PagePropertyValue, build.NotionObject):
 
 class URLPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#url"""
-    __slots__: typing.Sequence[str] = ('name')
+    __slots__: Sequence[str] = ('name')
     
     def __init__(self, property_name: str, url: str, /) -> None:
         super().__init__(property_name=property_name)

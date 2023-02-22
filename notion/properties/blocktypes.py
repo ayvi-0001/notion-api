@@ -1,15 +1,19 @@
-import typing
+from typing import Sequence
+from typing import Union
+from typing import Mapping
+from typing import Optional
 
 from notion.core import build
 from notion.properties.files import ExternalFile
 from notion.properties.common import NotionURL
 from notion.properties.options import NotionCodeLang
 from notion.properties.options import NotionColors
-from notion.properties.pagepropertyvalues import RichText
+from notion.properties.richtext import RichText
+from notion.properties.richtext import RichTextTypeObject
 
 # See docs in `notion.api.blockwrite` for info on block types.
 
-__all__: typing.Sequence[str] = (
+__all__: Sequence[str] = (
     "Children", 
     "OriginalSyncedBlockType", 
     "ReferenceSyncedBlockType", 
@@ -40,17 +44,17 @@ DividerBlock = {"type":"divider","divider":{}}
 
 
 class Children(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
     def __init__(self, 
-        array_of_block_type_objects: list[build.NotionObject | typing.Mapping] | list[None] = []
+        array_of_block_type_objects: list[Union[build.NotionObject, Mapping]] | list[None] = []
         ) -> None:
         super().__init__()
         self.set('children', array_of_block_type_objects)
 
 
 class OriginalSyncedBlockType(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
     def __init__(self, children = []) -> None:
         super().__init__()
@@ -60,7 +64,7 @@ class OriginalSyncedBlockType(build.NotionObject):
 
 
 class ReferenceSyncedBlockType(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
 
     def __init__(self, block_id: str) -> None:
         super().__init__()
@@ -70,10 +74,10 @@ class ReferenceSyncedBlockType(build.NotionObject):
 
 
 class ParagraphBlocktype(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
         
         if not block_color:
@@ -88,11 +92,11 @@ NewLineBreak = ParagraphBlocktype([RichText('')])
 
 
 class CalloutBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 icon: str | None = None, 
-                 block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 icon: Optional[str] = None, 
+                 block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
         
         if not block_color:
@@ -106,10 +110,10 @@ class CalloutBlocktype(build.NotionObject):
 
 
 class QuoteBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
         
         if not block_color:
@@ -121,10 +125,10 @@ class QuoteBlocktype(build.NotionObject):
 
 
 class BulletedListItemBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
         
         if not block_color:
@@ -136,10 +140,10 @@ class BulletedListItemBlocktype(build.NotionObject):
 
 
 class NumberedListItemBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
         
         if not block_color:
@@ -151,11 +155,11 @@ class NumberedListItemBlocktype(build.NotionObject):
 
 
 class ToDoBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 checked: bool | None = False, 
-                 block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 checked: Optional[bool] = False, 
+                 block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
         
         if not block_color:
@@ -168,10 +172,10 @@ class ToDoBlocktype(build.NotionObject):
 
 
 class ToggleBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
 
         if not block_color:
@@ -183,11 +187,11 @@ class ToggleBlocktype(build.NotionObject):
 
 
 class CodeBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 language: NotionCodeLang | str | None = None,
-                 caption: list[RichText] | None = None
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 language: Optional[Union[NotionCodeLang, str]] = None,
+                 caption: Optional[list[RichTextTypeObject]] = None
         ) -> None:
         super().__init__()
 
@@ -201,7 +205,7 @@ class CodeBlocktype(build.NotionObject):
 
 
 class EmbedBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
     def __init__(self, embedded_url: str, /) -> None:
         super().__init__()
@@ -210,9 +214,9 @@ class EmbedBlocktype(build.NotionObject):
 
 
 class BookmarkBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, bookmark_url: str, /, *, caption: list[RichText] | None = None) -> None:
+    def __init__(self, bookmark_url: str, /, *, caption: Optional[list[RichTextTypeObject]] = None) -> None:
         super().__init__()
         self.set('type', 'bookmark')
         self.set('bookmark', NotionURL(bookmark_url))
@@ -220,7 +224,7 @@ class BookmarkBlocktype(build.NotionObject):
 
 
 class EquationBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
     def __init__(self, expression: str) -> None:
         super().__init__()
@@ -229,9 +233,9 @@ class EquationBlocktype(build.NotionObject):
 
 
 class TableOfContentsBlocktype(build.NotionObject): 
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, block_color: NotionColors | str | None = None) -> None:
+    def __init__(self, block_color: Optional[Union[NotionColors, str]] = None) -> None:
         super().__init__()
 
         if not block_color:
@@ -242,11 +246,11 @@ class TableOfContentsBlocktype(build.NotionObject):
 
 
 class Heading1BlockType(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None,
-                 is_toggleable: bool | None = False) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None,
+                 is_toggleable: Optional[bool] = False) -> None:
         super().__init__()
         
         if not block_color:
@@ -259,11 +263,11 @@ class Heading1BlockType(build.NotionObject):
 
 
 class Heading2BlockType(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None,
-                 is_toggleable: bool | None = False) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None,
+                 is_toggleable: Optional[bool] = False) -> None:
         super().__init__()
         
         if not block_color:
@@ -276,11 +280,11 @@ class Heading2BlockType(build.NotionObject):
 
 
 class Heading3BlockType(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
-    def __init__(self, rich_text: list[RichText], /, *, 
-                 block_color: NotionColors | str | None = None,
-                 is_toggleable: bool | None = False) -> None:
+    def __init__(self, rich_text: list[RichTextTypeObject], /, *, 
+                 block_color: Optional[Union[NotionColors, str]] = None,
+                 is_toggleable: Optional[bool] = False) -> None:
         super().__init__()
         
         if not block_color:
@@ -293,7 +297,7 @@ class Heading3BlockType(build.NotionObject):
 
 
 class LinkToPageBlockType(build.NotionObject):
-    __slots__: typing.Sequence[str] = ()
+    __slots__: Sequence[str] = ()
     
     def __init__(self, page_id: str) -> None:
         super().__init__()
