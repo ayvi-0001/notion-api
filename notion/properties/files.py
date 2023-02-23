@@ -2,6 +2,8 @@
 File objects contain data about a file that is uploaded to Notion, or data about an external file that is linked to in Notion.
 Page, embed, image, video, file, pdf, and bookmark block types all contain file objects. 
 Icon and cover page object values also contain file objects.
+
+A file with type `file` must contain a Notion hosted file url. Use type `external` for externally hosted files.
 """
 from __future__ import annotations
 from typing import Sequence
@@ -9,9 +11,9 @@ from typing import Union
 from typing import Optional
 
 from notion.core import build
-from notion.properties.richtext import RichTextTypeObject
 from notion.properties.common import NotionURL
 from notion.core.typedefs import PagePropertyValue
+from notion.properties.richtext import RichTextTypeObject
 
 __all__: Sequence[str] = (
     "Icon", 
@@ -21,7 +23,6 @@ __all__: Sequence[str] = (
 )
 
 # TODO cover
-# TODO Emoji
 
 class FilesPropertyValue(PagePropertyValue, build.NotionObject):
     """When updating a file property, the value is overwritten by the array of files passed.
@@ -35,7 +36,6 @@ class FilesPropertyValue(PagePropertyValue, build.NotionObject):
     :param array_of_files: (required) An array of objects containing information about the files. \
         Either InternalFile(), ExternalFile() or a combination of both.
 
-    ---
     https://developers.notion.com/reference/page-property-values#files
     """
     __slots__: Sequence[str] = ('name')
@@ -61,32 +61,30 @@ class ExternalFile(build.NotionObject):
     """The Notion API supports adding, retrieving, and updating links to external files.
     The name of the file. For "external" file objects, the name is the same as the file's host URL.
     
-    ---
     https://developers.notion.com/reference/file-object#external-files
     """
     __slots__: Sequence[str] = ()
 
-    def __init__(self, url, /, *, 
-                 name: Optional[str] = None, 
-                 caption: Optional[RichTextTypeObject] = None) -> None:
+    def __init__(self, url: str, /, *, caption: Optional[RichTextTypeObject] = None) -> None:
         super().__init__()
         self.set('type', 'external')            
         self.set('external', NotionURL(url))
-        self.set('name', name) if name else None
+        self.set('name', url) # same as url
         self.set('caption', caption) if caption else None
 
 
 class InternalFile(build.NotionObject):
-    """You can retrieve links to Notion-hosted files via the Retrieve block children endpoint.
+    """
+    Internal files are any files hosted on Notion, and will begin with:
+        https://s3.us-west-2.amazonaws.com/secure.notion-static.com/{block_id}/...
     
-    ---
+    You can retrieve links to Notion-hosted files via the Retrieve block children endpoint.
+    
     https://developers.notion.com/reference/file-object#notion-hosted-files
     """
     __slots__: Sequence[str] = ()
     
-    def __init__(self, url, /, *, 
-                 name: Optional[str] = None, 
-                 caption: Optional[RichTextTypeObject] = None) -> None:
+    def __init__(self, name: str, url: str, *, caption: Optional[RichTextTypeObject] = None) -> None:
         super().__init__()
         self.set('type', 'file')    
         self.set('file', NotionURL(url))

@@ -1,34 +1,37 @@
 from __future__ import annotations
-
 from functools import cached_property
 from typing import Sequence
 from typing import Optional
+from typing import Union
 from typing import Optional
 from datetime import datetime
 from datetime import tzinfo
 
-from uuid import UUID
 from pytz import timezone 
-from dataclasses import dataclass
+from uuid import UUID
 
 from notion.api._about import *
 from notion.core.typedefs import *
 from notion.api.client import _NotionClient
-from notion.exceptions import NotionObjectNotFound
+from notion.exceptions.errors import NotionObjectNotFound
 
 __all__: Sequence[str] = ["_TokenBlockMixin"]
 
 
 class _TokenBlockMixin(_NotionClient):
-    """Any object you interact with in Notion; 
+    """
+    Any object you interact with in Notion; 
     Databases/Pages/individual child blocks, are all considered 'Blocks'
     This class assigns common attributes among all three types.
     """
     def __init__(
-        self, id: str, /, *, 
+        self, 
+        id: str, 
+        /, 
+        *, 
         token: Optional[str] = None, 
         notion_version: Optional[str] = None
-    ) -> None:  
+    ) -> None:
         super().__init__(token=token, notion_version=notion_version)
 
         self.default_tz = __default_timezone__
@@ -44,31 +47,32 @@ class _TokenBlockMixin(_NotionClient):
 
     @cached_property
     def _block(self) -> JSONObject:
-        """ Same result as retrieve() for `notion.api.notionblock.Block`.
+        """ 
+        Same result as retrieve() for `notion.api.notionblock.Block`.
         If used with `notion.api.notionpage.Page` or `notion.api.notiondatabase.Database`,
         retrieves the page or database object from the blocks endpoint.
         """
         return self._get(self._block_endpoint(self.id))
 
     @property
-    def type(self) -> JSONObject:
-        return self._block['type']
+    def type(self) -> str:
+        return str(self._block['type'])
     
     @property
-    def object(self) -> JSONObject:
-        return self._block['object']
+    def object(self) -> str:
+        return str(self._block['object'])
 
     @property
-    def has_children(self) -> JSONObject:
-        return self._block['has_children']
+    def has_children(self) -> bool:
+        return bool(self._block['has_children'])
 
     @property
-    def is_archived(self) -> JSONObject:
-        return self._block['archived']
+    def is_archived(self) -> bool:
+        return bool(self._block['archived'])
     
     @property
-    def parent_type(self) -> JSONObject:
-        return self._block['parent']['type']
+    def parent_type(self) -> str:
+        return str(self._block['parent']['type'])
     
     @property
     def parent_id(self) -> str:
@@ -80,7 +84,7 @@ class _TokenBlockMixin(_NotionClient):
             _parent_id = _parent_id.replace('-','')
         return str(_parent_id)
    
-    def set_default_tz(self, timezone: Optional[tzinfo | str]) -> None:
+    def set_default_tz(self, timezone: Union[tzinfo, str]) -> None:
         """
         :param timezone: (required) set default timezone. class default is 'PST8PDT' \
             Use `pytz.all_timezones` to retrieve list of tz options. \
@@ -89,52 +93,26 @@ class _TokenBlockMixin(_NotionClient):
         self.__setattr__('default_tz', timezone)
 
     @property
-    def last_edited(self):
-        """ Notion returns datetime ISO 8601, UTC. 
+    def last_edited(self) -> datetime:
+        """ 
+        Notion returns datetime ISO 8601, UTC. 
         Class uses UTC-8:00 ('PST8PDT') as default.
         Change default timezone with `set_default_tz(...)`
-
-        Access values with datetime attributes:
-        example_block.last_edited.date
-        example_block.last_edited.time
         """
         last_edited_time = self._block['last_edited_time']
-        dtiso = datetime.fromisoformat(last_edited_time)
-        dtz = dtiso.astimezone(tz=timezone(self.default_tz)) 
-
-        @dataclass(frozen=True, slots=True, init=False)
-        class LastEditedTime:
-            date = dtz.strftime("%m/%d/%Y")
-            day = dtz.strftime("%d")
-            month = dtz.strftime("%m")
-            year = dtz.strftime("%Y")
-            time = dtz.strftime("%H:%M:%S")
-
-        return LastEditedTime()
+        dt = datetime.fromisoformat(last_edited_time)
+        return dt.astimezone(tz=timezone(self.default_tz)) 
 
     @property
-    def created(self):
-        """ Notion returns datetime ISO 8601, UTC. 
+    def created(self) -> datetime:
+        """ 
+        Notion returns datetime ISO 8601, UTC. 
         Class uses UTC-8:00 ('PST8PDT') as default.
         Change default timezone with `set_default_tz(...)`
-        
-        Access values with datetime attributes:
-        example_block.created.date
-        example_block.created.time
         """
         created_time = self._block['created_time']
-        dtiso = datetime.fromisoformat(created_time)
-        dtz = dtiso.astimezone(tz=timezone(self.default_tz)) 
-
-        @dataclass(frozen=True, slots=True, init=False)
-        class CreatedTime:
-            date = dtz.strftime("%m/%d/%Y")
-            day = dtz.strftime("%d")
-            month = dtz.strftime("%m")
-            year = dtz.strftime("%Y")
-            time = dtz.strftime("%H:%M:%S")
-
-        return CreatedTime()
+        dt = datetime.fromisoformat(created_time)
+        return dt.astimezone(tz=timezone(self.default_tz)) 
 
     def __repr__(self) -> str:
         return f"notion.{self.__class__.__name__}('{self.id}')"

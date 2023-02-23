@@ -1,31 +1,30 @@
 from __future__ import annotations
-
-from functools import cached_property
 from typing import Sequence
 from typing import Union
 from typing import Optional
+from functools import cached_property
 from datetime import datetime
 import pytz 
 
 from jsonpath_ng.ext import parse
 
+from notion.core import notion_logger
 from notion.properties import *
 from notion.core.typedefs import *
-from notion.core import notion_logger
-from notion.core import request_json
+from notion.core.build import request_json
 
-from notion.exceptions.errors import NotionInvalidJson
-from notion.exceptions.errors import NotionObjectNotFound
 from notion.api.notionblock import Block
 from notion.api.notiondatabase import Database
 from notion.api.blockmixin import _TokenBlockMixin
+from notion.exceptions.errors import NotionInvalidJson
+from notion.exceptions.errors import NotionObjectNotFound
 
 __all__: Sequence[str] = ["Page"]
 
 
 class Page(_TokenBlockMixin):
-    """ The Page object contains the page property values of a single Notion page.
-    
+    """ 
+    The Page object contains the page property values of a single Notion page.
     All pages have a Parent. If the parent is a database, 
     the property values conform to the schema laid out database's properties.
     Otherwise, the only property value is the title.
@@ -46,11 +45,13 @@ class Page(_TokenBlockMixin):
     :param notion_version: (optional) API version \
         see https://developers.notion.com/reference/versioning
     
-    ---
     https://developers.notion.com/reference/page
     """
     def __init__(
-        self, id: str, /, *, 
+        self, 
+        id: str, 
+        /, 
+        *, 
         token: Optional[str] = None, 
         notion_version: Optional[str] = None
     ) -> None:
@@ -61,7 +62,8 @@ class Page(_TokenBlockMixin):
 
     @classmethod 
     def create(cls, parent_instance: Union[Page, Database, Block], /, *, page_title: str) -> Page:
-        """ Creates a blank page with properties. 
+        """ 
+        Creates a blank page with properties. 
         Follow with class methods to add values to properties described in parent database schema, 
         or append block children to include content in the page.
 
@@ -72,9 +74,8 @@ class Page(_TokenBlockMixin):
         :param icon_url: (optional) #not yet implemented
         :param cover: (optional) #not yet implemented
 
-        ---
-        https://developers.notion.com/reference/post-page """
-        
+        https://developers.notion.com/reference/post-page 
+        """
         if parent_instance.type == 'child_database':
             payload = request_json(Parent.database(parent_instance.id), 
                                    Properties(TitlePropertyValue([RichText(page_title)])))
@@ -85,7 +86,7 @@ class Page(_TokenBlockMixin):
         new_page = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
 
         cls_ = cls(new_page['id'])
-        cls_.logger.info(f"Page created in `{parent_instance.__repr__()}`")
+        cls_.logger.info(f"Page created in {parent_instance.__repr__()}")
         cls_.logger.info(f"Url: {new_page['url']}")
 
         return cls_
@@ -122,7 +123,8 @@ class Page(_TokenBlockMixin):
         self.logger.info('Deleted Self.')
     
     def retrieve(self, *, filter_properties: Optional[list[str]] = None) -> JSONObject:
-        """ Retrieves a Page object using the ID specified.
+        """ 
+        Retrieves a Page object using the ID specified.
 
         ---
         :param filter_properties: (optional) A list of page property value IDs associated with the page. \
@@ -130,7 +132,6 @@ class Page(_TokenBlockMixin):
             To retrieve multiple properties, specify each page property ID. \
             E.g. ?filter_properties=iAk8&filter_properties=b7dh.
         
-        --- 
         https://developers.notion.com/reference/retrieve-a-page 
         """
         if filter_properties:
@@ -142,7 +143,7 @@ class Page(_TokenBlockMixin):
 
         return self._get(self._pages_endpoint(self.id))
 
-    def _retrieve_property_id(self, property_name: str, /) -> str:
+    def _retrieve_property_id(self, property_name: str) -> str:
         """ Internal function to retrieve id of a property. 
 
         :raises: `notion.exceptions.errors.NotionInvalidJson`
@@ -152,13 +153,18 @@ class Page(_TokenBlockMixin):
         else:
             raise NotionInvalidJson('Property name not found in page parent schema.')
 
-    def retrieve_property_item(self, property_name: str, /, *, 
-                               results_only: Optional[bool] = False,
-                               property_item_only: Optional[bool] = False
-                            #    payload: JSONObject | JSONPayload | None = None
-                               ) -> JSONObject:
-        """ Retrieves a property_item object for a given page_id and property_id. 
-        The object returned will either be a value or a paginated list of property item values.
+    def retrieve_property_item(
+        self, 
+        property_name: str, 
+        /, *, 
+        results_only: Optional[bool] = False,
+        property_item_only: Optional[bool] = False
+    ) -> JSONObject:
+        """ 
+        Retrieves a property_item object for a given page_id and property_id. 
+        The object returned will either be:
+            - a value.
+            - a paginated list of property item values.
         
         ---
         :param property_name: (required) property name in Notion *case-sensitive \
@@ -166,14 +172,12 @@ class Page(_TokenBlockMixin):
         :param results_only: if true, returns the `results` key index[0] for paginated responses. \
             will be either a single dictionary or a list of dictionaries.
         :param property_item_only: if true, returns the `property_item` key.
-        :param payload: NOTE: not yet implemented - for future cursor in paginated responses.
         
-        ---
         https://developers.notion.com/reference/retrieve-a-page-property 
         """
         property_id = self._retrieve_property_id(property_name)
         property_item = self._get(self._pages_endpoint(
-            self.id, properties=True, property_id=property_id))#, payload=payload)
+            self.id, properties=True, property_id=property_id))
         
         if results_only and 'results' in property_item.keys():
             return property_item.get('results', [])[0]
@@ -183,12 +187,12 @@ class Page(_TokenBlockMixin):
         return property_item
 
     def _patch_properties(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
-        """ Updates page property values for the specified page. 
-        Properties that are not set via the properties parameter will remain unchanged.
-
-        If the parent is a database, new property values must conform to the parent database's property schema. 
+        """ 
+        Updates page property values for the specified page. 
+        Properties not set via the properties parameter will remain unchanged.
+        If the parent is a database, 
+        new property values must conform to the parent database's property schema. 
         
-        ---
         https://developers.notion.com/reference/patch-page 
         """
         return self._patch(self._pages_endpoint(self.id), payload=payload)
@@ -200,11 +204,9 @@ class Page(_TokenBlockMixin):
         Returns only the first level of children for the specified block. 
         See block objects for more detail on determining if that block has nested children.
         In order to receive a complete representation of a block, you 
-        may need to recursively retrieve block children of child blocks 
-        
-        NOTE: page_size Default: 100 page_size Maximum: 100.
+        may need to recursively retrieve block children of child blocks.
+        page_size Default: 100 page_size Maximum: 100.
     
-        ---
         https://developers.notion.com/reference/get-block-children
         """
         child_blocks = Block(self.id).retrieve_children(
@@ -219,61 +221,60 @@ class Page(_TokenBlockMixin):
         """ 
         Used internally by `notion.api.blocktypefactory.BlockFactory`.
 
-        https://developers.notion.com/reference/patch-block-children """
-        return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
+        https://developers.notion.com/reference/patch-block-children 
+        """
+        return self._patch(self._block_endpoint(
+            self.id, 
+            children=True), 
+            payload=payload
+        )
 
     def rename_page(self, new_name: str) -> None:
-        self._patch_properties(Properties(TitlePropertyValue([RichText(new_name)])))
+        payload = Properties(
+            TitlePropertyValue([RichText(new_name)]))
+        
+        self._patch_properties(payload)
         self.logger.info(f'Renamed page to {new_name}')
 
-    def set_checkbox(self, column_name: str, value: bool, /) -> None: 
+    def set_checkbox(self, column_name: str, value: bool) -> None: 
         """ 
-        :param column_name: (required) column name in Notion UI
         :param value: (required) to replace the current bool
         """
-        self._patch_properties(Properties(
-            CheckboxPropertyValue(column_name, value)))
+        payload = Properties(
+            CheckboxPropertyValue(column_name, value))
+        
+        self._patch_properties(payload)
     
-    def set_text(self, column_name: str, new_text: str, /) -> None:
+    def set_text(self, column_name: str, new_text: str) -> None:
         """ 
-        :param column_name: (required) column name in Notion UI
         :param new_text: (required) to replace the current text
         """
-        self._patch_properties(Properties(
-            RichTextPropertyValue(column_name, [RichText(new_text)])))
+        payload = Properties(
+            RichTextPropertyValue(column_name, [RichText(new_text)]))
+        
+        self._patch_properties(payload)
     
-    def set_number(self, column_name: str, new_number: int, /) -> None:
+    def set_number(self, column_name: str, new_number: int) -> None:
         """ 
-        :param column_name: (required) column name in Notion UI
         :param new_number: (required) to replace the current number
         """
-        self._patch_properties(Properties(
-            NumberPropertyValue(column_name, new_number)))
+        payload = Properties(
+            NumberPropertyValue(column_name, new_number))
+        
+        self._patch_properties(payload)
 
-    def set_select(self, column_name: str, select_option: str, /) -> None:
+    def set_select(self, column_name: str, select_option: str) -> None:
         """ 
-        :param column_name: (required) column name in Notion UI
         :param select_option: (required) if the option already exists, then it is \
             case sensitive. if the option does not exist, it will be created.
         """
-        self._patch_properties(Properties(
-            SelectPropertyValue(column_name, Option(select_option))))
+        payload = Properties(
+            SelectPropertyValue(column_name, Option(select_option)))
 
-    def set_status(self, column_name: str, status_option: str, /) -> None:
+        self._patch_properties(payload)
+
+    def set_multiselect(self, column_name: str, multi_select_options: list[str]) -> None:
         """ 
-        :param column_name: (required) column name in Notion UI
-        :param status_option: (required) unlike select/multi-select, status option must already exist \
-            when using this endpoint. to create a new status option, use the database endpoints.
-        """
-        expr = f"$.status.options[?(@.name=='{status_option}')].color"
-        color = [m.value for m in parse(expr).find(Database(self.parent_id)[column_name])]
-
-        self._patch_properties(Properties(
-            StatusPropertyValue(column_name, Option(status_option, color[0]))))
-
-    def set_multiselect(self, column_name: str, multi_select_options: list[str], /) -> None:
-        """ 
-        :param column_name: (required) column name in Notion UI
         :param multi_select_options: (required) list of strings for each select option. \
             if the option already exists, then it is case sensitive. \
             if the option does not exist, it will be created.
@@ -282,14 +283,31 @@ class Page(_TokenBlockMixin):
         for option in multi_select_options:
             selected_options.append(Option(option))
 
-        self._patch_properties(Properties(
-            MultiSelectPropertyValue(column_name, selected_options)))
+        payload = Properties(
+            MultiSelectPropertyValue(column_name, selected_options))
 
-    def set_date(self, column_name: str, start: datetime, end: Optional[datetime] = None) -> None:
+        self._patch_properties(payload)
+   
+    def set_status(self, column_name: str, status_option: str) -> None:
         """ 
-        :param column_name: (required) column name in Notion UI
-        :param start: (required) A date, with an optional time. If the "date" value is a range, \
-            then start represents the start of the range.
+        :param status_option: (required) unlike select/multi-select, \
+            status option must already exist when using this endpoint. \
+            to create a new status option, use the database endpoints.
+        """
+        expr = f"$.status.options[?(@.name=='{status_option}')].color"
+        schema = Database(self.parent_id)[column_name]
+        color = [m.value for m in parse(expr).find(schema)]
+
+        payload = Properties(
+            StatusPropertyValue(column_name, Option(status_option, color[0])))
+
+        self._patch_properties(payload)
+
+    def set_date(self, column_name: str, start: Union[str, datetime], 
+                                         end: Optional[Union[str, datetime]] = None) -> None:
+        """ 
+        :param start: (required) A date, with an optional time. \
+            If the "date" value is a range, then start represents the start of the range.
         :param end: (optional) A string representing the end of a date range. \
             If the value is null, then the date value is not a range. 
         """
@@ -298,17 +316,51 @@ class Page(_TokenBlockMixin):
         if end and isinstance(end, datetime):
             end = end.replace().astimezone(pytz.timezone(self.default_tz))
         
-        self._patch_properties(Properties(
-            DatePropertyValue(column_name, start=start, end=end)))
+        payload = Properties(
+            DatePropertyValue(column_name, start=start, end=end))
 
-    def set_related(self, column_name: str, related_ids: list[str], /) -> None:
+        self._patch_properties(payload)
+
+    def set_related(self, column_name: str, related_ids: list[str]) -> None:
         """ 
-        :param column_name: (required) column name in Notion UI
         :param related_ids: (required) list of notion page ids to reference
         """
         list_ids: list[NotionUUID] = []
         for id in related_ids:
             list_ids.append(NotionUUID(id))
 
-        self._patch_properties(Properties(RelationPropertyValue(column_name, list_ids)))
+        payload = Properties(
+            RelationPropertyValue(column_name, list_ids))
+
+        self._patch_properties(payload)
     
+    def set_files(self, column_name: str, 
+                  array_of_files: list[Union[InternalFile, ExternalFile]]) -> None:
+        payload = Properties(
+            FilesPropertyValue(column_name, array_of_files))
+
+        self._patch_properties(payload)
+
+    def set_people(self, column_name: str, array_of_users: list[UserObject]) -> None:
+        payload = Properties(
+            PeoplePropertyValue(column_name, array_of_users))
+
+        self._patch_properties(payload)
+
+    def set_email(self, column_name: str, email: str) -> None:
+        payload = Properties(
+            EmailPropertyValue(column_name, email))
+
+        self._patch_properties(payload)
+
+    def set_phonenumber(self, column_name: str, phone_number: str) -> None:
+        payload = Properties(
+            PhoneNumberPropertyValue(column_name, phone_number))
+
+        self._patch_properties(payload)
+
+    def set_url(self, column_name: str, url: str) -> None:
+        payload = Properties(
+            URLPropertyValue(column_name, url))
+
+        self._patch_properties(payload)
