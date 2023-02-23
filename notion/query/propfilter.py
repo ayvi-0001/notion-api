@@ -17,14 +17,12 @@ class PropertyFilter(build.NotionObject):
     
     You may also filter a database by created_time or last_edited_time, even if these aren't present as properties on the database. 
 
-    ---
     https://developers.notion.com/reference/post-database-query-filter
 
     Each database property filter object must contain a property key 
     and a key corresponding with the type of the database property identified by property. 
     The value is an object containing a type-specific filter condition
 
-    ---
     https://developers.notion.com/reference/post-database-query-filter#type-specific-filter-conditions
     """
     __slots__: Sequence[str] = ('_property_name', '_property_type', )
@@ -38,9 +36,6 @@ class PropertyFilter(build.NotionObject):
         self._property_name: str = property_name
         self.nest('filter', 'property', property_name)
         self.nest('filter', self._property_type, {filter_condition:filter_value})
-
-    # @classmethod # TODO
-    # def rollup(...)
 
     @classmethod
     def text(cls, property_name: str, property_type: TextTypes, filter_condition: TextConditions, 
@@ -97,7 +92,6 @@ class PropertyFilter(build.NotionObject):
         """ 
         Only available `filter_value` is `true`.
         
-        ---
         https://developers.notion.com/reference/post-database-query-filter#files-filter-condition
         """
         cls._property_type = 'files'

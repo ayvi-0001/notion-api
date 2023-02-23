@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from typing import Sequence
 from typing import Optional
 from typing import Union
@@ -12,9 +11,9 @@ from notion.properties import *
 from notion.core.typedefs import *
 from notion.core import notion_logger
 from notion.api.notionblock import Block
-from notion.exceptions import NotionInvalidRequest
-from notion.exceptions.errors import NotionObjectNotFound
 from notion.api.blockmixin import _TokenBlockMixin
+from notion.exceptions.errors import NotionInvalidRequest
+from notion.exceptions.errors import NotionObjectNotFound
 
 if TYPE_CHECKING:
     from notion.api.notionpage import Page
@@ -23,7 +22,8 @@ __all__: Sequence[str] = ['Database']
 
 
 class Database(_TokenBlockMixin):
-    """ Database objects describe the property schema of a database in Notion. 
+    """ 
+    Database objects describe the property schema of a database in Notion. 
     Pages are the items (or children) in a database. The API treats database rows as pages.
     
     All databases require one, and only one, title property.
@@ -51,17 +51,21 @@ class Database(_TokenBlockMixin):
     :raises `notion.exceptions.errors.NotionInvalidRequest`: if using an id that does not \
         reference a database in Notion.
     
-    ---
     https://developers.notion.com/reference/database
     """ 
     def __new__(cls, id: str, /):
-        database_block = Block(id)
-        if database_block.type != 'child_database':
-            raise NotionInvalidRequest(f"{database_block.__repr__()} does not reference a Database") 
+        target_block = Block(id)
+        if target_block.type != 'child_database':
+            raise NotionInvalidRequest(
+                f"{target_block.__repr__()} does not reference a Database"
+                ) 
         return super().__new__(cls)
     
     def __init__(
-        self, id: str, /, *, 
+        self, 
+        id: str, 
+        /, 
+        *, 
         token: Optional[str] = None, 
         notion_version: Optional[str] = None
     ) -> None:
@@ -72,7 +76,9 @@ class Database(_TokenBlockMixin):
         
     @classmethod
     def create(cls, parent_instance: Page, /, *, database_title: str, name_column: str) -> Database:
-        """ Creates a non-inline database in the specified parent page, with the specified properties schema.
+        """ 
+        Creates a non-inline database in the specified parent page, 
+        with the specified properties schema.
         Currently, Databases cannot be created to the parent workspace.
 
         ---
@@ -80,10 +86,9 @@ class Database(_TokenBlockMixin):
         :param database_title: (required) title of new database.
         :param name_column: (required) name for main column for page names.
 
-        :raises `notion.exceptions.errors.NotionInvalidRequest`: if trying to create a database \
-            directly inside another database.
+        :raises `notion.exceptions.errors.NotionInvalidRequest`: \
+            if trying to create a database directly inside another database.
         
-        ---
         https://developers.notion.com/reference/create-a-database
         """ 
         if parent_instance.type == 'child_database':
@@ -97,7 +102,7 @@ class Database(_TokenBlockMixin):
         new_db = cls._post(parent_instance, cls._database_endpoint(), payload=schema)
 
         cls_ = cls(new_db['id'])
-        cls_.logger.info(f"New database created in `{parent_instance.__repr__()}`")
+        cls_.logger.info(f"New database created in {parent_instance.__repr__()}")
         cls_.logger.info(f"Url: {new_db['url']}")
 
         return cls_
@@ -134,49 +139,59 @@ class Database(_TokenBlockMixin):
         return self.retrieve['is_inline']
 
     def toggl_inline(self, inline: bool) -> None:
-        """ Has the value true if the database appears in the page as an inline block. 
+        """ 
+        Has the value true if the database appears in the page as an inline block. 
         Otherwise has the value false if the database appears as a child page. 
         """
-        self._patch(self._database_endpoint(self.id), 
-                    payload=orjson.dumps({'is_inline':inline}))
+        inline_value = orjson.dumps({'is_inline':inline})
+        self._patch(
+            self._database_endpoint(self.id), payload=inline_value)
+        
         self.logger.info(f"toggled `in_line` to `{inline}`")
 
-    def _update(self, payload: JSONObject | JSONPayload) -> JSONObject:
-        """ Updates an existing database as specified by the parameters.
-        This method is used internally but can optionally be used for custom payloads.
+    def _update(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
+        """ 
+        Updates an existing database as specified by the parameters.
+        Used internally but optionally can update custom payloads.
 
         ---
         :param payload: (required) json payload for updated properties parameters.
         
-        ---
         https://developers.notion.com/reference/update-a-database 
         """ 
         return self._patch(self._database_endpoint(self.id), payload=payload)
 
     def delete_property(self, name_or_id: str) -> None:
-        """ https://developers.notion.com/reference/update-property-schema-object#removing-a-property
-
-        ---
+        """ 
         :param name_or_id: (required) name or id of property described in database schema
+
+        https://developers.notion.com/reference/update-property-schema-object#removing-a-property
         """ 
         self._update(payload={'properties':{name_or_id:None}})
-        self.logger.info(f"deleted property `{name_or_id}`")
+        self.logger.info(f"Deleted property `{name_or_id}`")
     
     def rename_property(self, old_name: str, new_name: str) -> None:
-        """ https://developers.notion.com/reference/update-property-schema-object#renaming-a-property """ 
-        self._update(payload=orjson.dumps({'properties':{old_name:{'name':new_name}}}))
-        self.logger.info(f"renamed property `{old_name}` to `{new_name}`")
-    
-    def query(self, *, payload: Optional[Union[JSONObject, JSONPayload]] = None,
-                       filter_property_values: Optional[list[str]] = None) -> JSONObject:
-        """ Gets a list of Pages contained in the database, 
-        filtered/ordered to the filter conditions/sort criteria provided in request. 
+        """ 
+        https://developers.notion.com/reference/update-property-schema-object#renaming-a-property 
+        """ 
+        payload = orjson.dumps({'properties':{old_name:{'name':new_name}}})
+        self._update(payload=payload)
 
+        self.logger.info(f"Renamed property `{old_name}` to `{new_name}`")
+    
+    def query(
+        self, 
+        *, 
+        payload: Optional[Union[JSONObject, JSONPayload]] = None,
+        filter_property_values: Optional[list[str]] = None
+    ) -> JSONObject:
+        """ 
+        Gets a list of Pages contained in the database, 
+        filtered/ordered to the filter conditions/sort criteria provided in request. 
         The response may contain fewer than page_size of results. 
         Responses from paginated endpoints contain a `next_cursor` property, 
         which can be used in a query payload to continue the list.
-
-        NOTE: page_size Default: 100 page_size Maximum: 100.
+        page_size Default: 100 page_size Maximum: 100.
         
         ---
         :param payload: (optional) filter/sort objects to apply to query. \
@@ -184,7 +199,6 @@ class Database(_TokenBlockMixin):
         :param filter_property_values: (optional) list of property names, \
             query will only return the selected properties.
         
-        ---
         https://developers.notion.com/reference/post-database-query
         """ 
         query_url = self._database_endpoint(self.id, query=True)
@@ -198,56 +212,71 @@ class Database(_TokenBlockMixin):
         else:
             return self._post(query_url, payload=payload)
 
-    
-    def add_dual_relation_column(self, property_name: str, 
-                                       database_id: str, 
-                                       synced_property_name: str) -> None:
+    def add_dual_relation_column(
+        self, 
+        property_name: str, 
+        database_id: str, 
+        synced_property_name: str
+    ) -> None:
         """ 
-        :param database_id: (required) The database that the relation property refers to.
+        :param database_id: (required) The database that the relation property refers to. \
             The corresponding linked page values must belong to the database in order to be valid.
-        :param synced_property_name: (required) The name of the corresponding property that is 
+        :param synced_property_name: (required) The name of the corresponding property that is \
             updated in the related database when this property is changed.
         """
-        self._update(Properties(
-            RelationPropertyObject.dual(property_name, database_id, synced_property_name)))
+        property_object = RelationPropertyObject.dual(
+            property_name, database_id, synced_property_name)
+        
+        self._update(Properties(property_object))
 
         # NOTE: there is an issue with the current API version and `synced_property_name`, 
         # Notion UI will default to `Related to {original database name} ({property name})`,
         # regardless of what name is included in the request.
         # TEMP fix to default synced property name
-        Database(database_id).rename_property(
-            f"Related to {self.title} ({property_name})", synced_property_name)
-        msg1 = f"Created new dual_relation property `{property_name}`"
-        msg2 = f" linked to database id: `{database_id}`."
-        self.logger.info(msg1 + msg2)
-            
-    
-    def add_single_relation_column(self, property_name: str, database_id) -> None:
-        self._update(Properties(
-            RelationPropertyObject.single(property_name, database_id)))
-        msg1 = f"Created new single relation property `{property_name}`"
-        msg2 = f" linked to database id: `{database_id}`."
-        self.logger.info(msg1 + msg2)
+        synced_database = Database(database_id)
+        try:
+            synced_database[f"Related to {self.title} ({property_name})"]
+            Database(database_id).rename_property(
+                f"Related to {self.title} ({property_name})", synced_property_name)
+        except NotionObjectNotFound:
+            pass
 
+        self.logger.info("{0} {1}".format(
+            f"Created new dual_relation property `{property_name}`",
+            f" linked to notion.Database('{database_id}').")
+            )
+            
+    def add_single_relation_column(self, property_name: str, database_id: str) -> None:
+        property_object = RelationPropertyObject.single(property_name, database_id)
+        
+        self._update(Properties(property_object))
+        self.logger.info("{0} {1}".format(
+            f"Created new dual_relation property `{property_name}`",
+            f" linked to notion.Database('{database_id}').")
+            )
     
-    def add_rollup_column(self, property_name: str, 
-                                relation_property_name: str, 
-                                rollup_property_name: str, 
-                                function: Union[NotionFunctionFormats, str]) -> None:
+    def add_rollup_column(
+        self, 
+        property_name: str, 
+        relation_property_name: str, 
+        rollup_property_name: str, 
+        function: Union[NotionFunctionFormats, str]
+    ) -> None:
         """
         :param property_name: name for the new rollup column
         :param relation_property_name: name of relation column to other database
         :param rollup_property_name: name of column in other database to calculate
         :param function: `notion.properties.options.NotionFunctionFormats` or refer to api reference.
         """
-        self._update((Properties(
-            RollupPropertyObject(property_name, relation_property_name, 
-                                 rollup_property_name, function))))
+        property_object = RollupPropertyObject(property_name, relation_property_name, 
+                                               rollup_property_name, function)
+
+        self._update((Properties(property_object)))
         self.logger.info(f"Created new rollup property `{property_name}`.")
 
-    
     def add_select_column(self, property_name: str, /, *, options: list[Option]) -> None:
-        """ if `property_name` is a select column that already exists,
+        """ 
+        If `property_name` is a select column that already exists,
         then the available options will be overwritten with the new list passed to this method. 
 
         You can set the color of an option when first creating it, 
@@ -257,12 +286,14 @@ class Database(_TokenBlockMixin):
         You can pass an empty list to `options` to clear the available options, 
         and then readd them with custom colors.
         """
-        self._update(Properties(SelectPropertyObject(property_name, options=options)))
+        property_object = SelectPropertyObject(property_name, options=options)
+        
+        self._update(Properties(property_object))
         self.logger.info(f"Created new select property `{property_name}`.")
     
-    
     def add_multiselect_column(self, property_name: str, /, *, options: list[Option]) -> None:
-        """ if `property_name` is a multi-select column that already exists,
+        """ 
+        If `property_name` is a multi-select column that already exists,
         then the available options will be overwritten with the new list passed to this method. 
         
         You can set the color of an option when first creating it, 
@@ -272,81 +303,96 @@ class Database(_TokenBlockMixin):
         You can pass an empty list to `options` to clear the available options, 
         and then re-add them with custom colors.
         """
-        self._update(Properties(MultiSelectPropertyObject(
-                                property_name, options=options)))
+        property_object = MultiSelectPropertyObject(property_name, options=options)
+        
+        self._update(Properties(property_object))
         self.logger.info(f"Created new multi-select property `{property_name}`.")
-
     
     def add_checkbox_column(self, property_name: str) -> None:
         self._update(Properties(CheckboxPropertyObject(property_name)))
         self.logger.info(f"Created new checkbox property `{property_name}`.")
 
-    
     def add_date_column(self, property_name: str) -> None:
-        self._update(Properties(DatePropertyObject(property_name)))
+        property_object = DatePropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new date property `{property_name}`.")
 
-    
     def add_text_column(self, property_name: str) -> None:
-        self._update(Properties(RichTextPropertyObject(property_name)))
+        property_object = RichTextPropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new text property `{property_name}`.")
     
-    
-    def add_number_column(self, property_name: str, /, *, 
-                          format: Optional[Union[NotionNumberFormats, str]] = None) -> None:
+    def add_number_column(
+        self, property_name: str, /, *, 
+        format: Optional[Union[NotionNumberFormats, str]] = None
+    ) -> None:
         if not format:
             format = NotionNumberFormats.number
-        self._update(Properties(NumberPropertyObject(property_name, format)))
+        property_object = NumberPropertyObject(property_name, format)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new number property `{property_name}`.")
 
-    
     def add_formula_column(self, property_name: str, /, *, expression: str) -> None:
-        self._update(Properties(FormulaPropertyObject(property_name, expression)))
+        property_object = FormulaPropertyObject(property_name, expression)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new formula property `{property_name}`.")
 
-    
     def add_created_time_column(self, property_name: str) -> None:
-        self._update(Properties(CreatedTimePropertyObject(property_name)))
+        property_object = CreatedTimePropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new created_time property `{property_name}`.")
    
-    
     def add_created_by_column(self, property_name: str) -> None:
-        self._update(Properties(CreatedByPropertyObject(property_name)))
+        property_object = CreatedByPropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new created_by property `{property_name}`.")
-  
     
     def add_last_edited_time_column(self, property_name: str) -> None:
-        self._update(Properties(LastEditedTimePropertyObject(property_name)))
+        property_object = LastEditedTimePropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new last_edited_time property `{property_name}`.")
    
-    
     def add_last_edited_by_column(self, property_name: str) -> None:
-        self._update(Properties(LastEditedByPropertyObject(property_name)))
+        property_object = LastEditedByPropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new last_edited_by property `{property_name}`.")
-   
     
     def add_files_column(self, property_name: str) -> None:
-        self._update(Properties(FilesPropertyObject(property_name)))
+        property_object = FilesPropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new files property `{property_name}`.")
    
-    
     def add_email_column(self, property_name: str) -> None:
-        self._update(Properties(EmailPropertyObject(property_name)))
-        self.logger.info(f"Created new email property `{property_name}`.")
+        property_object = EmailPropertyObject(property_name)
 
+        self._update(Properties(property_object))
+        self.logger.info(f"Created new email property `{property_name}`.")
     
     def add_url_column(self, property_name: str) -> None:
-        self._update(Properties(URLPropertyObject(property_name)))
+        property_object = URLPropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new url property `{property_name}`.")
     
-    
     def add_phonenumber_column(self, property_name: str) -> None:
-        self._update(Properties(PhoneNumberPropertyObject(property_name)))
+        property_object = PhoneNumberPropertyObject(property_name)
+        
+        self._update(Properties(property_object))
         self.logger.info(f"Created new phone_number property `{property_name}`.")
     
-    
     def add_people_column(self, property_name: str) -> None:
-        self._update(Properties(PeoplePropertyObject(property_name)))
+        property_object = PeoplePropertyObject(property_name)
+
+        self._update(Properties(property_object))
         self.logger.info(f"Created new people property `{property_name}`.")
 
     # NOTE: 

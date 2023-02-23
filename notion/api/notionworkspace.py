@@ -1,30 +1,33 @@
-import typing
 from typing import Optional
+from typing import Sequence
+from typing import TypeAlias
+from typing import MutableMapping
 from operator import methodcaller
 
 from jsonpath_ng.ext import parse
 
 from notion.api._about import *
 from notion.core.typedefs import *
-from notion.exceptions.errors import NotionInvalidRequestUrl
-from notion.api.client import _NotionClient
-from notion.core.build import NotionObject
 from notion.query.sort import SortFilter
+from notion.core.build import NotionObject
+from notion.api.client import _NotionClient
 from notion.query.sort import EntryTimestampSort
+from notion.exceptions.errors import NotionInvalidRequestUrl
 
-__all__: typing.Sequence[str] = ['Workspace']
+__all__: Sequence[str] = ['Workspace']
 
 
 class Workspace(_NotionClient):
     """ `notion.api.notionworkspace.Workspace` uses all static methods and doesn't require an instance. """
     def __init__(
-        self, *, 
+        self, 
+        *, 
         token: Optional[str] = None, 
         notion_version: Optional[str] = None
     ) -> None:
         super().__init__(token=token, notion_version=notion_version)
 
-    NotionEndpoint: typing.TypeAlias = str
+    NotionEndpoint: TypeAlias = str
     @staticmethod
     def _workspace_endpoint(
         *, users: Optional[bool] = False, search: Optional[bool] = None,
@@ -42,7 +45,6 @@ class Workspace(_NotionClient):
         """ Retrieves the bot User associated with the API token provided in the authorization header. 
         The bot will have an owner field with information about the person who authorized the integration. 
         
-        ---
         https://developers.notion.com/reference/get-self 
         """
         retrieve_token_bot_endpoint = methodcaller('_workspace_endpoint', users=True, me=True)
@@ -54,10 +56,9 @@ class Workspace(_NotionClient):
         """ Returns a paginated list of Users for the workspace. 
         The response may contain fewer than page_size of results.
         
-        ---
         https://developers.notion.com/reference/get-users
         """
-        payload: typing.MutableMapping = {}
+        payload: MutableMapping = {}
         if page_size:
             payload |= {'page_size':page_size}
         if cursor:
@@ -77,7 +78,6 @@ class Workspace(_NotionClient):
         :param user_name: User name in Notion.
         :param user_id: Identifier for a Notion user
         
-        ---
         https://developers.notion.com/reference/get-users
         """
 
@@ -159,7 +159,6 @@ class Workspace(_NotionClient):
         :param start_cursor: (optional) \
              If supplied, will return a page of results starting after provided cursor.
 
-        ---
         https://developers.notion.com/reference/post-search
         """
         payload = NotionObject()

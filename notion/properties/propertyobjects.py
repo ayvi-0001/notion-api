@@ -1,4 +1,5 @@
-"""Metadata that controls how a database property behaves. 
+"""
+Metadata that controls how a database property behaves. 
 Each database property object contain the following; 
  - The ID of the property, usually a short string of random letters and symbols.
    Some automatically generated property types have special human-readable IDs. 
@@ -9,7 +10,7 @@ Each database property object contain the following;
 
 NOTE: It is not possible to update a status database property in the current version of the Notion API. 
       Update these values from the Notion UI, instead.
----
+
 https://developers.notion.com/reference/property-object
 """
 from typing import Sequence
@@ -48,7 +49,8 @@ __all__: Sequence[str] = (
 
 
 class TitlePropertyObject(PropertyObject, build.NotionObject):
-    """A title database property controls the title that appears at the top of a page when a 
+    """
+    A title database property controls the title that appears at the top of a page when a 
     database row is opened. The title type object itself is empty; there is no additional configuration.
 
     NOTE: All databases require one, and only one, title property.
@@ -61,7 +63,6 @@ class TitlePropertyObject(PropertyObject, build.NotionObject):
     A database title defines the title of the database and is found on the database object.
     Every database requires both a database title and a title database property.
     
-    ---
     https://developers.notion.com/reference/property-object#title
     """
     __slots__: Sequence[str] = ('name')
@@ -93,7 +94,8 @@ class _Single_Property(build.NotionObject):
 
 
 class RelationPropertyObject(PropertyObject, build.NotionObject):
-    """Use either classmethod: `dual`/`single`
+    """
+    Use either classmethod: `dual`/`single`
     https://developers.notion.com/reference/property-object#relation
     """
     __slots__: Sequence[str] = ('name', '_related_to_')
@@ -187,7 +189,6 @@ class FormulaPropertyObject(PropertyObject, build.NotionObject):
     """
     :param expression: (required) The formula that is used to compute the values for this property. \
         Refer to the Notion help center for information about formula syntax.
-    ---
     https://developers.notion.com/reference/property-object#formula
     """
     __slots__: Sequence[str] = ('name')

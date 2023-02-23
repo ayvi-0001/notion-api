@@ -19,7 +19,8 @@ __all__: Sequence[str] = ["_NotionClient"]
 class _NotionClient:
     """Base Class to inherit: token, headers, requests, and endpoints."""
     def __init__(
-        self, *, 
+        self, 
+        *, 
         token: Optional[str] = None, 
         notion_version: Optional[str] = None
     ) -> None:
@@ -55,26 +56,27 @@ class _NotionClient:
                         page_size: Optional[int] = None,
                         start_cursor: Optional[str] = None
     ) -> NotionEndpoint:
-        _object_id = f'/{object_id}' if object_id else ''
-        _children = '/children' if children else ''
-
-        urlparam = ''
+        object_id_ = f'/{object_id}' if object_id else ''
+        children_ = '/children' if children else ''
+        page_size_ = f'&page_size={page_size}' if page_size else ''
+        start_cursor_ = f'&start_cursor={start_cursor}' if start_cursor else ''
+        urlparam_ = ''
         if any([page_size, start_cursor]):
-            urlparam = '?'
-        _page_size = f'&page_size={page_size}' if page_size else ''
-        _start_cursor = f'&start_cursor={start_cursor}' if start_cursor else ''
+            urlparam_ = '?'
         
-        return f"{__base_url__}blocks{_object_id}{_children}{urlparam}{_start_cursor}{_page_size}"
+        return "{0}blocks{1}{2}{3}{4}{5}".format(__base_url__, 
+            object_id_, children_, urlparam_, start_cursor_, page_size_
+        )
 
     @staticmethod
     def _database_endpoint(object_id: Optional[str] = None, 
                            /, *, 
                            query: Optional[bool] = False
     ) -> NotionEndpoint:
-        _object_id = f'/{object_id}' if object_id else ''
-        _query = '/query' if query else ''
+        object_id_ = f'/{object_id}' if object_id else ''
+        query_ = '/query' if query else ''
 
-        return f"{__base_url__}databases{_object_id}{_query}"
+        return f"{__base_url__}databases{object_id_}{query_}"
 
     @staticmethod
     def _pages_endpoint(object_id: Optional[str] = None,
@@ -82,11 +84,11 @@ class _NotionClient:
                         properties: Optional[bool] = False, 
                         property_id: Optional[str] = None
     ) -> NotionEndpoint:
-        _object_id = f'/{object_id}' if object_id else ''
-        _properties = '/properties' if properties else ''
-        _property_id = f'/{property_id}' if property_id else ''
+        object_id_ = f'/{object_id}' if object_id else ''
+        properties_ = '/properties' if properties else ''
+        property_id_ = f'/{property_id}' if property_id else ''
         
-        return f"{__base_url__}pages{_object_id}{_properties}{_property_id}"
+        return f"{__base_url__}pages{object_id_}{properties_}{property_id_}"
 
 
     def _get(self, url: NotionEndpoint, /, *, 

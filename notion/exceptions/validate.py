@@ -1,7 +1,6 @@
 from notion.exceptions.errors import *
 from notion.core.typedefs import *
 
-import typing
 from typing import Sequence
 from typing import Mapping
 from typing import Union
@@ -38,7 +37,6 @@ def validate_response(response: Union[JSONObject, Mapping[str, Any]]) -> _Notion
     The request body does not match the schema for the expected parameters.    
     ```
     
-    ---
     https://developers.notion.com/reference/errors
     """
     if 'error' in response.values():

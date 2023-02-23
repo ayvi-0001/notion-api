@@ -11,7 +11,7 @@ from notion.properties.options import NotionColors
 from notion.properties.richtext import RichText
 from notion.properties.richtext import RichTextTypeObject
 
-# See docs in `notion.api.blockwrite` for info on block types.
+# See docs in `notion.api.blockwrite.BlockFactory` for info on block types.
 
 __all__: Sequence[str] = (
     "Children", 

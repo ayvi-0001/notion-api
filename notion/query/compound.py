@@ -17,7 +17,6 @@ class CompoundFilter(build.NotionObject):
 
     Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
     
-    ---
     https://developers.notion.com/reference/post-database-query-filter#compound-filter-object
     """
     __slots__: Sequence[str] = ()

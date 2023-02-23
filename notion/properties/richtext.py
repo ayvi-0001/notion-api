@@ -5,15 +5,14 @@ Arrays of rich text objects within database property objects and page property v
 are used to create what a user experiences as a single text value in Notion.
 """
 from __future__ import annotations
-import typing
 from typing import Sequence
 from typing import Union
 from typing import Optional
 
 from notion.core import build 
-from notion.properties.user import UserObject
 from notion.properties.options import NotionColors
 from notion.properties.common import NotionURL
+from notion.properties.common import UserObject
 
 __all__: Sequence[str] = (
     "Annotations",
@@ -62,11 +61,12 @@ class Mention(build.NotionObject):
 
     @classmethod
     def user(cls, mention_type_object: UserObject, /, *, annotations: Optional[Annotations] = None) -> Mention:
-        """ https://developers.notion.com/reference/rich-text#user-mention-type-object """
         """ 
         Cannot mention Bots
         :raises: `notion.exceptions.errors.NotionValidationError`: \
             Content creation Failed.
+
+        https://developers.notion.com/reference/rich-text#user-mention-type-object
         """
         return cls(
             type='user', 
@@ -167,6 +167,4 @@ class Annotations(build.NotionObject):
         if not any([[bold, italic, strike, underline, code, color]]):
             pass # annotations must be defined or non-existent, or Notion will return error
 
-
-RichTextTypeObject = typing.Union[RichText, Mention, Equation]
-
+RichTextTypeObject = Union[RichText, Mention, Equation]

@@ -9,7 +9,8 @@ __all__: Sequence[str] = ('SortFilter', 'PropertyValueSort', 'EntryTimestampSort
 
 
 class SortFilter(build.NotionObject):
-    """ A sort is a condition used to order the entries returned from a database query.
+    """ 
+    A sort is a condition used to order the entries returned from a database query.
     A database query can be sorted by a property and/or timestamp and in a given direction. 
     For example, 
     a library database can be sorted by the "Name of a book" (i.e. property) and in ascending (i.e. direction).
@@ -20,7 +21,6 @@ class SortFilter(build.NotionObject):
     :param sort_object: (required) List containing one of \
         `notion.query.sort.PropertyValueSort` or `notion.query.sort.EntryTimestampSort`
 
-    ---
     https://developers.notion.com/reference/post-database-query-sort#sort-object """
     __slots__: Sequence[str] = ()
 
@@ -30,7 +30,8 @@ class SortFilter(build.NotionObject):
 
 
 class PropertyValueSort(build.NotionObject):
-    """ This sort orders the database query by a particular property.
+    """ 
+    This sort orders the database query by a particular property.
     https://developers.notion.com/reference/post-database-query-sort#sort-object 
     """
     __slots__: Sequence[str] = ()
@@ -50,13 +51,13 @@ class PropertyValueSort(build.NotionObject):
 
 
 class EntryTimestampSort(build.NotionObject):
-    """ This sort orders the database query by the timestamp associated with a database entry.
+    """ 
+    This sort orders the database query by the timestamp associated with a database entry.
     
     Required:
     - must use either `created_time_ascending` or `created_time_descending` classmethod.
     - must use either `last_edited_time_ascending` or `last_edited_time_descending` classmethod.
     
-    ---
     https://developers.notion.com/reference/post-database-query-sort#entry-timestamp-sort 
     """
     __slots__: Sequence[str] = ('_timestamp', '_direction')

@@ -4,9 +4,9 @@ from typing import Sequence
 from typing import Optional
 from typing import Union
 
-from notion.api.blockmixin import _TokenBlockMixin
 from notion.core import notion_logger
 from notion.core.typedefs import *
+from notion.api.blockmixin import _TokenBlockMixin
 
 __all__: Sequence[str] = ["Block"]
 
@@ -28,11 +28,13 @@ class Block(_TokenBlockMixin):
     :param notion_version: (optional) API version \
         see https://developers.notion.com/reference/versioning
     
-    ---
     https://developers.notion.com/reference/block 
     """ 
     def __init__(
-        self, id: str, /, *, 
+        self, 
+        id: str, 
+        /, 
+        *, 
         token: Optional[str] = None, 
         notion_version: Optional[str] = None
     ) -> None:
@@ -42,62 +44,73 @@ class Block(_TokenBlockMixin):
 
     @cached_property
     def retrieve(self) -> JSONObject:
-        """ Retrieves a Block object using the ID specified.
+        """ 
+        Retrieves a Block object using the ID specified.
 
-        ---
         https://developers.notion.com/reference/retrieve-a-block 
         """ 
         return self._get(self._block_endpoint(self.id))
     
     def retrieve_children(self, start_cursor: Optional[str] = None, 
                                 page_size: Optional[int] = None) -> JSONObject:
-        """ Returns a paginated array of child block objects contained 
+        """ 
+        Returns a paginated array of child block objects contained 
         in the block using the ID specified.
 
         Returns only the first level of children for the specified block. 
         See block objects for more detail on determining if that block has nested children.
-        In order to receive a complete representation of a block, you 
-        may need to recursively retrieve block children of child blocks
+        In order to receive a complete representation of a block, 
+        you may need to recursively retrieve block children of child blocks.
+        page_size Default: 100 page_size Maximum: 100.
 
-        NOTE: page_size Default: 100 page_size Maximum: 100.
-
-        ---
         https://developers.notion.com/reference/get-block-children
         """ 
-        return self._get(self._block_endpoint(self.id, children=True, page_size=page_size, start_cursor=start_cursor))
+        return self._get(self._block_endpoint(
+            self.id, 
+            children=True, 
+            page_size=page_size, 
+            start_cursor=start_cursor)
+        )
 
     def _append(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
-        """ Creates/appends new children blocks to the parent block_id specified. 
+        """ 
+        Creates/appends new children blocks to the parent block_id specified. 
         Returns a paginated list of newly created children block objects. 
 
         Used internally by `notion.api.blocktypefactory.BlockFactory`.
         
-        ---
         https://developers.notion.com/reference/patch-block-children 
         """ 
-        return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
+        return self._patch(self._block_endpoint(
+            self.id, 
+            children=True), 
+            payload=payload
+        )
 
     def delete_self(self) -> None:
-        """ Sets a Block object, including page blocks, to archived: true 
+        """ 
+        Sets a Block object, including page blocks, to archived: true 
         using the ID specified. Note: in the Notion UI application, 
         this moves the block to the "Trash" where it can still be 
         accessed and restored. To restore the block with the API, 
         use the Update a block or Update page respectively. 
 
-        NOTE: To delete a page or database, create a block instance with the respective id,
-        and call this method.
+        NOTE: To delete a page or database, 
+        create a block instance with the respective id, and call this method.
 
-        ---
         https://developers.notion.com/reference/delete-a-block
         """ 
         self._delete(self._block_endpoint(self.id))
         self.logger.info('Deleted Self.')
 
     def restore_self(self) -> None:
-        """ Sets "archived" key to false. 
+        """ 
+        Sets "archived" key to false. 
         Only works if the parent page has not been deleted from the trash.
         """ 
-        self._patch(self._block_endpoint(self.id), payload=(b'{"archived": false}'))
+        self._patch(self._block_endpoint(
+            self.id), payload=(b'{"archived": false}'))
+
         self.logger.info('Restored Self.')
 
     def delete_child(self, children_id: list[str]) -> None:
@@ -107,11 +120,14 @@ class Block(_TokenBlockMixin):
 
     def restore_child(self, children_id: list[str]) -> None:
         for id in children_id:
-            self._patch(self._block_endpoint(self.id), payload=b'{"archived": false}')
+            self._patch(self._block_endpoint(
+                self.id), payload=b'{"archived": false}')
+
             self.logger.info(f"Restored child block `{id}`.")
 
     def update(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
-        """ Updates content for the specified block_id based on the block 
+        """ 
+        Updates content for the specified block_id based on the block 
         type. Supported fields based on the block object type. 
         Note: The update replaces the entire value for a given field. 
         If a field is omitted (ex: omitting checked when updating a to_do block), 
@@ -124,7 +140,6 @@ class Block(_TokenBlockMixin):
         you cannot remove toggle from a heading block if it has children
         All children MUST be removed before revoking toggle from a heading block
 
-        ---
         https://developers.notion.com/reference/update-a-block
         """ 
         return self._patch(self._block_endpoint(self.id), payload=payload)       
@@ -133,8 +148,12 @@ class Block(_TokenBlockMixin):
 # testing methods for specific block types
 
 class ToDoBlock(Block):
-    def __init__(self, id: str, /, *, 
-                 token: Optional[str] = None, notion_version: Optional[str] = None):
+    def __init__(
+        self, id: str, 
+        /, *, 
+        token: Optional[str] = None, 
+        notion_version: Optional[str] = None
+    ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
 
     def checked(self, checked: bool, /) -> None:

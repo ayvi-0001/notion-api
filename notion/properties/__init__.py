@@ -1,5 +1,4 @@
 from notion.core.build import *
-from notion.properties.user import *
 from notion.properties.files import *
 from notion.properties.common import *
 from notion.properties.options import *

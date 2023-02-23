@@ -6,8 +6,8 @@ Visit https://developers.notion.com/reference/post-database-query for info on da
 `notion.query.PropertyFilter` && `notion.query.TimestampFilter` for individual filters as used in Notion UI.
 
 `notion.query.CompoundFilter` to combine filters.
-    :method __and__(): combine all filters in an `and` grouping.
-    :method __or__(): combine all filters in an `or` grouping.
+    :method _and_(): combine all filters in an `and` grouping.
+    :method _or_(): combine all filters in an `or` grouping.
 
     Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
 
