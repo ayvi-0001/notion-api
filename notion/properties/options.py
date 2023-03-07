@@ -6,7 +6,7 @@ __all__: Sequence[str] = (
     "NotionColors",
     "NotionFunctionFormats",
     "NotionNumberFormats",
-    "PropertyColors"
+    "PropertyColors",
 )
 
 
@@ -177,8 +177,8 @@ class NotionColors(str, Enum):
 
 
 class PropertyColors(str, Enum):
-    """Color options for database property objects: select/multi_select/status.
-    """
+    """Color options for database property objects: select/multi_select/status."""
+
     default = "default"
     gray = "gray"
     brown = "brown"

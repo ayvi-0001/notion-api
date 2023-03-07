@@ -50,27 +50,28 @@ __all__: Sequence[str] = (
 
 class TitlePropertyObject(PropertyObject, build.NotionObject):
     """
-    A title database property controls the title that appears at the top of a page when a 
+    A title database property controls the title that appears at the top of a page when a
     database row is opened. The title type object itself is empty; there is no additional configuration.
 
     NOTE: All databases require one, and only one, title property.
-          The API throws errors if you send a request to Create a database without a title property, 
+          The API throws errors if you send a request to Create a database without a title property,
           or if you attempt to Update a database to add or remove a title property.
-    
+
     ---
     ### Title database property vs. database title
     A title database property is a type of column in a database.
     A database title defines the title of the database and is found on the database object.
     Every database requires both a database title and a title database property.
-    
+
     https://developers.notion.com/reference/property-object#title
     """
-    __slots__: Sequence[str] = ('name')
-    
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'title')
-        self.set('title', {})
+        self.set("type", "title")
+        self.set("title", {})
 
 
 class _Dual_Property(build.NotionObject):
@@ -78,9 +79,9 @@ class _Dual_Property(build.NotionObject):
 
     def __init__(self, database_id: str, synced_property_name: str) -> None:
         super().__init__()
-        self.set('database_id', database_id)
-        self.set('type', 'dual_property')
-        self.nest('dual_property', 'synced_property_name', synced_property_name)
+        self.set("database_id", database_id)
+        self.set("type", "dual_property")
+        self.nest("dual_property", "synced_property_name", synced_property_name)
 
 
 class _Single_Property(build.NotionObject):
@@ -88,9 +89,9 @@ class _Single_Property(build.NotionObject):
 
     def __init__(self, database_id: str, /) -> None:
         super().__init__()
-        self.set('database_id', database_id)
-        self.set('type', 'single_property')
-        self.set('single_property', {})
+        self.set("database_id", database_id)
+        self.set("type", "single_property")
+        self.set("single_property", {})
 
 
 class RelationPropertyObject(PropertyObject, build.NotionObject):
@@ -98,19 +99,25 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
     Use either classmethod: `dual`/`single`
     https://developers.notion.com/reference/property-object#relation
     """
-    __slots__: Sequence[str] = ('name', '_related_to_')
 
-    def __init__(self, property_name: str, /, *, database_id: str, 
-                 synced_property_name: Optional[str] = None) -> None:
+    __slots__: Sequence[str] = ("name", "_related_to_")
+
+    def __init__(
+        self,
+        property_name: str,
+        /,
+        *,
+        database_id: str,
+        synced_property_name: Optional[str] = None,
+    ) -> None:
         super().__init__(property_name=property_name)
         self._related_to_: _Dual_Property | _Single_Property
 
         try:
-            self.set('type', 'relation')
-            self.set('relation', self._related_to_)
+            self.set("type", "relation")
+            self.set("relation", self._related_to_)
         except AttributeError:
-            raise errors.NotionInvalidJson('Use classmethods.')
-
+            raise errors.NotionInvalidJson("Use classmethods.")
 
     @classmethod
     def dual(cls, property_name: str, database_id: str, synced_property_name: str, /):
@@ -121,9 +128,12 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
             updated in the related database when this property is changed.
         """
         cls._related_to_ = _Dual_Property(database_id, synced_property_name)
-        return cls(property_name, database_id=database_id,
-                   synced_property_name=synced_property_name) 
-        
+        return cls(
+            property_name,
+            database_id=database_id,
+            synced_property_name=synced_property_name,
+        )
+
     @classmethod
     def single(cls, property_name: str, database_id: str, /):
         """
@@ -141,48 +151,59 @@ class Option(build.NotionObject):
     :param color: (required) The color of the option as rendered in the Notion UI. \
         Use `notion.properties.PropertyColor` for reference.
     """
+
     __slots__: Sequence[str] = ()
 
-    def __init__(self, option_name: str, color: Optional[Union[PropertyColors, str]] = None, /) -> None:
+    def __init__(
+        self, option_name: str, color: Optional[Union[PropertyColors, str]] = None, /
+    ) -> None:
         super().__init__()
-        self.set('name', option_name)
+        self.set("name", option_name)
         if not color:
-            self.set('color', PropertyColors.default)
+            self.set("color", PropertyColors.default)
         else:
-            self.set('color', color)
+            self.set("color", color)
 
 
 class MultiSelectPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#multi-select """
-    __slots__: Sequence[str] = ('name')
+    """https://developers.notion.com/reference/property-object#multi-select"""
+
+    __slots__: Sequence[str] = "name"
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'multi_select')
-        self.nest('multi_select', 'options', options)
+        self.set("type", "multi_select")
+        self.nest("multi_select", "options", options)
 
 
 class SelectPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#select """
-    __slots__: Sequence[str] = ('name')
+    """https://developers.notion.com/reference/property-object#select"""
+
+    __slots__: Sequence[str] = "name"
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'select')
-        self.nest('select', 'options', options)
+        self.set("type", "select")
+        self.nest("select", "options", options)
 
 
 class NumberPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#number """
-    __slots__: Sequence[str] = ('name')
-    
-    def __init__(self, property_name: str, format: Optional[Union[NotionNumberFormats, str]] = None, /) -> None:
+    """https://developers.notion.com/reference/property-object#number"""
+
+    __slots__: Sequence[str] = "name"
+
+    def __init__(
+        self,
+        property_name: str,
+        format: Optional[Union[NotionNumberFormats, str]] = None,
+        /,
+    ) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'number')
+        self.set("type", "number")
         if not format:
-            self.nest('number', 'format', NotionNumberFormats.number)
+            self.nest("number", "format", NotionNumberFormats.number)
         else:
-            self.nest('number', 'format', format)
+            self.nest("number", "format", format)
 
 
 class FormulaPropertyObject(PropertyObject, build.NotionObject):
@@ -191,140 +212,158 @@ class FormulaPropertyObject(PropertyObject, build.NotionObject):
         Refer to the Notion help center for information about formula syntax.
     https://developers.notion.com/reference/property-object#formula
     """
-    __slots__: Sequence[str] = ('name')
-    
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, expression: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'formula')
-        self.nest('formula', 'expression', expression)
+        self.set("type", "formula")
+        self.nest("formula", "expression", expression)
 
 
 class CheckboxPropertyObject(PropertyObject, build.NotionObject):
-    __slots__: Sequence[str] = ('name')
+    __slots__: Sequence[str] = "name"
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'checkbox')
-        self.set('checkbox', {})
-        
+        self.set("type", "checkbox")
+        self.set("checkbox", {})
+
 
 class PeoplePropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#people """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#people"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'people')
-        self.set('people', {})
+        self.set("type", "people")
+        self.set("people", {})
 
 
 class PhoneNumberPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#phone-number """
-    __slots__: Sequence[str] = ('name')
+    """https://developers.notion.com/reference/property-object#phone-number"""
+
+    __slots__: Sequence[str] = "name"
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'phone_number')
-        self.set('phone_number', {})
+        self.set("type", "phone_number")
+        self.set("phone_number", {})
 
 
 class RichTextPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#rich-text """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#rich-text"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'rich_text')
-        self.set('rich_text', {})
+        self.set("type", "rich_text")
+        self.set("rich_text", {})
 
 
 class CreatedTimePropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#created-time """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#created-time"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'created_time')
-        self.set('created_time', {})
-        
+        self.set("type", "created_time")
+        self.set("created_time", {})
+
 
 class CreatedByPropertyObject(PropertyObject, build.NotionObject):
-    __slots__: Sequence[str] = ('name')
-    
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'created_by')
-        self.set('created_by', {})
-        
+        self.set("type", "created_by")
+        self.set("created_by", {})
+
 
 class LastEditedTimePropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#last-edited-time """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#last-edited-time"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'last_edited_time')
-        self.set('last_edited_time', {})
-        
+        self.set("type", "last_edited_time")
+        self.set("last_edited_time", {})
+
 
 class LastEditedByPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#last-edited-by """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#last-edited-by"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'last_edited_by')
-        self.set('last_edited_by', {})
-        
-  
+        self.set("type", "last_edited_by")
+        self.set("last_edited_by", {})
+
+
 class DatePropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#date """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#date"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'date')
-        self.set('date', {})
-        
+        self.set("type", "date")
+        self.set("date", {})
+
 
 class EmailPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#email """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#email"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'email')
-        self.set('email', {})
-        
+        self.set("type", "email")
+        self.set("email", {})
+
 
 class FilesPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#files """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#files"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'files')
-        self.set('files', {})
-    
+        self.set("type", "files")
+        self.set("files", {})
+
 
 class URLPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#url """
-    __slots__: Sequence[str] = ('name')
-    
+    """https://developers.notion.com/reference/property-object#url"""
+
+    __slots__: Sequence[str] = "name"
+
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'url')
-        self.set('url', {})
+        self.set("type", "url")
+        self.set("url", {})
 
 
 class RollupPropertyObject(PropertyObject, build.NotionObject):
-    """ https://developers.notion.com/reference/property-object#rollup """
-    __slots__: Sequence[str] = ('name')
+    """https://developers.notion.com/reference/property-object#rollup"""
 
-    def __init__(self, property_name: str, relation_property_name: str, rollup_property_name: str, 
-                 function: Union[NotionFunctionFormats, str], /) -> None:
+    __slots__: Sequence[str] = "name"
+
+    def __init__(
+        self,
+        property_name: str,
+        relation_property_name: str,
+        rollup_property_name: str,
+        function: Union[NotionFunctionFormats, str],
+        /,
+    ) -> None:
         super().__init__(property_name=property_name)
-        self.set('type', 'rollup')
-        self.nest('rollup', 'relation_property_name', relation_property_name)
-        self.nest('rollup', 'rollup_property_name', rollup_property_name)
-        self.nest('rollup', 'function', function)
+        self.set("type", "rollup")
+        self.nest("rollup", "relation_property_name", relation_property_name)
+        self.nest("rollup", "rollup_property_name", rollup_property_name)
+        self.nest("rollup", "function", function)

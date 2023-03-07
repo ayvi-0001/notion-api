@@ -6,10 +6,12 @@ from typing import Mapping
 from typing import Union
 from typing import Any
 
-__all__: Sequence[str] = ['validate_response']
+__all__: Sequence[str] = ["validate_response"]
 
 
-def validate_response(response: Union[JSONObject, Mapping[str, Any]]) -> _NotionErrors | None:
+def validate_response(
+    response: Union[JSONObject, Mapping[str, Any]]
+) -> _NotionErrors | None:
     r"""
     To be used on responses from notion.Page | notion.Database | notion.Block.
 
@@ -18,14 +20,14 @@ def validate_response(response: Union[JSONObject, Mapping[str, Any]]) -> _Notion
     page = notion.Page("12345")
 
     # Object for invalid Notion requests:
-    # { 
-    #   'object': 'error', 
-    #   'status': 400, 
-    #   'code': 'validation_error', 
+    # {
+    #   'object': 'error',
+    #   'status': 400,
+    #   'code': 'validation_error',
     #   'message': 'path failed validation: path.page_id should be a valid uuid, instead was `"12345"`.'
     # }
     ```
-    ------    
+    ------
     ```sh
     Traceback (most recent call last):
       File "c:\path\to\file\_.py", line 212, in <module>
@@ -34,14 +36,14 @@ def validate_response(response: Union[JSONObject, Mapping[str, Any]]) -> _Notion
         raise NotionValidationError(message)
     notion.exceptions.errors.NotionValidationError: path failed validation: path.page_id should be a valid uuid, instead was `"12345"`.
     Error 400:
-    The request body does not match the schema for the expected parameters.    
+    The request body does not match the schema for the expected parameters.
     ```
-    
+
     https://developers.notion.com/reference/errors
     """
-    if 'error' in response.values():
-        code = response['code']    
-        message = response['message']
+    if "error" in response.values():
+        code = response["code"]
+        message = response["message"]
 
         if "invalid_json" in code:
             raise NotionInvalidJson(message)

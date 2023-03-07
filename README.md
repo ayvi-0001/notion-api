@@ -47,8 +47,8 @@ parent_db['dependencies']
 #     }
 # }
 
-homepage.last_edited.date # out: 01/15/2023
-homepage.last_edited.time # out: 16:28:00
+homepage.last_edited.date() # out: 01/15/2023
+homepage.last_edited.time() # out: 16:28:00
 ```
 
 ---
@@ -78,19 +78,20 @@ notion.BlockFactory.reference_synced_block(new_page, original_synced_block.id)
 ```py
 import notion.properties as prop
 
-new_database.add_formula_column('page id', expression='id()')
+new_database.add_formula_column("page id", expression="id()")
 
-new_database.delete_property('url')
+new_database.delete_property("url")
 
-new_database.add_multiselect_column('options', 
+new_database.add_multiselect_column(
+    "options",
     options=[
-        prop.Option('option-a', prop.PropertyColors.red),
-        prop.Option('option-b', prop.PropertyColors.green),
-        prop.Option('option-c', prop.PropertyColors.blue)
-                ]
-        )
+        prop.Option("option-a", prop.PropertyColors.red),
+        prop.Option("option-b", prop.PropertyColors.green),
+        prop.Option("option-c", prop.PropertyColors.blue),
+    ],
+)
 
-new_page.set_multiselect('options', ['option-a', 'option-b'])
+new_page.set_multiselect("options", ["option-a", "option-b"])
 ```
 
 ---
@@ -102,26 +103,30 @@ from notion.query import *
 # Compound filters support combining `and`/`or` filters,
 # or a single `notion.query.propfilter.PropertyFilter` can be used.
 
+today = datetime.today().isoformat()
+tomorrow = (datetime.today() + timedelta(1)).isoformat()
+
 filter = CompoundFilter()
 nested_filter = CompoundFilter()
 
 nested_filter._or_(
-    PropertyFilter.text('name', 'title', 'contains', 'your page title'),
-    PropertyFilter.text('name', 'title', 'contains', 'your other page title')
-)
+        PropertyFilter.text("name", "title", "contains", "your page title"),
+        PropertyFilter.text("name", "title", "contains", "your other page title"),
+    )
 
 filter._and_(
-    nested_filter, 
-    PropertyFilter.date('date', 'date', 'on_or_after', datetime.today().isoformat()),
-    PropertyFilter.date('date', 'date', 'before', (datetime.today()+timedelta(1)).isoformat())
+    PropertyFilter.date("date", "date", "on_or_after", today)
+    PropertyFilter.date("date", "date", "before", tomorrow),
+    nested_filter
 )
 
 sort = SortFilter([EntryTimestampSort.created_time_descending()])
 
 query_params = notion.request_json(filter, sort)
-query_result = new_database.query(payload=query_params, 
-                                  filter_property_values=['name', 'options'])
-                                  # filter result to selected property values
+
+query_result = new_database.query(
+    payload=query_params, filter_property_values=["name", "options"]
+)
 ```
 If the list result is over 100 pages (Notions max for paginated responses), you can use a cursor included at the end to continue the query.
 
