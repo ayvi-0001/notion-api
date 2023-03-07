@@ -18,7 +18,7 @@ from notion.exceptions.errors import NotionObjectNotFound
 if TYPE_CHECKING:
     from notion.api.notionpage import Page
 
-__all__: Sequence[str] = ['Database']
+__all__: Sequence[str] = ["Database"]
 
 
 class Database(_TokenBlockMixin):
@@ -52,30 +52,32 @@ class Database(_TokenBlockMixin):
         reference a database in Notion.
     
     https://developers.notion.com/reference/database
-    """ 
+    """
+
     def __new__(cls, id: str, /):
         target_block = Block(id)
-        if target_block.type != 'child_database':
+        if target_block.type != "child_database":
             raise NotionInvalidRequest(
                 f"{target_block.__repr__()} does not reference a Database"
-                ) 
+            )
         return super().__new__(cls)
-    
+
     def __init__(
-        self, 
-        id: str, 
-        /, 
-        *, 
-        token: Optional[str] = None, 
-        notion_version: Optional[str] = None
+        self,
+        id: str,
+        /,
+        *,
+        token: Optional[str] = None,
+        notion_version: Optional[str] = None,
     ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
 
         self.logger = notion_logger.getChild(f"{self.__repr__()}")
 
-        
     @classmethod
-    def create(cls, parent_instance: Page, /, *, database_title: str, name_column: str) -> Database:
+    def create(
+        cls, parent_instance: Page, /, *, database_title: str, name_column: str
+    ) -> Database:
         """ 
         Creates a non-inline database in the specified parent page, 
         with the specified properties schema.
@@ -90,18 +92,18 @@ class Database(_TokenBlockMixin):
             if trying to create a database directly inside another database.
         
         https://developers.notion.com/reference/create-a-database
-        """ 
-        if parent_instance.type == 'child_database':
-            raise NotionInvalidRequest('Cannot create a database in a database.')
-        
+        """
+        if parent_instance.type == "child_database":
+            raise NotionInvalidRequest("Cannot create a database in a database.")
+
         parent = Parent.page(parent_instance.id)
         title = TitlePropertyValue([RichText(database_title)])
         properties = Properties(TitlePropertyObject(name_column))
         schema = request_json(parent, title, properties)
-        
+
         new_db = cls._post(parent_instance, cls._database_endpoint(), payload=schema)
 
-        cls_ = cls(new_db['id'])
+        cls_ = cls(new_db["id"])
         cls_.logger.info(f"New database created in {parent_instance.__repr__()}")
         cls_.logger.info(f"Url: {new_db['url']}")
 
@@ -111,79 +113,80 @@ class Database(_TokenBlockMixin):
         try:
             return self._property_schema[property_name]
         except KeyError:
-            raise NotionObjectNotFound(f"{property_name} not found in page property values.")
+            raise NotionObjectNotFound(
+                f"{property_name} not found in page property values."
+            )
 
     @cached_property
     def retrieve(self) -> JSONObject:
-        """ https://developers.notion.com/reference/retrieve-a-database """ 
+        """https://developers.notion.com/reference/retrieve-a-database"""
         return self._get(self._database_endpoint(self.id))
 
     @cached_property
     def _property_schema(self) -> JSONObject:
-        return self.retrieve['properties']
+        return self.retrieve["properties"]
 
     @property
     def title(self) -> str:
-        return self.retrieve['title'][0]['text']['content']
+        return self.retrieve["title"][0]["text"]["content"]
 
     @property
     def url(self) -> str:
-        return self.retrieve['url']
-    
+        return self.retrieve["url"]
+
     @property
     def icon(self) -> JSONObject:
-        return self.retrieve['icon']
-    
+        return self.retrieve["icon"]
+
     @property
     def is_inline(self) -> bool:
-        return self.retrieve['is_inline']
+        return self.retrieve["is_inline"]
 
     def toggl_inline(self, inline: bool) -> None:
-        """ 
-        Has the value true if the database appears in the page as an inline block. 
-        Otherwise has the value false if the database appears as a child page. 
         """
-        inline_value = orjson.dumps({'is_inline':inline})
-        self._patch(
-            self._database_endpoint(self.id), payload=inline_value)
-        
+        Has the value true if the database appears in the page as an inline block.
+        Otherwise has the value false if the database appears as a child page.
+        """
+        inline_value = orjson.dumps({"is_inline": inline})
+        self._patch(self._database_endpoint(self.id), payload=inline_value)
+
         self.logger.info(f"toggled `in_line` to `{inline}`")
 
     def _update(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
-        """ 
+        """
         Updates an existing database as specified by the parameters.
         Used internally but optionally can update custom payloads.
 
         ---
         :param payload: (required) json payload for updated properties parameters.
-        
-        https://developers.notion.com/reference/update-a-database 
-        """ 
+
+        https://developers.notion.com/reference/update-a-database
+        """
         return self._patch(self._database_endpoint(self.id), payload=payload)
 
     def delete_property(self, name_or_id: str) -> None:
-        """ 
+        """
         :param name_or_id: (required) name or id of property described in database schema
 
         https://developers.notion.com/reference/update-property-schema-object#removing-a-property
-        """ 
-        self._update(payload={'properties':{name_or_id:None}})
+        """
+        self._update(payload={"properties": {name_or_id: None}})
         self.logger.info(f"Deleted property `{name_or_id}`")
-    
+
     def rename_property(self, old_name: str, new_name: str) -> None:
-        """ 
-        https://developers.notion.com/reference/update-property-schema-object#renaming-a-property 
-        """ 
-        payload = orjson.dumps({'properties':{old_name:{'name':new_name}}})
+        """
+        https://developers.notion.com/reference/update-property-schema-object#renaming-a-property
+        """
+        payload = orjson.dumps({"properties": {old_name: {"name": new_name}}})
         self._update(payload=payload)
 
         self.logger.info(f"Renamed property `{old_name}` to `{new_name}`")
-    
+
     def query(
-        self, 
-        *, 
+        self,
+        *,
         payload: Optional[Union[JSONObject, JSONPayload]] = None,
-        filter_property_values: Optional[list[str]] = None
+        filter_property_values: Optional[list[str]] = None,
     ) -> JSONObject:
         """ 
         Gets a list of Pages contained in the database, 
@@ -200,23 +203,20 @@ class Database(_TokenBlockMixin):
             query will only return the selected properties.
         
         https://developers.notion.com/reference/post-database-query
-        """ 
+        """
         query_url = self._database_endpoint(self.id, query=True)
 
         if filter_property_values:
-            query_url = query_url + '?'
+            query_url = query_url + "?"
             for name in filter_property_values:
-                name_id = self._property_schema[name].get('id')
-                query_url += 'filter_properties=' + name_id + '&'        
+                name_id = self._property_schema[name].get("id")
+                query_url += "filter_properties=" + name_id + "&"
             return self._post(query_url, payload=payload)
         else:
             return self._post(query_url, payload=payload)
 
     def add_dual_relation_column(
-        self, 
-        property_name: str, 
-        database_id: str, 
-        synced_property_name: str
+        self, property_name: str, database_id: str, synced_property_name: str
     ) -> None:
         """ 
         :param database_id: (required) The database that the relation property refers to. \
@@ -225,11 +225,12 @@ class Database(_TokenBlockMixin):
             updated in the related database when this property is changed.
         """
         property_object = RelationPropertyObject.dual(
-            property_name, database_id, synced_property_name)
-        
+            property_name, database_id, synced_property_name
+        )
+
         self._update(Properties(property_object))
 
-        # NOTE: there is an issue with the current API version and `synced_property_name`, 
+        # NOTE: there is an issue with the current API version and `synced_property_name`,
         # Notion UI will default to `Related to {original database name} ({property name})`,
         # regardless of what name is included in the request.
         # TEMP fix to default synced property name
@@ -237,30 +238,35 @@ class Database(_TokenBlockMixin):
         try:
             synced_database[f"Related to {self.title} ({property_name})"]
             Database(database_id).rename_property(
-                f"Related to {self.title} ({property_name})", synced_property_name)
+                f"Related to {self.title} ({property_name})", synced_property_name
+            )
         except NotionObjectNotFound:
             pass
 
-        self.logger.info("{0} {1}".format(
-            f"Created new dual_relation property `{property_name}`",
-            f" linked to notion.Database('{database_id}').")
+        self.logger.info(
+            "{} {}".format(
+                f"Created new dual_relation property `{property_name}`",
+                f" linked to notion.Database('{database_id}').",
             )
-            
+        )
+
     def add_single_relation_column(self, property_name: str, database_id: str) -> None:
         property_object = RelationPropertyObject.single(property_name, database_id)
-        
+
         self._update(Properties(property_object))
-        self.logger.info("{0} {1}".format(
-            f"Created new dual_relation property `{property_name}`",
-            f" linked to notion.Database('{database_id}').")
+        self.logger.info(
+            "{} {}".format(
+                f"Created new dual_relation property `{property_name}`",
+                f" linked to notion.Database('{database_id}').",
             )
-    
+        )
+
     def add_rollup_column(
-        self, 
-        property_name: str, 
-        relation_property_name: str, 
-        rollup_property_name: str, 
-        function: Union[NotionFunctionFormats, str]
+        self,
+        property_name: str,
+        relation_property_name: str,
+        rollup_property_name: str,
+        function: Union[NotionFunctionFormats, str],
     ) -> None:
         """
         :param property_name: name for the new rollup column
@@ -268,46 +274,51 @@ class Database(_TokenBlockMixin):
         :param rollup_property_name: name of column in other database to calculate
         :param function: `notion.properties.options.NotionFunctionFormats` or refer to api reference.
         """
-        property_object = RollupPropertyObject(property_name, relation_property_name, 
-                                               rollup_property_name, function)
+        property_object = RollupPropertyObject(
+            property_name, relation_property_name, rollup_property_name, function
+        )
 
         self._update((Properties(property_object)))
         self.logger.info(f"Created new rollup property `{property_name}`.")
 
-    def add_select_column(self, property_name: str, /, *, options: list[Option]) -> None:
-        """ 
+    def add_select_column(
+        self, property_name: str, /, *, options: list[Option]
+    ) -> None:
+        """
         If `property_name` is a select column that already exists,
-        then the available options will be overwritten with the new list passed to this method. 
+        then the available options will be overwritten with the new list passed to this method.
 
-        You can set the color of an option when first creating it, 
-        but if `property_name` already existsand a color is assigned in `notion.properties.Option`, 
-        then `notion.exceptions.errors.NotionValidationError` will raise.        
-        
-        You can pass an empty list to `options` to clear the available options, 
+        You can set the color of an option when first creating it,
+        but if `property_name` already existsand a color is assigned in `notion.properties.Option`,
+        then `notion.exceptions.errors.NotionValidationError` will raise.
+
+        You can pass an empty list to `options` to clear the available options,
         and then readd them with custom colors.
         """
         property_object = SelectPropertyObject(property_name, options=options)
-        
+
         self._update(Properties(property_object))
         self.logger.info(f"Created new select property `{property_name}`.")
-    
-    def add_multiselect_column(self, property_name: str, /, *, options: list[Option]) -> None:
-        """ 
+
+    def add_multiselect_column(
+        self, property_name: str, /, *, options: list[Option]
+    ) -> None:
+        """
         If `property_name` is a multi-select column that already exists,
-        then the available options will be overwritten with the new list passed to this method. 
-        
-        You can set the color of an option when first creating it, 
-        but if `property_name` already exists and a color is assigned in `notion.properties.Option`, 
-        then `notion.exceptions.errors.NotionValidationError` will raise.        
-        
-        You can pass an empty list to `options` to clear the available options, 
+        then the available options will be overwritten with the new list passed to this method.
+
+        You can set the color of an option when first creating it,
+        but if `property_name` already exists and a color is assigned in `notion.properties.Option`,
+        then `notion.exceptions.errors.NotionValidationError` will raise.
+
+        You can pass an empty list to `options` to clear the available options,
         and then re-add them with custom colors.
         """
         property_object = MultiSelectPropertyObject(property_name, options=options)
-        
+
         self._update(Properties(property_object))
         self.logger.info(f"Created new multi-select property `{property_name}`.")
-    
+
     def add_checkbox_column(self, property_name: str) -> None:
         self._update(Properties(CheckboxPropertyObject(property_name)))
         self.logger.info(f"Created new checkbox property `{property_name}`.")
@@ -323,10 +334,13 @@ class Database(_TokenBlockMixin):
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new text property `{property_name}`.")
-    
+
     def add_number_column(
-        self, property_name: str, /, *, 
-        format: Optional[Union[NotionNumberFormats, str]] = None
+        self,
+        property_name: str,
+        /,
+        *,
+        format: Optional[Union[NotionNumberFormats, str]] = None,
     ) -> None:
         if not format:
             format = NotionNumberFormats.number
@@ -346,57 +360,55 @@ class Database(_TokenBlockMixin):
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new created_time property `{property_name}`.")
-   
+
     def add_created_by_column(self, property_name: str) -> None:
         property_object = CreatedByPropertyObject(property_name)
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new created_by property `{property_name}`.")
-    
+
     def add_last_edited_time_column(self, property_name: str) -> None:
         property_object = LastEditedTimePropertyObject(property_name)
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new last_edited_time property `{property_name}`.")
-   
+
     def add_last_edited_by_column(self, property_name: str) -> None:
         property_object = LastEditedByPropertyObject(property_name)
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new last_edited_by property `{property_name}`.")
-    
+
     def add_files_column(self, property_name: str) -> None:
         property_object = FilesPropertyObject(property_name)
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new files property `{property_name}`.")
-   
+
     def add_email_column(self, property_name: str) -> None:
         property_object = EmailPropertyObject(property_name)
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new email property `{property_name}`.")
-    
+
     def add_url_column(self, property_name: str) -> None:
         property_object = URLPropertyObject(property_name)
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new url property `{property_name}`.")
-    
+
     def add_phonenumber_column(self, property_name: str) -> None:
         property_object = PhoneNumberPropertyObject(property_name)
-        
+
         self._update(Properties(property_object))
         self.logger.info(f"Created new phone_number property `{property_name}`.")
-    
+
     def add_people_column(self, property_name: str) -> None:
         property_object = PeoplePropertyObject(property_name)
 
         self._update(Properties(property_object))
         self.logger.info(f"Created new people property `{property_name}`.")
 
-    # NOTE: 
-    # It is not possible to update a status database property in the current API version. 
+    # NOTE:
+    # It is not possible to update a status database property in the current API version.
     # Update these values from the Notion UI, instead.
-
-    

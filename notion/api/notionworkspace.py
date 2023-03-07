@@ -14,70 +14,77 @@ from notion.api.client import _NotionClient
 from notion.query.sort import EntryTimestampSort
 from notion.exceptions.errors import NotionInvalidRequestUrl
 
-__all__: Sequence[str] = ['Workspace']
+__all__: Sequence[str] = ["Workspace"]
 
 
 class Workspace(_NotionClient):
-    """ `notion.api.notionworkspace.Workspace` uses all static methods and doesn't require an instance. """
+    """`notion.api.notionworkspace.Workspace` uses all static methods and doesn't require an instance."""
+
     def __init__(
-        self, 
-        *, 
-        token: Optional[str] = None, 
-        notion_version: Optional[str] = None
+        self, *, token: Optional[str] = None, notion_version: Optional[str] = None
     ) -> None:
         super().__init__(token=token, notion_version=notion_version)
 
     NotionEndpoint: TypeAlias = str
+
     @staticmethod
     def _workspace_endpoint(
-        *, users: Optional[bool] = False, search: Optional[bool] = None,
-        user_id: Optional[str] = None, me: Optional[bool] = None
+        *,
+        users: Optional[bool] = False,
+        search: Optional[bool] = None,
+        user_id: Optional[str] = None,
+        me: Optional[bool] = None,
     ) -> NotionEndpoint:
-        _search = 'search' if search else ''
-        _users = 'users' if users else ''
-        _user_id = f'/{user_id}' if user_id else ''
-        _me = '/me' if me else ''
-        
+        _search = "search" if search else ""
+        _users = "users" if users else ""
+        _user_id = f"/{user_id}" if user_id else ""
+        _me = "/me" if me else ""
+
         return f"{__base_url__}{_search}{_users}{_user_id}{_me}"
 
     @staticmethod
     def retrieve_token_bot() -> JSONObject:
-        """ Retrieves the bot User associated with the API token provided in the authorization header. 
-        The bot will have an owner field with information about the person who authorized the integration. 
-        
-        https://developers.notion.com/reference/get-self 
+        """Retrieves the bot User associated with the API token provided in the authorization header.
+        The bot will have an owner field with information about the person who authorized the integration.
+
+        https://developers.notion.com/reference/get-self
         """
-        retrieve_token_bot_endpoint = methodcaller('_workspace_endpoint', users=True, me=True)
+        retrieve_token_bot_endpoint = methodcaller(
+            "_workspace_endpoint", users=True, me=True
+        )
         url = retrieve_token_bot_endpoint(Workspace())
-        return methodcaller('_get', url)(Workspace())
-    
+        return methodcaller("_get", url)(Workspace())
+
     @staticmethod
-    def list_all_users(*, page_size: int | None = None, cursor: Optional[str] = None) -> JSONObject:
-        """ Returns a paginated list of Users for the workspace. 
+    def list_all_users(
+        *, page_size: int | None = None, cursor: Optional[str] = None
+    ) -> JSONObject:
+        """Returns a paginated list of Users for the workspace.
         The response may contain fewer than page_size of results.
-        
+
         https://developers.notion.com/reference/get-users
         """
         payload: MutableMapping = {}
         if page_size:
-            payload |= {'page_size':page_size}
+            payload |= {"page_size": page_size}
         if cursor:
-            payload |= {'next_cursor':cursor}
-        list_all_users_endpoint = methodcaller('_workspace_endpoint', users=True)
+            payload |= {"next_cursor": cursor}
+        list_all_users_endpoint = methodcaller("_workspace_endpoint", users=True)
         url = list_all_users_endpoint(Workspace())
 
-        return methodcaller('_get', url)(Workspace())
+        return methodcaller("_get", url)(Workspace())
 
     @staticmethod
-    def retrieve_user(*, user_name: Optional[str] = None,
-                         user_id: Optional[str] = None) -> JSONObject:
-        """ Retrieves a User using either the user name or ID specified.
-        
+    def retrieve_user(
+        *, user_name: Optional[str] = None, user_id: Optional[str] = None
+    ) -> JSONObject:
+        """Retrieves a User using either the user name or ID specified.
+
         ---
         (required) one of the two:
         :param user_name: User name in Notion.
         :param user_id: Identifier for a Notion user
-        
+
         https://developers.notion.com/reference/get-users
         """
 
@@ -87,25 +94,30 @@ class Workspace(_NotionClient):
                 all_users = Workspace.list_all_users()
                 user = [m.value for m in parse(expr).find(all_users)][0]
             except IndexError:
-                raise NotionInvalidRequestUrl('User name not found.')
+                raise NotionInvalidRequestUrl("User name not found.")
 
             retrieve_user_endpoint = methodcaller(
-                '_workspace_endpoint', users=True, user_id=user)
+                "_workspace_endpoint", users=True, user_id=user
+            )
             url = retrieve_user_endpoint(Workspace())
-            return methodcaller('_get', url)(Workspace())
+            return methodcaller("_get", url)(Workspace())
 
         retrieve_user_endpoint = methodcaller(
-            '_workspace_endpoint', users=True, user_id=user_id)
+            "_workspace_endpoint", users=True, user_id=user_id
+        )
         url = retrieve_user_endpoint(Workspace())
-        return methodcaller('_get', url)(Workspace())
+        return methodcaller("_get", url)(Workspace())
 
     @staticmethod
-    def search(*, page_size: Optional[int] = 100, 
-                  query: Optional[str] = None, 
-                  filter_pages: Optional[bool] = False, 
-                  filter_databases: Optional[bool] = False,
-                  start_cursor: Optional[str] = None,
-                  sort_ascending: Optional[bool] = None) -> JSONObject:
+    def search(
+        *,
+        page_size: Optional[int] = 100,
+        query: Optional[str] = None,
+        filter_pages: Optional[bool] = False,
+        filter_databases: Optional[bool] = False,
+        start_cursor: Optional[str] = None,
+        sort_ascending: Optional[bool] = None,
+    ) -> JSONObject:
         """ 
         ### Searches all original pages, databases, and child pages/databases that are shared with the integration. 
         It will not return linked databases, since these duplicate their source databases.
@@ -162,20 +174,20 @@ class Workspace(_NotionClient):
         https://developers.notion.com/reference/post-search
         """
         payload = NotionObject()
-        payload.set('page_size', page_size)
+        payload.set("page_size", page_size)
         if query:
-            payload.set('query', query)
+            payload.set("query", query)
         if filter_pages:
-            payload.nest('filter', 'property', 'object')
-            payload.nest('filter', 'value', 'page')
+            payload.nest("filter", "property", "object")
+            payload.nest("filter", "value", "page")
         if filter_databases:
-            payload.nest('filter', 'property', 'object')
-            payload.nest('filter', 'value', 'database')
+            payload.nest("filter", "property", "object")
+            payload.nest("filter", "value", "database")
         if start_cursor:
-            payload.set('start_cursor', start_cursor)
+            payload.set("start_cursor", start_cursor)
         if sort_ascending:
             payload |= SortFilter([EntryTimestampSort.last_edited_time_ascending()])
-        
-        search_endpoint = methodcaller('_workspace_endpoint', search=True)
+
+        search_endpoint = methodcaller("_workspace_endpoint", search=True)
         url = search_endpoint(Workspace())
-        return methodcaller('_post', url, payload=payload)(Workspace())
+        return methodcaller("_post", url, payload=payload)(Workspace())
