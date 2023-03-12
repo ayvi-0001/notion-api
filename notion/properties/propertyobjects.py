@@ -1,3 +1,25 @@
+# MIT License
+
+# Copyright (c) 2023 ayvi#0001
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 Metadata that controls how a database property behaves. 
 Each database property object contain the following; 
@@ -66,7 +88,7 @@ class TitlePropertyObject(PropertyObject, build.NotionObject):
     https://developers.notion.com/reference/property-object#title
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -97,6 +119,7 @@ class _Single_Property(build.NotionObject):
 class RelationPropertyObject(PropertyObject, build.NotionObject):
     """
     Use either classmethod: `dual`/`single`
+    
     https://developers.notion.com/reference/property-object#relation
     """
 
@@ -122,9 +145,9 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
     @classmethod
     def dual(cls, property_name: str, database_id: str, synced_property_name: str, /):
         """
-        :param database_id: (required) The database that the relation property refers to. \
+        :param database_id: (required) The database that the relation property refers to.
             The corresponding linked page values must belong to the database in order to be valid.
-        :param synced_property_name: (required) The name of the corresponding property that is \
+        :param synced_property_name: (required) The name of the corresponding property that is
             updated in the related database when this property is changed.
         """
         cls._related_to_ = _Dual_Property(database_id, synced_property_name)
@@ -137,7 +160,7 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
     @classmethod
     def single(cls, property_name: str, database_id: str, /):
         """
-        :param database_id: (required) The database that the relation property refers to. \
+        :param database_id: (required) The database that the relation property refers to.
             The corresponding linked page values must belong to the database in order to be valid.
         """
         cls._related_to_ = _Single_Property(database_id)
@@ -146,9 +169,9 @@ class RelationPropertyObject(PropertyObject, build.NotionObject):
 
 class Option(build.NotionObject):
     """
-    :param name: (required) The name of the option as it appears in the Notion UI. \
+    :param name: (required) The name of the option as it appears in the Notion UI.
         Note: Commas (",") are not valid for select values.
-    :param color: (required) The color of the option as rendered in the Notion UI. \
+    :param color: (required) The color of the option as rendered in the Notion UI.
         Use `notion.properties.PropertyColor` for reference.
     """
 
@@ -168,7 +191,7 @@ class Option(build.NotionObject):
 class MultiSelectPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#multi-select"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
         super().__init__(property_name=property_name)
@@ -179,7 +202,7 @@ class MultiSelectPropertyObject(PropertyObject, build.NotionObject):
 class SelectPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#select"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
         super().__init__(property_name=property_name)
@@ -190,7 +213,7 @@ class SelectPropertyObject(PropertyObject, build.NotionObject):
 class NumberPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#number"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(
         self,
@@ -208,12 +231,12 @@ class NumberPropertyObject(PropertyObject, build.NotionObject):
 
 class FormulaPropertyObject(PropertyObject, build.NotionObject):
     """
-    :param expression: (required) The formula that is used to compute the values for this property. \
+    :param expression: (required) The formula that is used to compute the values for this property.
         Refer to the Notion help center for information about formula syntax.
     https://developers.notion.com/reference/property-object#formula
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, expression: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -222,7 +245,7 @@ class FormulaPropertyObject(PropertyObject, build.NotionObject):
 
 
 class CheckboxPropertyObject(PropertyObject, build.NotionObject):
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -233,7 +256,7 @@ class CheckboxPropertyObject(PropertyObject, build.NotionObject):
 class PeoplePropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#people"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -244,7 +267,7 @@ class PeoplePropertyObject(PropertyObject, build.NotionObject):
 class PhoneNumberPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#phone-number"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -255,7 +278,7 @@ class PhoneNumberPropertyObject(PropertyObject, build.NotionObject):
 class RichTextPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#rich-text"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -266,7 +289,7 @@ class RichTextPropertyObject(PropertyObject, build.NotionObject):
 class CreatedTimePropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#created-time"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -275,7 +298,7 @@ class CreatedTimePropertyObject(PropertyObject, build.NotionObject):
 
 
 class CreatedByPropertyObject(PropertyObject, build.NotionObject):
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -286,7 +309,7 @@ class CreatedByPropertyObject(PropertyObject, build.NotionObject):
 class LastEditedTimePropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#last-edited-time"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -297,7 +320,7 @@ class LastEditedTimePropertyObject(PropertyObject, build.NotionObject):
 class LastEditedByPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#last-edited-by"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -308,7 +331,7 @@ class LastEditedByPropertyObject(PropertyObject, build.NotionObject):
 class DatePropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#date"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -319,7 +342,7 @@ class DatePropertyObject(PropertyObject, build.NotionObject):
 class EmailPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#email"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -330,7 +353,7 @@ class EmailPropertyObject(PropertyObject, build.NotionObject):
 class FilesPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#files"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -341,7 +364,7 @@ class FilesPropertyObject(PropertyObject, build.NotionObject):
 class URLPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#url"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -352,7 +375,7 @@ class URLPropertyObject(PropertyObject, build.NotionObject):
 class RollupPropertyObject(PropertyObject, build.NotionObject):
     """https://developers.notion.com/reference/property-object#rollup"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(
         self,
