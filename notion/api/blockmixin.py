@@ -1,12 +1,34 @@
+# MIT License
+
+# Copyright (c) 2023 ayvi#0001
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from __future__ import annotations
 from functools import cached_property
 from typing import Sequence
 from typing import Optional
 from typing import Union
-from typing import Optional
 from datetime import datetime
 from datetime import tzinfo
 
+from tzlocal import get_localzone
 from pytz import timezone
 from uuid import UUID
 
@@ -35,7 +57,7 @@ class _TokenBlockMixin(_NotionClient):
     ) -> None:
         super().__init__(token=token, notion_version=notion_version)
 
-        self.default_tz = timezone(__default_timezone__)
+        self.tz = get_localzone()
         self.id = id.replace("-", "")
 
         try:
@@ -85,38 +107,39 @@ class _TokenBlockMixin(_NotionClient):
             _parent_id = _parent_id.replace("-", "")
         return str(_parent_id)
 
-    def set_default_tz(self, default_tz: Union[tzinfo, str]) -> None:
+    def set_tz(self, tz: Union[tzinfo, str]) -> None:
         """
-        :param timezone: (required) set default timezone. class default is 'PST8PDT' \
-            Use `pytz.all_timezones` to retrieve list of tz options. \
+        :param timezone: (required) set default timezone.
+            class default matches the Windows-configured timezone
+            Use `pytz.all_timezones` to retrieve list of tz options.
             Pass either str or `pytz.timezone(...)`
         """
-        if isinstance(timezone, tzinfo):
-            self.__setattr__("default_tz", default_tz)
-        elif isinstance(timezone, str):
-            self.__setattr__("default_tz", timezone(default_tz))
+        if isinstance(tz, tzinfo):
+            self.__setattr__("tz", tz)
+        elif isinstance(tz, str):
+            self.__setattr__("tz", timezone(tz))
 
     @property
-    def last_edited(self) -> datetime:
+    def last_edited_time(self) -> datetime:
         """
         Notion returns datetime ISO 8601, UTC.
-        Class uses UTC-8:00 ('PST8PDT') as default.
-        Change default timezone with `set_default_tz(...)`
+        Class default matches the Windows-configured timezone.
+        Change default timezone with method `set_tz(...)`
         """
-        last_edited_time = self._block["last_edited_time"]
-        dt = datetime.fromisoformat(last_edited_time)
-        return dt.astimezone(tz=self.default_tz)
+        return datetime.fromisoformat(self._block["last_edited_time"]).astimezone(
+            tz=self.tz
+        )
 
     @property
-    def created(self) -> datetime:
+    def created_time(self) -> datetime:
         """
         Notion returns datetime ISO 8601, UTC.
-        Class uses UTC-8:00 ('PST8PDT') as default.
-        Change default timezone with `set_default_tz(...)`
+        Class default matches the Windows-configured timezone.
+        Change default timezone with method `set_tz(...)`
         """
-        created_time = self._block["created_time"]
-        dt = datetime.fromisoformat(created_time)
-        return dt.astimezone(tz=self.default_tz)
+        return datetime.fromisoformat(self._block["created_time"]).astimezone(
+            tz=self.tz
+        )
 
     def __repr__(self) -> str:
         return f"notion.{self.__class__.__name__}('{self.id}')"
