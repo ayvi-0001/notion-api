@@ -1,3 +1,25 @@
+# MIT License
+
+# Copyright (c) 2023 ayvi#0001
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from __future__ import annotations
 from typing import Sequence
 from typing import Optional
@@ -21,16 +43,16 @@ class Parent(build.NotionObject):
         self.nest("parent", type, id)
 
     @classmethod
-    def page(cls, id: str, /, *, type: str = "page_id") -> Parent:
-        return cls(id, type=type)
+    def page(cls, id: str, /) -> Parent:
+        return cls(id, type="page_id")
 
     @classmethod
-    def database(cls, id: str, /, *, type: str = "database_id") -> Parent:
-        return cls(id, type=type)
+    def database(cls, id: str, /) -> Parent:
+        return cls(id, type="database_id")
 
     @classmethod
-    def block(cls, id: str, /, *, type: str = "block_id") -> Parent:
-        return cls(id, type=type)
+    def block(cls, id: str, /) -> Parent:
+        return cls(id, type="block_id")
 
 
 class UserObject(build.NotionObject):
@@ -86,7 +108,7 @@ class UserObject(build.NotionObject):
 class NotionURL(build.NotionObject):
     __slots__: Sequence[str] = ()
 
-    def __init__(self, url: Optional[str] = None, /) -> None:
+    def __init__(self, url: str, /) -> None:
         super().__init__()
         self.set("url", url)
 
@@ -94,7 +116,7 @@ class NotionURL(build.NotionObject):
 class NotionUUID(build.NotionObject):
     __slots__: Sequence[str] = ()
 
-    def __init__(self, id: str) -> None:
+    def __init__(self, id: str, /) -> None:
         super().__init__()
         self.set("id", id)
 

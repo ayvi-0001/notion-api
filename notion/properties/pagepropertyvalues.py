@@ -1,3 +1,25 @@
+# MIT License
+
+# Copyright (c) 2023 ayvi#0001
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 The endpoint limits the page response object to 25 references across all page properties. 
 If a page object's Parent object is a database, then the property values conform to the database property schema. 
@@ -17,7 +39,6 @@ NOTE: The following property values cannot be updated directly via the API and a
 - Created Time
 - Last Edited By
 - Last Edited Time
-- Rollup results *function can still be updated*
 - Formula property value objects represent the result of evaluating a formula described in the
     database's properties. They contain a formula object with a type of either boolean/date/number/string.
     The value can't be updated directly via the API.
@@ -69,7 +90,7 @@ class RichTextPropertyValue(PagePropertyValue, build.NotionObject):
     `notion.properties.RichText` has the key `text`.
     ---
     (required)
-    :param array_of_rich_text: An array of rich text objects.
+    :param rich_text_array: An array of rich text objects.
     ---
     Using `shift+enter` for multi-line text blocks results in
     a separate `text` key with a newline escape. E.g.
@@ -104,14 +125,14 @@ class RichTextPropertyValue(PagePropertyValue, build.NotionObject):
     :The RichText Object: https://developers.notion.com/reference/rich-text
     :The RichText Property Value: https://developers.notion.com/reference/page-property-values#rich-text
     """
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(
-        self, property_name: str, array_of_rich_text: list[RichTextTypeObject], /
+        self, property_name: str, rich_text_array: list[RichTextTypeObject], /
     ) -> None:
         super().__init__(property_name=property_name)
         self.set("type", "rich_text")
-        self.set("rich_text", array_of_rich_text)
+        self.set("rich_text", rich_text_array)
 
 
 class TitlePropertyValue(PagePropertyValue, build.NotionObject):
@@ -122,7 +143,7 @@ class TitlePropertyValue(PagePropertyValue, build.NotionObject):
     https://developers.notion.com/reference/page-property-values#title
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, title_: list[RichTextTypeObject], /) -> None:
         super().__init__(property_name="title")
@@ -133,17 +154,17 @@ class DatePropertyValue(PagePropertyValue, build.NotionObject):
     """
     Notion uses ISO 8601 date and time for some endpoints, and YYYY/MM/DD for others.
     If a datetime object is passed to either parameter, they'll be converted to isoformat.
-    
+
     ---
-    :param start: (required) A date, with an optional time. \
+    :param start: (required) A date, with an optional time.
         If the "date" value is a range, then start represents the start of the range.
-    :param end: (optional) A string representing the end of a date range. \
-        If the value is null, then the date value is not a range. 
-    
+    :param end: (optional) A string representing the end of a date range.
+        If the value is null, then the date value is not a range.
+
     https://developers.notion.com/reference/page-property-values#date
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(
         self,
@@ -164,18 +185,18 @@ class RelationPropertyValue(PagePropertyValue, build.NotionObject):
     NOTE: updating a relation property value with an empty array will clear the list.
 
     ---
-    :param related_ids: (required) An array of related page references. \
-        A page reference is an object with an id key and a string value (UUIDv4) \
+    :param related_ids: (required) An array of related page references.
+        A page reference is an object with an id key and a string value (UUIDv4)
         corresponding to a page ID in another database.
 
-    :param has_more: (optional) If a relation has more than 25 references, then the has_more value for \
-        the relation in the response object is true. If a relation doesn't \
+    :param has_more: (optional) If a relation has more than 25 references, then the has_more value for
+        the relation in the response object is true. If a relation doesn't
         exceed the limit, then has_more is false.
-    
+
     https://developers.notion.com/reference/page-property-values#relation
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(
         self,
@@ -192,13 +213,13 @@ class RelationPropertyValue(PagePropertyValue, build.NotionObject):
 
 class StatusPropertyValue(PagePropertyValue, build.NotionObject):
     """
-    :param status_option: (required) a single status option: `notion.properties.Option` \
+    :param status_option: (required) a single status option: `notion.properties.Option`
         containing `name` and `notion.properties.PropertyColors`
 
     https://developers.notion.com/reference/page-property-values#status
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, status_option: Option, /) -> None:
         super().__init__(property_name=property_name)
@@ -208,18 +229,18 @@ class StatusPropertyValue(PagePropertyValue, build.NotionObject):
 
 class SelectPropertyValue(PagePropertyValue, build.NotionObject):
     """
-    When selecting options, If the select database property does not yet have an option by the input name, 
+    When selecting options, If the select database property does not yet have an option by the input name,
     then the name will be added to the database schema if the integration also has write access to the parent database.
     NOTE: Commas (",") are not valid for select values.
 
     ---
-    :param select_option: (required) a single select option: `notion.properties.Option` \
+    :param select_option: (required) a single select option: `notion.properties.Option`
         containing `name` and `notion.properties.PropertyColors`
-    
+
     https://developers.notion.com/reference/page-property-values#select
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, select_option: Option, /) -> None:
         super().__init__(property_name=property_name)
@@ -230,23 +251,23 @@ class SelectPropertyValue(PagePropertyValue, build.NotionObject):
 class MultiSelectPropertyValue(PagePropertyValue, build.NotionObject):
     """
     The MultiSelectPropertyValue contains an array of `notion.properties.Option` objects.
-    When selecting options, If the multi-select database property does not yet have an option by the input name, 
+    When selecting options, If the multi-select database property does not yet have an option by the input name,
     then the name will be added to the database schema if the integration also has write access to the parent database.
     NOTE: Commas (",") are not valid for select values.
 
     ---
-    :param array_of_options: (required) array of `notion.properties.Option` \
+    :param options_array: (required) array of `notion.properties.Option`
         containing `name` and `notion.properties.PropertyColors`
-    
+
     https://developers.notion.com/reference/page-property-values#multi-select
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, array_of_options: list[Option], /) -> None:
+    def __init__(self, property_name: str, options_array: list[Option], /) -> None:
         super().__init__(property_name=property_name)
         self.set("type", "multi_select")
-        self.set("multi_select", array_of_options)
+        self.set("multi_select", options_array)
 
 
 class CheckboxPropertyValue(PagePropertyValue, build.NotionObject):
@@ -256,7 +277,7 @@ class CheckboxPropertyValue(PagePropertyValue, build.NotionObject):
     https://developers.notion.com/reference/page-property-values#checkbox
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, checkbox_value: bool, /) -> None:
         super().__init__(property_name=property_name)
@@ -266,21 +287,21 @@ class CheckboxPropertyValue(PagePropertyValue, build.NotionObject):
 
 class PeoplePropertyValue(PagePropertyValue, build.NotionObject):
     """
-    :param array_of_users: (required) An array of user objects. \
-        The Retrieve a page endpoint can't be guaranteed to return more than 25 people \
-        per people page property. If a people page property includes more than 25 people, \
-        then you can use the Retrieve a page property item endpoint for the specific \
+    :param user_array: (required) An array of user objects.
+        The Retrieve a page endpoint can't be guaranteed to return more than 25 people
+        per people page property. If a people page property includes more than 25 people,
+        then you can use the Retrieve a page property item endpoint for the specific
         people property to get a complete list of people.
-    
+
     https://developers.notion.com/reference/page-property-values#people
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, array_of_users: list[UserObject], /) -> None:
+    def __init__(self, property_name: str, user_array: list[UserObject], /) -> None:
         super().__init__(property_name=property_name)
         self.set("type", "people")
-        self.set("people", array_of_users)
+        self.set("people", user_array)
 
 
 class RollupPropertyValue(PagePropertyValue, build.NotionObject):
@@ -301,7 +322,7 @@ class RollupPropertyValue(PagePropertyValue, build.NotionObject):
     https://developers.notion.com/reference/page-property-values#rollup
     """
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, function: NotionFunctionFormats, /) -> None:
         super().__init__(property_name=property_name)
@@ -312,7 +333,7 @@ class RollupPropertyValue(PagePropertyValue, build.NotionObject):
 class EmailPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#email"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, email: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -323,7 +344,7 @@ class EmailPropertyValue(PagePropertyValue, build.NotionObject):
 class NumberPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#number"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, number: Union[float, timedelta], /) -> None:
         super().__init__(property_name=property_name)
@@ -333,12 +354,12 @@ class NumberPropertyValue(PagePropertyValue, build.NotionObject):
 
 class PhoneNumberPropertyValue(PagePropertyValue, build.NotionObject):
     """
-    :param phone_number: (required) A string representing a phone number. \
+    :param phone_number: (required) A string representing a phone number.
         No phone number format is enforced.
 
-    https://developers.notion.com/reference/page-property-values#phone-number"""
-
-    __slots__: Sequence[str] = "name"
+    https://developers.notion.com/reference/page-property-values#phone-number
+    """
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, phone_number: str, /) -> None:
         super().__init__(property_name=property_name)
@@ -349,7 +370,7 @@ class PhoneNumberPropertyValue(PagePropertyValue, build.NotionObject):
 class URLPropertyValue(PagePropertyValue, build.NotionObject):
     """https://developers.notion.com/reference/page-property-values#url"""
 
-    __slots__: Sequence[str] = "name"
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(self, property_name: str, url: str, /) -> None:
         super().__init__(property_name=property_name)

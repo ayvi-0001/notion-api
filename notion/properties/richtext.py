@@ -1,3 +1,25 @@
+# MIT License
+
+# Copyright (c) 2023 ayvi#0001
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 """
 Rich text objects contain the data that Notion uses to display 
 formatted text,mentions, and inline equations. 
@@ -8,6 +30,8 @@ from __future__ import annotations
 from typing import Sequence
 from typing import Union
 from typing import Optional
+from typing import Mapping
+from typing import Any
 
 from notion.core import build
 from notion.properties.options import NotionColors
@@ -19,6 +43,7 @@ __all__: Sequence[str] = (
     "RichText",
     "Equation",
     "Mention",
+    "RichTextTypeObject",
 )
 
 
@@ -55,10 +80,19 @@ class Equation(build.NotionObject):
 
 
 class Mention(build.NotionObject):
+    """
+    Classmethods: `user`, `today`, `database`, `page`, `link_preview`, `date`.
+    """
+
     __slots__: Sequence[str] = ()
 
     def __init__(
-        self, /, *, type, mention_type_object, annotations: Optional[Annotations] = None
+        self,
+        /,
+        *,
+        type: str,
+        mention_type_object,
+        annotations: Optional[Annotations] = None,
     ) -> None:
         super().__init__()
         self.set("type", "mention")
@@ -71,15 +105,14 @@ class Mention(build.NotionObject):
     @classmethod
     def user(
         cls,
-        mention_type_object: UserObject,
+        mention_type_object: Union[UserObject, Mapping[str, Any]],
         /,
         *,
         annotations: Optional[Annotations] = None,
     ) -> Mention:
-        """ 
+        """
         Cannot mention Bots
-        :raises: `notion.exceptions.errors.NotionValidationError`: \
-            Content creation Failed.
+        :raises: `notion.exceptions.errors.NotionValidationError` Content creation Failed.
 
         https://developers.notion.com/reference/rich-text#user-mention-type-object
         """
@@ -89,17 +122,17 @@ class Mention(build.NotionObject):
             annotations=annotations,
         )
 
-    @classmethod
-    def now(cls, *, annotations: Optional[Annotations] = None) -> Mention:
-        """https://developers.notion.com/reference/rich-text#template-mention-type-object"""
-        _mention_type_object = build.NotionObject()
-        _mention_type_object.set("type", "template_mention_date")
-        _mention_type_object.set("template_mention_date", "now")
-        return cls(
-            type="template_mention",
-            mention_type_object=_mention_type_object,
-            annotations=annotations,
-        )
+    # @classmethod
+    # def now(cls, *, annotations: Optional[Annotations] = None) -> Mention:
+    #     """https://developers.notion.com/reference/rich-text#template-mention-type-object"""
+    #     _mention_type_object = build.NotionObject()
+    #     _mention_type_object.set("type", "template_mention_date")
+    #     _mention_type_object.set("template_mention_date", "now")
+    #     return cls(
+    #         type="template_mention",
+    #         mention_type_object=_mention_type_object,
+    #         annotations=annotations,
+    #     )
 
     @classmethod
     def today(cls, *, annotations: Optional[Annotations] = None) -> Mention:
