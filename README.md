@@ -4,9 +4,9 @@ A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting
 
 Current Notion-Version: 2022-06-28.
 
-This is still a work in progress, and features will continue to change.
+This project is still a work in progress, and features will continue to change.
 
-Here are a few examples so far:  
+Below are a few examples of the current functionality. 
 
 ---
 ```py
@@ -47,8 +47,8 @@ parent_db['dependencies']
 #     }
 # }
 
-homepage.last_edited.date() # out: 01/15/2023
-homepage.last_edited.time() # out: 16:28:00
+homepage.last_edited.date # out: 01/15/2023
+homepage.title = "New Page Title"
 ```
 
 ---
@@ -56,28 +56,60 @@ homepage.last_edited.time() # out: 16:28:00
 Pages and Databases are created by passing an existing page/database instance as a parent to a classmethod.
 
 ```py
-new_database = notion.Database.create(homepage, page_title='A new database', name_column='name')
-new_page = notion.Page.create(new_database, page_title='A new database row')
+new_database = notion.Database.create(
+    homepage, page_title="A new database", name_column="name"
+)
+new_page = notion.Page.create(new_database, page_title="A new database row")
 ```
 
 Blocks can be created with `notion.api.blocktypefactory.BlockFactory` by appending to an exisiting Block or Page.
 ```py
+import notion.properties as prop
+
 # BlockFactory returns the new block as a Block object.
 original_synced_block = notion.BlockFactory.new_synced_block(homepage)
 
 # Adding content to the synced block
 notion.BlockFactory.paragraph(original_synced_block, [prop.RichText('This is a synced block.')])
 
-# Referencing the synced block in the new page created.
+# Referencing the synced block in a new page.
 notion.BlockFactory.reference_synced_block(new_page, original_synced_block.id)
 ```
 
+### Example function: Appending blocks to a page as a reminder.
+```py
+def notion_block_reminder(page_id: str, message: str, user_name: str) -> None:
+    target_page = notion.Page('0b9eccfa890e4c3390175ee10c664a35')
+    mentionblock = notion.BlockFactory.paragraph(
+        target_page,
+        [
+            prop.Mention.user(
+                notion.Workspace.retrieve_user(user_name=user_name),
+                annotations=prop.Annotations(
+                    code=True, bold=True, color=prop.NotionColors.purple
+                ),
+            ),
+            prop.RichText(" - "),
+            prop.Mention.date(
+                datetime.now().astimezone(target_page.tz).isoformat(),
+                annotations=prop.Annotations(
+                    code=True, bold=True, color=prop.NotionColors.purple_background
+                ),
+            ),
+            prop.RichText(":"),
+        ],
+    )
+    notion.BlockFactory.paragraph(mentionblock, [prop.RichText(message)])
+    notion.BlockFactory.divider(target_page)
+```
+<img src="images\example_function_reminder.png">  
+
+<br>
+
 ---
-## Adding, Setting, and Deleting Page Property Values & Database Property Objects
+## Add, Set, & Delete - Page property values / Database property objects
 
 ```py
-import notion.properties as prop
-
 new_database.add_formula_column("page id", expression="id()")
 
 new_database.delete_property("url")
@@ -99,37 +131,32 @@ new_page.set_multiselect("options", ["option-a", "option-b"])
 
 ```py
 from notion.query import *
+from datetime import timedelta
 
-# Compound filters support combining `and`/`or` filters,
-# or a single `notion.query.propfilter.PropertyFilter` can be used.
+# Compound filters support combining `and`/`or` filters.
+# Or a single `notion.query.propfilter.PropertyFilter` can be used.
 
 today = datetime.today().isoformat()
 tomorrow = (datetime.today() + timedelta(1)).isoformat()
 
-filter = CompoundFilter()
-nested_filter = CompoundFilter()
-
-nested_filter._or_(
-        PropertyFilter.text("name", "title", "contains", "your page title"),
-        PropertyFilter.text("name", "title", "contains", "your other page title"),
-    )
-
-filter._and_(
-    PropertyFilter.date("date", "date", "on_or_after", today)
-    PropertyFilter.date("date", "date", "before", tomorrow),
-    nested_filter
+query_filter = notion.build_payload(
+    CompoundFilter()._and(
+        PropertyFilter.date("date", "date", "on_or_after", today),
+        PropertyFilter.date("date", "date", "before", tomorrow),
+        CompoundFilter()._or(
+            PropertyFilter.text("name", "title", "contains", "your page title"),
+            PropertyFilter.text("name", "title", "contains", "your other page title"),
+        ),
+    ),
+    SortFilter([EntryTimestampSort.created_time_descending()]),
 )
-
-sort = SortFilter([EntryTimestampSort.created_time_descending()])
-
-query_params = notion.request_json(filter, sort)
 
 query_result = new_database.query(
-    payload=query_params, filter_property_values=["name", "options"]
+    payload=query_params,
+    # Can filter property values returned with a list of property names
+    filter_property_values=["name", "options"],
 )
 ```
-If the list result is over 100 pages (Notions max for paginated responses), you can use a cursor included at the end to continue the query.
-
 ---
 
 ## Exceptions & Validating Responses
@@ -152,7 +179,7 @@ Traceback (most recent call last):
 File "c:\path\to\file\_.py", line 6, in <module>
     homepage._patch_properties(payload={'an_incorrect_key':'value'})
 File "c:\...\notion\exceptions\validate.py", line 48, in validate_response
-    raise NotionValidationError(args)
+    raise NotionValidationError(message)
 notion.exceptions.errors.NotionValidationError: body failed validation: body.an_incorrect_key should be not present, instead was `"value"`.
 Error 400: The request body does not match the schema for the expected parameters.
 ```
@@ -160,9 +187,14 @@ Error 400: The request body does not match the schema for the expected parameter
 A common error to look out for is `notion.exceptions.errors.NotionObjectNotFound`:  
 
 This error will throw if your bot has not been added as a connection to the page.  
-<img src="assets\directory_add_connections.png">  
+<img src="images\directory_add_connections.png">  
 
 By default, a bot will have access to the children of any Parent object it has access too.
+
+Certain errors are returned with a long list of possible causes for failing validation,
+In these cases, the error is often the outlier in the list - for example:
+
+<img src="images\append_child_block_error.png"> 
 
 ---
 
