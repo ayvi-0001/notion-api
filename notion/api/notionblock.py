@@ -1,3 +1,25 @@
+# MIT License
+
+# Copyright (c) 2023 ayvi#0001
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 from __future__ import annotations
 from functools import cached_property
 from typing import Sequence
@@ -12,23 +34,23 @@ __all__: Sequence[str] = ["Block"]
 
 
 class Block(_TokenBlockMixin):
-    """ A block object represents content within Notion. 
+    """A block object represents content within Notion.
     Blocks can be text, lists, media, and more. A page is a type of block, too.
 
     These are the individual 'nodes' in a page that you typically interact with in Notion.
-    Some blocks have more content nested inside them. 
-    Some examples are indented paragraphs, lists, and toggles. 
+    Some blocks have more content nested inside them.
+    Some examples are indented paragraphs, lists, and toggles.
     The nested content is called children, and children are blocks, too.
 
     ---
     :param id: (required) `block_id` of object in Notion.
-    :param token: (required) Bearer token provided when you create an integration. \
-        set as `NOTION_TOKEN` in .env or set variable here. \
+    :param token: (required) Bearer token provided when you create an integration.
+        set as `NOTION_TOKEN` in .env or set variable here.
         see https://developers.notion.com/reference/authentication.
-    :param notion_version: (optional) API version \
+    :param notion_version: (optional) API version
         see https://developers.notion.com/reference/versioning
-    
-    https://developers.notion.com/reference/block 
+
+    https://developers.notion.com/reference/block
     """
 
     def __init__(
@@ -86,6 +108,7 @@ class Block(_TokenBlockMixin):
             self._block_endpoint(self.id, children=True), payload=payload
         )
 
+    @property
     def delete_self(self) -> None:
         """
         Sets a Block object, including page blocks, to archived: true
@@ -94,21 +117,18 @@ class Block(_TokenBlockMixin):
         accessed and restored. To restore the block with the API,
         use the Update a block or Update page respectively.
 
-        NOTE: To delete a page or database,
-        create a block instance with the respective id, and call this method.
-
         https://developers.notion.com/reference/delete-a-block
         """
         self._delete(self._block_endpoint(self.id))
         self.logger.info("Deleted Self.")
 
+    @property
     def restore_self(self) -> None:
         """
         Sets "archived" key to false.
         Only works if the parent page has not been deleted from the trash.
         """
         self._patch(self._block_endpoint(self.id), payload=(b'{"archived": false}'))
-
         self.logger.info("Restored Self.")
 
     def delete_child(self, children_id: list[str]) -> None:
@@ -119,7 +139,6 @@ class Block(_TokenBlockMixin):
     def restore_child(self, children_id: list[str]) -> None:
         for id in children_id:
             self._patch(self._block_endpoint(self.id), payload=b'{"archived": false}')
-
             self.logger.info(f"Restored child block `{id}`.")
 
     def update(self, payload: Union[JSONObject, JSONPayload]) -> JSONObject:
@@ -156,7 +175,12 @@ class ToDoBlock(Block):
     ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
 
-    def checked(self, checked: bool, /) -> None:
+    @property
+    def checkbox(self):
+        return self.retrieve['to_do']['checked']
+
+    @checkbox.setter
+    def checkbox(self, __check: bool) -> None:
         payload = self.retrieve["to_do"]
-        payload["checked"] = checked
+        payload["checked"] = __check
         self.update({"to_do": payload})
