@@ -1,10 +1,11 @@
 # notion-api
 
 <p align="center">
-    <img alt="last commit" src="https://img.shields.io/github/last-commit/ayvi-0001/notion-api?color=%239146ff&style=plastic"></a>
-    <a href="https://developers.notion.com/reference/versioning"><img alt="notion versioning" src="https://img.shields.io/static/v1?label=notion-version&message=version-2022--06--28&color=%232e1a00&style=plastic"></a>
-    <a href="https://github.com/ayvi-0001/notion-api/blob/main/LICENSE"><img alt="license: MIT" src="https://img.shields.io/static/v1?label=license&message=MIT&color=informational&style=plastic"></a>
-    <img alt="code style: black" src="https://img.shields.io/static/v1?label=code%20style&message=black&color=000000&style=plastic"></a>
+    <a href="https://pypi.org/project/notion-api/0.3.1/"><img alt="PYPI" src="https://img.shields.io/pypi/v/notion-api"></a>
+    <img alt="last commit" src="https://img.shields.io/github/last-commit/ayvi-0001/notion-api?color=%239146ff"></a>
+    <a href="https://developers.notion.com/reference/versioning"><img alt="notion versioning" src="https://img.shields.io/static/v1?label=notion-version&message=2022--06--28&color=%232e1a00"></a>
+    <a href="https://github.com/ayvi-0001/notion-api/blob/main/LICENSE"><img alt="license: MIT" src="https://img.shields.io/static/v1?label=license&message=MIT&color=informational"></a>
+    <img alt="code style: black" src="https://img.shields.io/static/v1?label=code%20style&message=black&color=000000"></a>
 </p>
 
  

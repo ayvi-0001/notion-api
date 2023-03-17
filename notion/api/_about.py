@@ -32,6 +32,6 @@ __all__: Sequence[str] = (
 __notion_version__: Final[str] = "2022-06-28"
 __content_type__: Final[str] = "application/json"
 __base_url__: Final[str] = "https://api.notion.com/v1/"
-__version__: Final[str] = "0.3.0"
+__version__: Final[str] = "0.3.1"
 
 # Previous Notion-Version headers `"2021-05-11"`, `"2021-05-13"`, `"2021-08-16"`, `"2022-02-22"`, `"2022-06-28"`
