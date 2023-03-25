@@ -28,7 +28,7 @@ are used to create what a user experiences as a single text value in Notion.
 """
 from __future__ import annotations
 
-from typing import Any, Mapping, Optional, Sequence, Union
+from typing import Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
 from notion.properties.common import NotionURL, UserObject
@@ -53,6 +53,7 @@ class RichText(NotionObject):
         *,
         link: Optional[str] = None,
     ) -> None:
+        """https://developers.notion.com/reference/rich-text"""
         super().__init__()
         self.set("type", "text")
         self.nest("text", "content", content)
@@ -67,6 +68,7 @@ class Equation(NotionObject):
     def __init__(
         self, expression: str, /, *, annotations: Optional[Annotations] = None
     ) -> None:
+        """https://developers.notion.com/reference/rich-text"""
         super().__init__()
         self.set("type", "equation")
         self.nest("equation", "expression", expression)
@@ -75,10 +77,6 @@ class Equation(NotionObject):
 
 
 class Mention(NotionObject):
-    """
-    Classmethods: `user`, `today`, `database`, `page`, `link_preview`, `date`.
-    """
-
     __slots__: Sequence[str] = ()
 
     def __init__(
@@ -89,6 +87,11 @@ class Mention(NotionObject):
         mention_type_object: Union[UserObject, NotionObject],
         annotations: Optional[Annotations] = None,
     ) -> None:
+        """
+        Classmethods: `user`, `today`, `database`, `page`, `link_preview`, `date`.
+
+        https://developers.notion.com/reference/rich-text#mention
+        """
         super().__init__()
         self.set("type", "mention")
         self.nest("mention", "type", type)
@@ -117,18 +120,6 @@ class Mention(NotionObject):
             annotations=annotations,
         )
 
-    # @classmethod
-    # def now(cls, *, annotations: Optional[Annotations] = None) -> Mention:
-    #     """https://developers.notion.com/reference/rich-text#template-mention-type-object"""
-    #     _mention_type_object = NotionObject()
-    #     _mention_type_object.set("type", "template_mention_date")
-    #     _mention_type_object.set("template_mention_date", "now")
-    #     return cls(
-    #         type="template_mention",
-    #         mention_type_object=_mention_type_object,
-    #         annotations=annotations,
-    #     )
-
     @classmethod
     def today(cls, *, annotations: Optional[Annotations] = None) -> Mention:
         """https://developers.notion.com/reference/rich-text#template-mention-type-object"""
@@ -155,9 +146,7 @@ class Mention(NotionObject):
         )
 
     @classmethod
-    def page(
-        cls, page_id: str, *, annotations: Optional[Annotations] = None
-    ) -> Mention:
+    def page(cls, page_id: str, *, annotations: Optional[Annotations] = None) -> Mention:
         """https://developers.notion.com/reference/rich-text#page-mention-type-object"""
         _mention_type_object = NotionObject()
         _mention_type_object.set("id", page_id)
@@ -211,6 +200,7 @@ class Annotations(NotionObject):
         code: Optional[bool] = None,
         color: Optional[BlockColor] = None,
     ) -> None:
+        """https://developers.notion.com/reference/rich-text#the-annotation-object"""
         super().__init__()
 
         self.set("bold", bold) if bold else None
@@ -218,7 +208,7 @@ class Annotations(NotionObject):
         self.set("strike", strike) if strike else None
         self.set("underline", underline) if underline else None
         self.set("color", color) if color else None
-        self.set("color", BlockColor.default) if not color else None
+        self.set("color", BlockColor.default.value) if not color else None
         self.set("code", code) if code else None
 
         if not any([[bold, italic, strike, underline, code, color]]):

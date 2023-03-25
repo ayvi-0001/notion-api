@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from datetime import datetime, tzinfo
 from functools import cached_property
-from typing import Any, MutableMapping, Optional, Sequence, Union
+from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 from uuid import UUID
 
 from pytz import BaseTzInfo, timezone
@@ -61,7 +61,7 @@ class _TokenBlockMixin(_NotionClient):
             UUID(self.id)
         except ValueError:
             raise NotionObjectNotFound(
-                (
+                "{} {}".format(
                     f"{self.__repr__()} instatiation failed validation: ",
                     f"id should be a valid uuid, instead was `'{self.id}'`",
                 )
@@ -94,17 +94,20 @@ class _TokenBlockMixin(_NotionClient):
 
     @property
     def parent_type(self) -> str:
-        return str(self._block["parent"]["type"])
+        ptype = cast(str, self._block["parent"]["type"])
+        if "workspace" in ptype:
+            return "workspace"
+        return ptype
 
     @property
     def parent_id(self) -> str:
         _parent_id = self._block["parent"][self.parent_type]
-        if _parent_id is True:
-            # sets key to 'workspace' rather than 'True'
-            _parent_id = self.parent_type
+        if _parent_id is True:  # parent is workspace
+            workspace = self._get(f"{__base_url__}%s" % "users/me")
+            # return workspace name
+            return "workspace: %s" % workspace["bot"]["workspace_name"]
         else:
-            _parent_id = _parent_id.replace("-", "")
-        return str(_parent_id)
+            return cast(str, _parent_id.replace("-", ""))
 
     def set_tz(self, tz: Union[tzinfo, str]) -> None:
         """
@@ -125,9 +128,8 @@ class _TokenBlockMixin(_NotionClient):
         Class default matches the Windows-configured timezone.
         Change default timezone with method `set_tz(...)`
         """
-        return datetime.fromisoformat(self._block["last_edited_time"]).astimezone(
-            tz=self.tz
-        )
+        dt = datetime.fromisoformat(self._block["last_edited_time"])
+        return dt.astimezone(tz=self.tz)
 
     @property
     def created_time(self) -> datetime:
@@ -136,9 +138,8 @@ class _TokenBlockMixin(_NotionClient):
         Class default matches the Windows-configured timezone.
         Change default timezone with method `set_tz(...)`
         """
-        return datetime.fromisoformat(self._block["created_time"]).astimezone(
-            tz=self.tz
-        )
+        dt = datetime.fromisoformat(self._block["created_time"])
+        return dt.astimezone(tz=self.tz)
 
     def __repr__(self) -> str:
         return f"notion.{self.__class__.__name__}('{self.id}')"

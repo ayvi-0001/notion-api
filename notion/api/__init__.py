@@ -28,4 +28,10 @@ from notion.api.notiondatabase import Database
 from notion.api.notionpage import Page
 from notion.api.notionworkspace import Workspace
 
-__all__: Sequence[str] = ("Workspace", "Block", "Page", "Database", "BlockFactory")
+__all__: Sequence[str] = (
+    "Workspace",
+    "Block",
+    "Page",
+    "Database",
+    "BlockFactory",
+)

@@ -19,10 +19,9 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any, Sequence, Union
 
 from notion.properties.build import NotionObject
 from notion.query.conditions import *
@@ -31,23 +30,6 @@ __all__: Sequence[str] = ["PropertyFilter"]
 
 
 class PropertyFilter(NotionObject):
-    """A filter is a single condition used to specify and limit the entries returned from a database query.
-    Database queries can be filtered by page property values.
-    The API supports filtering by the following property types:
-        rich_text, phone_number, number, checkbox, select, multi-select, date,
-        people, files, relation, status, and formula.
-
-    You may also filter a database by created_time or last_edited_time, even if these aren't present as properties on the database.
-
-    https://developers.notion.com/reference/post-database-query-filter
-
-    Each database property filter object must contain a property key
-    and a key corresponding with the type of the database property identified by property.
-    The value is an object containing a type-specific filter condition
-
-    https://developers.notion.com/reference/post-database-query-filter#type-specific-filter-conditions
-    """
-
     __slots__: Sequence[str] = (
         "_property_name",
         "_property_type",
@@ -60,6 +42,26 @@ class PropertyFilter(NotionObject):
         filter_value: Any,
         /,
     ) -> None:
+        """
+        Classmethods:
+            text, checkbox, number, select, multi_select, status, date, people, files, relation.
+
+        A filter is a single condition used to specify and limit the entries returned from a database query.
+        Database queries can be filtered by page property values.
+        The API supports filtering by the following property types:
+            rich_text, phone_number, number, checkbox, select, multi-select, date,
+            people, files, relation, status, and formula.
+
+        You may also filter a database by created_time or last_edited_time, even if these aren't present as properties on the database.
+
+        https://developers.notion.com/reference/post-database-query-filter
+
+        Each database property filter object must contain a property key
+        and a key corresponding with the type of the database property identified by property.
+        The value is an object containing a type-specific filter condition
+
+        https://developers.notion.com/reference/post-database-query-filter#type-specific-filter-conditions
+        """
         super().__init__()
         self._property_type: str
         self._property_name: str = property_name
@@ -72,7 +74,7 @@ class PropertyFilter(NotionObject):
         property_name: str,
         property_type: TextTypes,
         filter_condition: TextConditions,
-        filter_value: Any,
+        filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
         cls._property_type = property_type
@@ -94,7 +96,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: NumberConditions,
-        filter_value: Any,
+        filter_value: Union[str, float, bool],
         /,
     ) -> PropertyFilter:
         cls._property_type = "number"
@@ -105,7 +107,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: SelectConditions,
-        filter_value: Any,
+        filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
         cls._property_type = "select"
@@ -116,7 +118,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: MultiSelectConditions,
-        filter_value: Any,
+        filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
         cls._property_type = "multi_select"
@@ -127,7 +129,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: StatusConditions,
-        filter_value: Any,
+        filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
         cls._property_type = "status"
@@ -139,7 +141,7 @@ class PropertyFilter(NotionObject):
         property_name: str,
         property_type: DateTypes,
         filter_condition: DateConditions,
-        filter_value: Any,
+        filter_value: Union[str, bool, dict[str, Any]],
         /,
     ) -> PropertyFilter:
         """When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`"""
@@ -152,7 +154,7 @@ class PropertyFilter(NotionObject):
         property_name: str,
         property_type: PeopleTypes,
         filter_condition: PeopleConditions,
-        filter_value: Any,
+        filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
         cls._property_type = property_type
@@ -179,7 +181,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: RelationConditions,
-        filter_value: Any,
+        filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
         cls._property_type = "relation"

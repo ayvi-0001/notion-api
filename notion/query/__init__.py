@@ -23,13 +23,13 @@
 """ 
 Visit https://developers.notion.com/reference/post-database-query for info on database queries and filter/sort objects.
 
-`from notion.query import *`
+`from notion import query`
 
 `notion.query.PropertyFilter` && `notion.query.TimestampFilter` for individual filters as used in Notion UI.
 
 `notion.query.CompoundFilter` to combine filters.
-    :method _and(): combine all filters in an `and` grouping.
-    :method _or(): combine all filters in an `or` grouping.
+    :method: _and(): combine all filters in an `and` grouping.
+    :method: _or(): combine all filters in an `or` grouping.
 
     Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
 

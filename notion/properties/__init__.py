@@ -25,7 +25,6 @@ from notion.properties.build import *
 from notion.properties.common import *
 from notion.properties.files import *
 from notion.properties.options import *
-from notion.properties.propbuild import *
 from notion.properties.propertyobjects import *
 from notion.properties.propertyvalues import *
 from notion.properties.richtext import *

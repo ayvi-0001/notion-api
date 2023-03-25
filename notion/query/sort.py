@@ -19,7 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from __future__ import annotations
 
 from typing import Optional, Sequence, Union
@@ -30,40 +29,39 @@ __all__: Sequence[str] = ("SortFilter", "PropertyValueSort", "EntryTimestampSort
 
 
 class SortFilter(NotionObject):
-    """
-    A sort is a condition used to order the entries returned from a database query.
-    A database query can be sorted by a property and/or timestamp and in a given direction.
-    For example,
-    a library database can be sorted by the "Name of a book" (i.e. property) and in ascending (i.e. direction).
-
-    Database queries can also be sorted by two or more properties, which is formally called a nested sort.
-    The sort object listed first in the nested sort list takes precedence.
-
-    :param sort_object: (required) List containing one of
-        `notion.query.sort.PropertyValueSort` or `notion.query.sort.EntryTimestampSort`
-
-    https://developers.notion.com/reference/post-database-query-sort#sort-object"""
-
     __slots__: Sequence[str] = ()
 
     def __init__(
         self, sort_object: list[Union[PropertyValueSort, EntryTimestampSort]]
     ) -> None:
+        """
+        A sort is a condition used to order the entries returned from a database query.
+        A database query can be sorted by a property and/or timestamp and in a given direction.
+        For example,
+        a library database can be sorted by the "Name of a book" (i.e. property) and in ascending (i.e. direction).
+
+        Database queries can also be sorted by two or more properties, which is formally called a nested sort.
+        The sort object listed first in the nested sort list takes precedence.
+
+        :param sort_object: (required) List containing one of\
+            `notion.query.sort.PropertyValueSort` or `notion.query.sort.EntryTimestampSort`
+
+        https://developers.notion.com/reference/post-database-query-sort#sort-object
+        """
         super().__init__()
         self.set("sorts", sort_object)
 
 
 class PropertyValueSort(NotionObject):
-    """
-    This sort orders the database query by a particular property.
-    https://developers.notion.com/reference/post-database-query-sort#sort-object
-    """
-
     __slots__: Sequence[str] = ()
 
     def __init__(
         self, property_name: str, /, *, direction: Optional[str] = None
     ) -> None:
+        """
+        This sort orders the database query by a particular property.
+        https://developers.notion.com/reference/post-database-query-sort#sort-object
+        """
         super().__init__()
         self.set("property", property_name)
         self.set("direction", direction)
@@ -82,19 +80,18 @@ class PropertyValueSort(NotionObject):
 
 
 class EntryTimestampSort(NotionObject):
-    """
-    This sort orders the database query by the timestamp associated with a database entry.
-
-    Required:
-    - must use either `created_time_ascending` or `created_time_descending` classmethod.
-    - must use either `last_edited_time_ascending` or `last_edited_time_descending` classmethod.
-
-    https://developers.notion.com/reference/post-database-query-sort#entry-timestamp-sort
-    """
-
     __slots__: Sequence[str] = ("_timestamp", "_direction")
 
     def __init__(self) -> None:
+        """
+        This sort orders the database query by the timestamp associated with a database entry.
+
+        Required:
+        - must use either `created_time_ascending` or `created_time_descending` classmethod.
+        - must use either `last_edited_time_ascending` or `last_edited_time_descending` classmethod.
+
+        https://developers.notion.com/reference/post-database-query-sort#entry-timestamp-sort
+        """
         super().__init__()
 
         self._timestamp: str

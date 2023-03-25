@@ -28,12 +28,12 @@ from notion.properties.files import ExternalFile
 from notion.properties.options import BlockColor, CodeBlockLang
 from notion.properties.richtext import Equation, Mention, RichText
 
-# See docs in `notion.api.blockwrite.BlockFactory` for info on block types.
+# See docs in `notion.api.blockwrite.BlockFactory` for more info on block types.
 
 __all__: Sequence[str] = (
-    "Children",
+    "BlockChildren",
     "OriginalSyncedBlockType",
-    "ReferenceSyncedBlockType",
+    "DuplicateSyncedBlockType",
     "ParagraphBlocktype",
     "NewLineBreak",
     "CalloutBlocktype",
@@ -56,13 +56,17 @@ __all__: Sequence[str] = (
 )
 
 
-class Children(NotionObject):
+class BlockChildren(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(
         self,
-        block_type_objects_array: Optional[list[NotionObject]],
+        block_type_objects_array: Optional[list[NotionObject]] = None,
     ) -> None:
+        """
+        array of block objects: The nested child blocks (if any)
+        https://developers.notion.com/reference/block
+        """
         super().__init__()
         if not block_type_objects_array:
             block_type_objects_array = []
@@ -74,6 +78,7 @@ class OriginalSyncedBlockType(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, children: Optional[list[str]]) -> None:
+        """https://developers.notion.com/reference/block#original-synced-block"""
         super().__init__()
         if not children:
             children = []
@@ -83,10 +88,11 @@ class OriginalSyncedBlockType(NotionObject):
         self.nest("synced_block", "children", children)
 
 
-class ReferenceSyncedBlockType(NotionObject):
+class DuplicateSyncedBlockType(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, block_id: str) -> None:
+        """https://developers.notion.com/reference/block#duplicate-synced-block"""
         super().__init__()
         self.set("type", "synced_block")
         self.nest("synced_block", "synced_from", {"type": "block_id"})
@@ -103,10 +109,10 @@ class ParagraphBlocktype(NotionObject):
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#paragraph"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "paragraph")
         self.nest("paragraph", "rich_text", rich_text)
@@ -127,10 +133,10 @@ class CalloutBlocktype(NotionObject):
         icon: Optional[str] = None,
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#callout"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "callout")
         self.nest("callout", "rich_text", rich_text)
@@ -149,10 +155,10 @@ class QuoteBlocktype(NotionObject):
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#quote"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "quote")
         self.nest("quote", "rich_text", rich_text)
@@ -169,10 +175,10 @@ class BulletedListItemBlocktype(NotionObject):
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#bulleted-list-item"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "bulleted_list_item")
         self.nest("bulleted_list_item", "rich_text", rich_text)
@@ -189,10 +195,10 @@ class NumberedListItemBlocktype(NotionObject):
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#numbered-list-item"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "numbered_list_item")
         self.nest("numbered_list_item", "rich_text", rich_text)
@@ -210,10 +216,10 @@ class ToDoBlocktype(NotionObject):
         checked: Optional[bool] = False,
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#to-do"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "to_do")
         self.nest("to_do", "rich_text", rich_text)
@@ -231,10 +237,10 @@ class ToggleBlocktype(NotionObject):
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#toggle-blocks"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "toggle")
         self.nest("toggle", "rich_text", rich_text)
@@ -252,10 +258,10 @@ class CodeBlocktype(NotionObject):
         language: Optional[Union[CodeBlockLang, str]] = None,
         caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#code"""
         super().__init__()
-
         if not language:
-            language = CodeBlockLang.plain_text
+            language = CodeBlockLang.plain_text.value
 
         self.set("type", "code")
         self.nest("code", "rich_text", rich_text)
@@ -267,6 +273,7 @@ class EmbedBlocktype(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, embedded_url: str, /) -> None:
+        """https://developers.notion.com/reference/block#embed"""
         super().__init__()
         self.set("type", "embed")
         self.set("embed", NotionURL(embedded_url))
@@ -282,6 +289,7 @@ class BookmarkBlocktype(NotionObject):
         *,
         caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
     ) -> None:
+        """https://developers.notion.com/reference/block#bookmark"""
         super().__init__()
         self.set("type", "bookmark")
         self.set("bookmark", NotionURL(bookmark_url))
@@ -292,6 +300,7 @@ class EquationBlocktype(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, expression: str) -> None:
+        """https://developers.notion.com/reference/block#equation"""
         super().__init__()
         self.set("type", "equation")
         self.nest("equation", "expression", expression)
@@ -301,10 +310,10 @@ class TableOfContentsBlocktype(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, block_color: Optional[Union[BlockColor, str]] = None) -> None:
+        """https://developers.notion.com/reference/block#table-of-contents"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "table_of_contents")
         self.nest("table_of_contents", "color", block_color)
@@ -321,10 +330,10 @@ class Heading1BlockType(NotionObject):
         block_color: Optional[Union[BlockColor, str]] = None,
         is_toggleable: Optional[bool] = False,
     ) -> None:
+        """https://developers.notion.com/reference/block#headings"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "heading_1")
         self.nest("heading_1", "rich_text", rich_text)
@@ -343,10 +352,10 @@ class Heading2BlockType(NotionObject):
         block_color: Optional[Union[BlockColor, str]] = None,
         is_toggleable: Optional[bool] = False,
     ) -> None:
+        """https://developers.notion.com/reference/block#headings"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "heading_2")
         self.nest("heading_2", "rich_text", rich_text)
@@ -365,10 +374,10 @@ class Heading3BlockType(NotionObject):
         block_color: Optional[Union[BlockColor, str]] = None,
         is_toggleable: Optional[bool] = False,
     ) -> None:
+        """https://developers.notion.com/reference/block#headings"""
         super().__init__()
-
         if not block_color:
-            block_color = BlockColor.default
+            block_color = BlockColor.default.value
 
         self.set("type", "heading_3")
         self.nest("heading_3", "rich_text", rich_text)
@@ -380,8 +389,8 @@ class LinkToPageBlockType(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, page_id: str) -> None:
+        """https://developers.notion.com/reference/block#link-to-page"""
         super().__init__()
-
         self.set("type", "link_to_page")
         self.nest("link_to_page", "type", "page_id")
         self.nest("link_to_page", "page_id", page_id)
@@ -391,6 +400,7 @@ class BreadcrumbBlock(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self) -> None:
+        """https://developers.notion.com/reference/block#breadcrumb"""
         super().__init__()
         self.set("type", "breadcrumb")
         self.set("breadcrumb", {})
@@ -400,6 +410,7 @@ class DividerBlock(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self) -> None:
+        """https://developers.notion.com/reference/block#divider"""
         super().__init__()
         self.set("type", "divider")
         self.set("divider", {})

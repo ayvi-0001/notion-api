@@ -22,16 +22,19 @@
 
 """ 
 for properties:
-    import notion.properties as prop
+>>> import notion.properties as prop
 
 for queries:
-    from notion.query import *
+>>> import notion.query as query
 """
 
 from typing import Sequence
 
 from notion.api import Block, BlockFactory, Database, Page, Workspace
 from notion.properties.build import build_payload
+
+import notion.properties as properties
+import notion.query as query
 
 __all__: Sequence[str] = (
     "Page",
@@ -40,4 +43,6 @@ __all__: Sequence[str] = (
     "Workspace",
     "BlockFactory",
     "build_payload",
+    "properties",
+    "query",
 )

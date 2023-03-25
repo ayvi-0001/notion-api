@@ -20,8 +20,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from __future__ import annotations
 from types import ModuleType
-from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union
+from typing import (
+    Any,
+    Iterable,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+)
+
 
 try:
     import orjson
@@ -35,37 +44,32 @@ except ModuleNotFoundError:
 __all__: Sequence[str] = ["build_payload"]
 
 
-def build_payload(*objects: dict[str, Any]) -> Union[Iterable[bytes], bytes, bytearray]:
+def build_payload(
+    *__obj: MutableMapping[str, Any]
+) -> Union[Iterable[bytes], bytes, bytearray]:
     final: dict[str, Any] = {}
-    for o in objects:
-        final |= o
-    return default_json.dumps(final)  # type: ignore[no-any-return]
+    for o in __obj:
+        final.update(o)
+    return default_json.dumps(final)
 
 
 class NotionObject(dict[str, Any]):
-    __slots__: Sequence[str] = ()
+    def set(self, __key: str, __val: Any) -> None:
+        self[__key] = __val
 
-    def __init__(self) -> None:
-        super().__init__()
-
-    def set(self, k: str, v: Any) -> None:
-        self[k] = v
-
-    def nest(self, key: str, k: Optional[str], v: Any) -> None:
+    def nest(self, key: str, __key: Optional[str], __val: Any) -> None:
         if key not in self:
-            self.set(key, {k: v})
+            self.set(key, {__key: __val})
         else:
-            self[key] |= {k: v}
+            self[key].update({__key: __val})
 
     def set_array(
         self,
-        key: str,
+        __key: str,
         values: Union[
-            Iterable[bytes],
             bytes,
-            bytearray,
             MutableMapping[str, Any],
-            Sequence[Any],
+            Sequence[Union[bytes, Any]],
         ],
     ) -> None:
-        self[key] = list(values)
+        self[__key] = list(values)

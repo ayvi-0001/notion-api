@@ -36,8 +36,8 @@ https://developers.notion.com/reference/block
 """
 from __future__ import annotations
 
-from functools import reduce, singledispatchmethod
-from operator import getitem, methodcaller
+from functools import singledispatchmethod
+from operator import methodcaller
 from typing import Any, MutableMapping, Optional, Sequence, Union
 
 from notion.api.client import _NotionClient
@@ -95,7 +95,7 @@ class BlockFactory(_NotionClient):
     def _(target: Union[Page, Block], payload: MutableMapping[str, Any]) -> Block:
         _append_method = methodcaller("_append", payload=payload)
         new_block = _append_method(target)
-        id_new_block = str(reduce(getitem, ["results", 0, "id"], new_block))
+        id_new_block = str(new_block["results"][0]["id"])
         return Block(id_new_block)
 
     @_append.register
@@ -161,7 +161,7 @@ class BlockFactory(_NotionClient):
         """
 
         reference_synced_block_block = BlockFactory._append(
-            target, Children([ReferenceSyncedBlockType(block_id)])
+            target, BlockChildren([DuplicateSyncedBlockType(block_id)])
         )
         return reference_synced_block_block
 
@@ -193,25 +193,27 @@ class BlockFactory(_NotionClient):
         """
 
         new_synced_block_block = BlockFactory._append(
-            target, Children([OriginalSyncedBlockType(children=[])])
+            target, BlockChildren([OriginalSyncedBlockType(children=[])])
         )
         return new_synced_block_block
 
     @staticmethod
     def breadcrumb(target: Union[Page, Block, MutableMapping[str, Any]]) -> Block:
         """https://developers.notion.com/reference/block#breadcrumb-blocks"""
-        breadcrumb_block = BlockFactory._append(target, Children([BreadcrumbBlock()]))
+        breadcrumb_block = BlockFactory._append(
+            target, BlockChildren([BreadcrumbBlock()])
+        )
         return breadcrumb_block
 
     @staticmethod
     def divider(target: Union[Page, Block, MutableMapping[str, Any]]) -> Block:
         """https://developers.notion.com/reference/block#divider-blocks"""
-        divider_block = BlockFactory._append(target, Children([DividerBlock()]))
+        divider_block = BlockFactory._append(target, BlockChildren([DividerBlock()]))
         return divider_block
 
     @staticmethod
     def newline(target: Union[Page, Block, MutableMapping[str, Any]]) -> Block:
-        newline_block = BlockFactory._append(target, Children([NewLineBreak]))
+        newline_block = BlockFactory._append(target, BlockChildren([NewLineBreak]))
         return newline_block
 
     @staticmethod
@@ -224,7 +226,7 @@ class BlockFactory(_NotionClient):
     ) -> Block:
         """https://developers.notion.com/reference/block#quote-blocks"""
         quote_block = BlockFactory._append(
-            target, Children([QuoteBlocktype(rich_text, block_color=block_color)])
+            target, BlockChildren([QuoteBlocktype(rich_text, block_color=block_color)])
         )
         return quote_block
 
@@ -245,7 +247,9 @@ class BlockFactory(_NotionClient):
         """
         callout_block = BlockFactory._append(
             target,
-            Children([CalloutBlocktype(rich_text, icon=icon, block_color=block_color)]),
+            BlockChildren(
+                [CalloutBlocktype(rich_text, icon=icon, block_color=block_color)]
+            ),
         )
         return callout_block
 
@@ -259,7 +263,8 @@ class BlockFactory(_NotionClient):
     ) -> Block:
         """https://developers.notion.com/reference/block#paragraph-blocks"""
         paragraph_block = BlockFactory._append(
-            target, Children([ParagraphBlocktype(rich_text, block_color=block_color)])
+            target,
+            BlockChildren([ParagraphBlocktype(rich_text, block_color=block_color)]),
         )
         return paragraph_block
 
@@ -275,7 +280,7 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#heading-one-blocks"""
         heading1_block = BlockFactory._append(
             target,
-            Children(
+            BlockChildren(
                 [
                     Heading1BlockType(
                         rich_text, block_color=block_color, is_toggleable=is_toggleable
@@ -297,7 +302,7 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#heading-two-blocks"""
         heading2_block = BlockFactory._append(
             target,
-            Children(
+            BlockChildren(
                 [
                     Heading2BlockType(
                         rich_text, block_color=block_color, is_toggleable=is_toggleable
@@ -319,7 +324,7 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#heading-three-blocks"""
         heading3_block = BlockFactory._append(
             target,
-            Children(
+            BlockChildren(
                 [
                     Heading3BlockType(
                         rich_text, block_color=block_color, is_toggleable=is_toggleable
@@ -340,7 +345,9 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#bulleted-list-item-blocks"""
         bulleted_list_block = BlockFactory._append(
             target,
-            Children([BulletedListItemBlocktype(rich_text, block_color=block_color)]),
+            BlockChildren(
+                [BulletedListItemBlocktype(rich_text, block_color=block_color)]
+            ),
         )
         return bulleted_list_block
 
@@ -355,7 +362,9 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#numbered-list-item-blocks"""
         numbered_list_block = BlockFactory._append(
             target,
-            Children([NumberedListItemBlocktype(rich_text, block_color=block_color)]),
+            BlockChildren(
+                [NumberedListItemBlocktype(rich_text, block_color=block_color)]
+            ),
         )
         return numbered_list_block
 
@@ -371,7 +380,7 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#to-do-blocks"""
         to_do_block = BlockFactory._append(
             target,
-            Children(
+            BlockChildren(
                 [ToDoBlocktype(rich_text, block_color=block_color, checked=checked)]
             ),
         )
@@ -388,7 +397,7 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#toggle-blocks"""
 
         toggle_block = BlockFactory._append(
-            target, Children([ToggleBlocktype(rich_text, block_color=block_color)])
+            target, BlockChildren([ToggleBlocktype(rich_text, block_color=block_color)])
         )
         return toggle_block
 
@@ -411,7 +420,9 @@ class BlockFactory(_NotionClient):
         """
         code_block = BlockFactory._append(
             target,
-            Children([CodeBlocktype(rich_text, language=language, caption=caption)]),
+            BlockChildren(
+                [CodeBlocktype(rich_text, language=language, caption=caption)]
+            ),
         )
         return code_block
 
@@ -444,7 +455,7 @@ class BlockFactory(_NotionClient):
         https://developers.notion.com/reference/block#embed-blocks
         """
         embed_url_block = BlockFactory._append(
-            target, Children([EmbedBlocktype(embedded_url)])
+            target, BlockChildren([EmbedBlocktype(embedded_url)])
         )
         return embed_url_block
 
@@ -459,7 +470,7 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#bookmark-blocks"""
 
         bookmark_block = BlockFactory._append(
-            target, Children([BookmarkBlocktype(bookmark_url, caption=caption)])
+            target, BlockChildren([BookmarkBlocktype(bookmark_url, caption=caption)])
         )
         return bookmark_block
 
@@ -470,7 +481,7 @@ class BlockFactory(_NotionClient):
         """https://developers.notion.com/reference/block#link-to-page-blocks"""
 
         link_to_page_block = BlockFactory._append(
-            target, Children([LinkToPageBlockType(page_id)])
+            target, BlockChildren([LinkToPageBlockType(page_id)])
         )
         return link_to_page_block
 
@@ -485,7 +496,7 @@ class BlockFactory(_NotionClient):
         https://developers.notion.com/reference/block#equation-blocks
         """
         equation_block = BlockFactory._append(
-            target, Children([EquationBlocktype(expression)])
+            target, BlockChildren([EquationBlocktype(expression)])
         )
         return equation_block
 
@@ -498,7 +509,7 @@ class BlockFactory(_NotionClient):
     ) -> Block:
         """https://developers.notion.com/reference/block#table-of-contents-blocks"""
         table_of_contents_block = BlockFactory._append(
-            target, Children([TableOfContentsBlocktype(block_color=block_color)])
+            target, BlockChildren([TableOfContentsBlocktype(block_color=block_color)])
         )
         return table_of_contents_block
 

@@ -32,30 +32,30 @@ __all__: Sequence[str] = ["CompoundFilter"]
 
 
 class CompoundFilter(NotionObject):
-    """NOTE: only up to two nesting levels deep.
-
-    :method _and(): combine all filters in an `and` grouping.
-    :method _or(): combine all filters in an `or` grouping.
-
-    Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
-
-    https://developers.notion.com/reference/post-database-query-filter#compound-filter-object
-    """
-
     __slots__: Sequence[str] = ()
 
     def __init__(self) -> None:
+        """NOTE: only up to two nesting levels deep.
+
+        :method _and(): combine all filters in an `and` grouping.
+        :method _or(): combine all filters in an `or` grouping.
+
+        Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
+
+        https://developers.notion.com/reference/post-database-query-filter#compound-filter-object
+        """
         super().__init__()
 
-    def _and(self, *filters: FilterTypeObjects) -> CompoundFilter:
+    def _and(
+        self, *filters: Union[PropertyFilter, CompoundFilter, TimestampFilter]
+    ) -> CompoundFilter:
         filters_ = [f["filter"] if "filter" in f else f for f in filters]
         self.nest("filter", "and", filters_)
         return self
 
-    def _or(self, *filters: FilterTypeObjects) -> CompoundFilter:
+    def _or(
+        self, *filters: Union[PropertyFilter, CompoundFilter, TimestampFilter]
+    ) -> CompoundFilter:
         filters_ = [f["filter"] if "filter" in f else f for f in filters]
         self.nest("filter", "or", filters_)
         return self
-
-
-FilterTypeObjects = Union[PropertyFilter, CompoundFilter, TimestampFilter]

@@ -19,31 +19,76 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 """ Type-specific filter conditions
 https://developers.notion.com/reference/post-database-query-filter#type-specific-filter-conditionss
 """
+from __future__ import annotations
 from typing import Literal, Sequence, TypeAlias, Union
 
 __all__: Sequence[str] = (
-    "TextConditions",
-    "TextTypes",
-    "NumberConditions",
+    "FilesConditions",
     "CheckboxConditions",
+    "RollupConditions",
     "SelectConditions",
     "MultiSelectConditions",
     "StatusConditions",
-    "DateConditions",
-    "DateTypes",
     "PeopleConditions",
-    "PeopleTypes",
-    "FilesConditions",
     "RelationConditions",
-    "RollupConditions",
+    "DateTypes",
+    "PeopleTypes",
+    "TextTypes",
+    "TextConditions",
+    "NumberConditions",
+    "DateConditions",
     "FormulaConditions",
     "FilterConditions",
 )
 
+
+FilesConditions: TypeAlias = Literal["is_empty", "is_not_empty"]
+
+CheckboxConditions: TypeAlias = Literal["equals", "does_not_equal"]
+
+RollupConditions: TypeAlias = Literal["any", "every", "none", "number", "date"]
+
+SelectConditions: TypeAlias = Literal[
+    "equals", "does_not_equal", "is_empty", "is_not_empty"
+]
+
+MultiSelectConditions: TypeAlias = Literal[
+    "contains", "does_not_contain", "is_empty", "is_not_empty"
+]
+
+StatusConditions: TypeAlias = Literal[
+    "equals", "does_not_equal", "is_empty", "is_not_empty"
+]
+
+PeopleConditions: TypeAlias = Literal[
+    "contains", "does_not_contain", "is_empty", "is_not_empty"
+]
+
+RelationConditions: TypeAlias = Literal[
+    "contains", "does_not_contain", "is_empty", "is_not_empty"
+]
+
+DateTypes: TypeAlias = Literal[
+    "date",
+    "created_time",
+    "last_edited_time",
+]
+
+PeopleTypes: TypeAlias = Literal[
+    "people",
+    "created_by",
+    "last_edited_by",
+]
+
+TextTypes: TypeAlias = Literal[
+    "title",
+    "rich_text",
+    "url",
+    "email",
+]
 
 TextConditions: TypeAlias = Literal[
     "equals",
@@ -56,13 +101,6 @@ TextConditions: TypeAlias = Literal[
     "is_not_empty",
 ]
 
-TextTypes: TypeAlias = Literal[
-    "title",
-    "rich_text",
-    "url",
-    "email",
-]
-
 NumberConditions: TypeAlias = Literal[
     "equals",
     "does_not_equal",
@@ -72,20 +110,6 @@ NumberConditions: TypeAlias = Literal[
     "less_than_or_equal_to",
     "is_empty",
     "is_not_empty",
-]
-
-CheckboxConditions: TypeAlias = Literal["equals", "does_not_equal"]
-
-SelectConditions: TypeAlias = Literal[
-    "equals", "does_not_equal", "is_empty", "is_not_empty"
-]
-
-MultiSelectConditions: TypeAlias = Literal[
-    "contains", "does_not_contain", "is_empty", "is_not_empty"
-]
-
-StatusConditions: TypeAlias = Literal[
-    "equals", "does_not_equal", "is_empty", "is_not_empty"
 ]
 
 DateConditions: TypeAlias = Literal[
@@ -105,31 +129,7 @@ DateConditions: TypeAlias = Literal[
     "next_year",
 ]
 
-DateTypes: TypeAlias = Literal[
-    "date",
-    "created_time",
-    "last_edited_time",
-]
-
-PeopleConditions: TypeAlias = Literal[
-    "contains", "does_not_contain", "is_empty", "is_not_empty"
-]
-
-PeopleTypes: TypeAlias = Literal[
-    "people",
-    "created_by",
-    "last_edited_by",
-]
-
-FilesConditions: TypeAlias = Literal["is_empty", "is_not_empty"]
-
-RelationConditions: TypeAlias = Literal[
-    "contains", "does_not_contain", "is_empty", "is_not_empty"
-]
-
-RollupConditions: TypeAlias = Literal["any", "every", "none", "number", "date"]
-
-FormulaConditions = Union[
+FormulaConditions: TypeAlias = Union[
     TextConditions, NumberConditions, CheckboxConditions, DateConditions
 ]
 

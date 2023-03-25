@@ -45,20 +45,6 @@ __all__: Sequence[str] = (
 
 
 class FilesPropertyValue(PagePropertyValue, NotionObject):
-    """When updating a file property, the value is overwritten by the array of files passed.
-    Although Notion doesn't support uploading files, if you pass a file object containing a file hosted by Notion,
-    it remains one of the files. To remove any file, just don't pass it in the update response.
-
-    InternalFiles are a file object corresponding to a file that has been uploaded to Notion.
-    ExternalFiles are a file object corresponding to an external file that has been linked to in Notion.
-
-    ---
-    :param array_of_files: (required) An array of objects containing information about the files.
-        Either InternalFile(), ExternalFile() or a combination of both.
-
-    https://developers.notion.com/reference/page-property-values#files
-    """
-
     __slots__: Sequence[str] = ["name"]
 
     def __init__(
@@ -66,6 +52,19 @@ class FilesPropertyValue(PagePropertyValue, NotionObject):
         property_name: str,
         array_of_files: list[Union[InternalFile, ExternalFile]],
     ) -> None:
+        """When updating a file property, the value is overwritten by the array of files passed.
+        Although Notion doesn't support uploading files, if you pass a file object containing a file hosted by Notion,
+        it remains one of the files. To remove any file, just don't pass it in the update response.
+
+        InternalFiles are a file object corresponding to a file that has been uploaded to Notion.
+        ExternalFiles are a file object corresponding to an external file that has been linked to in Notion.
+
+        ---
+        :param array_of_files: (required) An array of objects containing information about the files.
+            Either InternalFile(), ExternalFile() or a combination of both.
+
+        https://developers.notion.com/reference/page-property-values#files
+        """
         super().__init__(property_name=property_name)
         self.set("type", "files")
         self.set("files", array_of_files)
@@ -76,17 +75,15 @@ class Icon(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, file_url: str, /) -> None:
+        """
+        Internal object for setting the icon of a page.
+        Internal file type Icons currently not supported.
+        """
         super().__init__()
         self.set("icon", ExternalFile(file_url))
 
 
 class ExternalFile(NotionObject):
-    """The Notion API supports adding, retrieving, and updating links to external files.
-    The name of the file. For "external" file objects, the name is the same as the file's host URL.
-
-    https://developers.notion.com/reference/file-object#external-files
-    """
-
     __slots__: Sequence[str] = ()
 
     def __init__(
@@ -96,6 +93,11 @@ class ExternalFile(NotionObject):
         *,
         caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
     ) -> None:
+        """The Notion API supports adding, retrieving, and updating links to external files.
+        The name of the file. For "external" file objects, the name is the same as the file's host URL.
+
+        https://developers.notion.com/reference/file-object#external-files
+        """
         super().__init__()
         self.set("type", "external")
         self.set("external", NotionURL(url))
@@ -103,15 +105,6 @@ class ExternalFile(NotionObject):
 
 
 class InternalFile(NotionObject):
-    """
-    Internal files are any files hosted on Notion, and will begin with:
-        https://s3.us-west-2.amazonaws.com/secure.notion-static.com/{block_id}/...
-
-    You can retrieve links to Notion-hosted files via the Retrieve block children endpoint.
-
-    https://developers.notion.com/reference/file-object#notion-hosted-files
-    """
-
     __slots__: Sequence[str] = ()
 
     def __init__(
@@ -121,6 +114,14 @@ class InternalFile(NotionObject):
         *,
         caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
     ) -> None:
+        """
+        Internal files are any files hosted on Notion, and will begin with:
+            https://s3.us-west-2.amazonaws.com/secure.notion-static.com/{block_id}/...
+
+        You can retrieve links to Notion-hosted files via the Retrieve block children endpoint.
+
+        https://developers.notion.com/reference/file-object#notion-hosted-files
+        """
         super().__init__()
         self.set("type", "file")
         self.set("file", NotionURL(url))
