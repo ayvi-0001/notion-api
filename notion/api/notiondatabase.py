@@ -44,6 +44,7 @@ except ModuleNotFoundError:
     default_json: ModuleType = json  # type: ignore[no-redef]
 
 from notion.api.blockmixin import _TokenBlockMixin
+from notion.api.notionblock import Block
 from notion.api.client import _NLOG
 from notion.exceptions.errors import NotionInvalidRequest, NotionObjectNotFound
 from notion.properties import *
@@ -74,21 +75,26 @@ class Database(_TokenBlockMixin):
 
     ---
     :param id: (required) `database_id` of object in Notion.
-    :param token: (required) Bearer token provided when you create an integration.
-        set as `NOTION_TOKEN` in .env or set variable here.
+    :param token: (required) Bearer token provided when you create an integration.\
+        set as `NOTION_TOKEN` in .env or set variable here.\
         see https://developers.notion.com/reference/authentication.
-    :param notion_version: (optional) API version
-        see https://developers.notion.com/reference/versioning
+    :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
 
     ---
-    :raises `notion.exceptions.errors.NotionInvalidRequest`: if using an id that does not
+    :raises: `notion.exceptions.errors.NotionInvalidRequest` if using an id that does not\
         reference a database in Notion.
 
     https://developers.notion.com/reference/database
     """
 
-    def __new__(cls, id: str, /) -> Database:
-        target_block = _TokenBlockMixin(id)
+    def __new__(
+        cls,
+        id: str,
+        /,
+        token: Optional[str] = None,
+        notion_version: Optional[str] = None,
+    ) -> Database:
+        target_block = Block(id, token=token, notion_version=notion_version)
         if target_block.type != "child_database":
             raise NotionInvalidRequest(
                 f"{target_block.__repr__()} does not reference a Database"
@@ -104,12 +110,14 @@ class Database(_TokenBlockMixin):
         notion_version: Optional[str] = None,
     ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
-
+        if token:
+            self.token = token
+        self.notion_version: Optional[str] = notion_version
         self.logger = _NLOG.getChild(f"{self.__repr__()}")
 
     @classmethod
     def create(
-        cls, parent_instance: Page, /, *, database_title: str, name_column: str
+        cls, parent_instance: Page, /, *, database_title: str, name_column: str = "Name"
     ) -> Database:
         """
         Creates a non-inline database in the specified parent page,
@@ -121,7 +129,7 @@ class Database(_TokenBlockMixin):
         :param database_title: (required) title of new database.
         :param name_column: (required) name for main column for page names.
 
-        :raises `notion.exceptions.errors.NotionInvalidRequest`:
+        :raises: `notion.exceptions.errors.NotionInvalidRequest`\
             if trying to create a database directly inside another database.
 
         https://developers.notion.com/reference/create-a-database
@@ -144,7 +152,7 @@ class Database(_TokenBlockMixin):
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         try:
-            return self._property_schema[property_name]  # type: ignore[no-any-return]
+            return self._property_schema[property_name]
         except KeyError:
             raise NotionObjectNotFound(
                 f"{property_name} not found in page property values."
@@ -157,7 +165,7 @@ class Database(_TokenBlockMixin):
 
     @cached_property
     def _property_schema(self) -> MutableMapping[str, Any]:
-        return self.retrieve["properties"]  # type: ignore[no-any-return]
+        return self.retrieve["properties"]
 
     @property
     def title(self) -> str:
@@ -193,7 +201,7 @@ class Database(_TokenBlockMixin):
 
     @property
     def icon(self) -> MutableMapping[str, Any]:
-        return self.retrieve["icon"]  # type: ignore[no-any-return]
+        return self.retrieve["icon"]
 
     @property
     def delete_self(self) -> None:
@@ -257,9 +265,9 @@ class Database(_TokenBlockMixin):
         page_size Default: 100 page_size Maximum: 100.
 
         ---
-        :param payload: (optional) filter/sort objects to apply to query.
+        :param payload: (optional) filter/sort objects to apply to query.\
             filter objects built in `notion.query`
-        :param filter_property_values: (optional) list of property names,
+        :param filter_property_values: (optional) list of property names,\
             query will only return the selected properties.
 
         https://developers.notion.com/reference/post-database-query
@@ -279,9 +287,9 @@ class Database(_TokenBlockMixin):
         self, property_name: str, database_id: str, synced_property_name: str
     ) -> None:
         """
-        :param database_id: (required) The database that the relation property refers to.
+        :param database_id: (required) The database that the relation property refers to.\
             The corresponding linked page values must belong to the database in order to be valid.
-        :param synced_property_name: (required) The name of the corresponding property that is
+        :param synced_property_name: (required) The name of the corresponding property that is\
             updated in the related database when this property is changed.
         """
         self._update(
@@ -306,7 +314,7 @@ class Database(_TokenBlockMixin):
             pass  # if Notion patches this in between versions
 
         self.logger.info(
-            (
+            "{} {}".format(
                 f"Created/Updated dual_relation property `{property_name}` ",
                 f" linked to notion.Database('{database_id}').",
             )
@@ -317,7 +325,7 @@ class Database(_TokenBlockMixin):
             Properties(RelationPropertyObject.single(property_name, database_id))
         )
         self.logger.info(
-            (
+            "{} {}".format(
                 f"Created/Updated dual_relation property `{property_name}` ",
                 f" linked to notion.Database('{database_id}').",
             )

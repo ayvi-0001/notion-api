@@ -42,11 +42,10 @@ class Block(_TokenBlockMixin):
 
     ---
     :param id: (required) `block_id` of object in Notion.
-    :param token: (required) Bearer token provided when you create an integration.
-        set as `NOTION_TOKEN` in .env or set variable here.
+    :param token: (required) Bearer token provided when you create an integration.\
+        set as `NOTION_TOKEN` in .env or set variable here.\
         see https://developers.notion.com/reference/authentication.
-    :param notion_version: (optional) API version
-        see https://developers.notion.com/reference/versioning
+    :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
 
     https://developers.notion.com/reference/block
     """
@@ -60,7 +59,9 @@ class Block(_TokenBlockMixin):
         notion_version: Optional[str] = None,
     ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
-
+        if token:
+            self.token = token
+        self.notion_version: Optional[str] = notion_version
         self.logger = _NLOG.getChild(f"{self.__repr__()}")
 
     @cached_property
@@ -107,9 +108,7 @@ class Block(_TokenBlockMixin):
 
         https://developers.notion.com/reference/patch-block-children
         """
-        return self._patch(
-            self._block_endpoint(self.id, children=True), payload=payload
-        )
+        return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
 
     @property
     def delete_self(self) -> None:

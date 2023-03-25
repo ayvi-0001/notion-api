@@ -21,18 +21,21 @@
 # SOFTWARE.
 
 from operator import methodcaller
-from typing import Any, MutableMapping, Optional, Sequence, TypeAlias, Union, cast
-
-from jsonpath_ng.ext import parse  # type: ignore[import]
+from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 
 from notion.api._about import *
 from notion.api._about import __notion_version__
 from notion.api.client import _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
-from notion.exceptions.errors import NotionInvalidRequestUrl, NotionObjectNotFound
+from notion.exceptions.errors import (
+    NotionInvalidRequestUrl,
+    NotionObjectNotFound,
+    NotionInvalidRequest,
+    NotionValidationError,
+)
 from notion.properties.build import NotionObject, build_payload
-from notion.properties.common import Parent, UserObject
+from notion.properties.common import Parent, UserObject, BotObject
 from notion.properties.richtext import Equation, Mention, RichText
 from notion.query.sort import EntryTimestampSort, SortFilter
 
@@ -40,14 +43,17 @@ __all__: Sequence[str] = ["Workspace"]
 
 
 class Workspace(_NotionClient):
-    """`notion.api.notionworkspace.Workspace` uses all static methods and doesn't require an instance."""
+    """
+    `notion.api.notionworkspace.Workspace` uses static methods and doesn't require an instance,
+    but currently requires the token be set as an environment variable.
+    """
 
-    def __init__(
-        self, *, token: Optional[str] = None, notion_version: Optional[str] = None
-    ) -> None:
-        super().__init__(token=token, notion_version=notion_version)
+    def __init__(self) -> None:
+        super().__init__(token=None, notion_version=None)
 
-    NotionEndpoint: TypeAlias = str
+    @staticmethod
+    def __repr__() -> str:
+        return f"notion.{Workspace().__class__.__name__}"
 
     @staticmethod
     def _workspace_endpoint(
@@ -56,7 +62,7 @@ class Workspace(_NotionClient):
         search: Optional[bool] = None,
         user_id: Optional[str] = None,
         me: Optional[bool] = None,
-    ) -> NotionEndpoint:
+    ) -> str:
         _search = "search" if search else ""
         _users = "users" if users else ""
         _user_id = f"/{user_id}" if user_id else ""
@@ -70,7 +76,7 @@ class Workspace(_NotionClient):
         block_id: Optional[str] = None,
         page_size: Optional[int] = None,
         start_cursor: Optional[str] = None,
-    ) -> NotionEndpoint:
+    ) -> str:
         comments = "comments"
         block_id_ = f"?block_id={block_id}" if block_id else ""
         page_size_ = f"&page_size={page_size}" if page_size else ""
@@ -114,7 +120,7 @@ class Workspace(_NotionClient):
     @staticmethod
     def retrieve_user(
         *, user_name: Optional[str] = None, user_id: Optional[str] = None
-    ) -> UserObject:
+    ) -> Union[UserObject, BotObject]:
         """Retrieves a User using either the user name or ID specified.
 
         ---
@@ -123,37 +129,50 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/get-users
         """
-        if user_name:
-            try:
-                user = [
-                    m.value
-                    for m in parse(f"$.results[?(@.name=='{user_name}')].id").find(
-                        Workspace.list_all_users()
-                    )
-                ][0]
-            except IndexError:
-                raise NotionInvalidRequestUrl("User name not found.")
+        try:
+            if not any([user_name, user_id]):
+                raise ValueError("Must input either user_name or user_id.")
+
+            map_users = {
+                n.get("name"): n.get("id")
+                for n in Workspace.list_all_users().get("results", [])
+            }
+
+            if set([user_name]).issubset(map_users):
+                user_id = cast(str, map_users.get(user_name))
 
             retrieve_user_endpoint = methodcaller(
-                "_workspace_endpoint", users=True, user_id=user
+                "_workspace_endpoint",
+                users=True,
+                user_id=user_id,
+            )
+            user = methodcaller("_get", retrieve_user_endpoint(Workspace()))(Workspace())
+
+            while user["type"] == "bot":
+                return BotObject(
+                    id=user["id"],
+                    name=user["name"],
+                    avatar_url=user["avatar_url"] if user["avatar_url"] else None,
+                    bot=user["bot"],
+                    workspace_name=user["bot"]["workspace_name"],
+                )
+
+            return UserObject(
+                id=user["id"],
+                name=user["name"],
+                avatar_url=user["avatar_url"] if user["avatar_url"] else None,
+                email=user["person"]["email"] if user["person"]["email"] else None,
             )
 
-        elif user_id:
-            retrieve_user_endpoint = methodcaller(
-                "_workspace_endpoint", users=True, user_id=user_id
+        except TypeError:
+            raise NotionInvalidRequest(
+                f"{Workspace.__repr__()}: Cannot use positional arguments for this method.",
             )
-
-        else:
-            raise ValueError("Input either user_name or user_id.")
-
-        user = methodcaller("_get", retrieve_user_endpoint(Workspace()))(Workspace())
-
-        return UserObject(
-            id=user["id"],
-            name=user["name"],
-            avatar_url=user["avatar_url"] if user["avatar_url"] else None,
-            email=user["person"]["email"] if user["person"]["email"] else None,
-        )
+        except (KeyError, NotionValidationError):
+            method = "user_name" if user_name else "user_id"
+            raise NotionInvalidRequest(
+                f"{Workspace.__repr__()}: Could not find {method}: {user_name if user_name else user_id} ",
+            )
 
     @staticmethod
     def retrieve_comments(
@@ -202,21 +221,19 @@ class Workspace(_NotionClient):
         Comments added will always appear as the newest comment in the thread.
 
         ---
-        :param page: (1 of `page`/`block`/`discussion_id` required)
-            either a string representing the id of a page, or an instance
-            of `notion.api.notionpage.Page`.
-            passing a string id of child block inside a page will raise
-            `notion.exceptions.errors.NotionObjectNotFound`
-            passing a `notion.api.notionblock.Block` instance to the `page` param
+        :param page: (1 of `page`/`block`/`discussion_id` required)\
+            either a string representing the id of a page, or an instance of `notion.api.notionpage.Page`.\
+            passing a string id of child block inside a page will raise\
+            `notion.exceptions.errors.NotionObjectNotFound`\
+            passing a `notion.api.notionblock.Block` instance to the `page` param\
             will create a comment to the parent_id of the block.
-        :param block: (1 of `page`/`block`/`discussion_id` required)
-            either a string representing the id of a page, or an instance
-            of `notion.api.notionblock.Block`.
-            Will search the block for an existing discussion thread, and comment in
+        :param block: (1 of `page`/`block`/`discussion_id` required)\
+            either a string representing the id of a page, or an instance of `notion.api.notionblock.Block`.\
+            Will search the block for an existing discussion thread, and comment in\
             that thread if found, else will raise `notion.exceptions.errors.NotionObjectNotFound`
-        :param discussion_id: (1 of `page`/`block`/`discussion_id` required)
+        :param discussion_id: (1 of `page`/`block`/`discussion_id` required)\
             a string representing the discussion_id of a comment object.
-        :param rich_text: (required) either a `notion.properties.richtext.Richtext` object
+        :param rich_text: (required) either a `notion.properties.richtext.Richtext` object\
             or `notion.properties.richtext.Mention` object.
 
         https://developers.notion.com/reference/create-a-comment
@@ -252,16 +269,16 @@ class Workspace(_NotionClient):
 
             if not comment_thread.get("results"):
                 raise NotionObjectNotFound(
-                    (
-                        "Did not find a comment thread in this block to add too. ",
-                        f"Notion API version {__notion_version__} currently does not ",
+                    "{} {} {}".format(
+                        "Did not find a comment thread in this block to add too.",
+                        f"Notion API version {__notion_version__} currently does not",
                         "Support creating new comment threads on a block.",
                     )
                 )
+            # regardless of the discussion_id used in a comment thread on a block,
+            # the next comment will always appear last,
+            # so only getting first discussion_id.
             discussion_thread = {
-                # regardless of the discussion_id used in a comment thread on a block,
-                # the next comment will always appear last,
-                # so only getting first discussion_id.
                 "discussion_id": comment_thread.get("results", [])[0].get(
                     "discussion_id"
                 )
@@ -340,19 +357,15 @@ class Workspace(_NotionClient):
 
         ---------------
         #### Parameters
-        :param page_size: (optional)
-             The number of items from the full list desired in the response. Maximum/Default: 100
-        :param query: (optional)
-            When supplied, limits which pages are returned by comparing the query to the page title.
+        :param page_size: (optional) The number of items from the full list desired in the response. Maximum/Default: 100
+        :param query: (optional) When supplied, limits which pages are returned by comparing the query to the page title.\
             If the query parameter is not provided, the response will contain all pages (and child pages) in the results.
         :param filter_pages: (optional) sets the `value` key in the Search Filter object to `page`
         :param filter_databases:(optional)  sets the `value` key in the Search Filter object to `database`
-        :param sort_ascending: (optional)
-            Limitation: Currently only a single sort is allowed and
-            is limited to last_edited_time. The default sort is by last_edited_time descending.
+        :param sort_ascending: (optional) Limitation: Currently only a single sort is allowed and\
+            is limited to last_edited_time. The default sort is by last_edited_time descending.\
             If sort_ascending is set to `True`, the default sort will be overridden.
-        :param start_cursor: (optional)
-             If supplied, will return a page of results starting after provided cursor.
+        :param start_cursor: (optional) If supplied, will return a page of results starting after provided cursor.
 
         https://developers.notion.com/reference/post-search
         """

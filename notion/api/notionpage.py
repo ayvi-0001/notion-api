@@ -23,8 +23,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from functools import cached_property, reduce
-from operator import getitem
+from functools import cached_property
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -33,15 +32,18 @@ from typing import (
     Optional,
     Sequence,
     Union,
+    cast,
 )
-
-from jsonpath_ng.ext import parse  # type: ignore[import]
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
 from notion.api.notionblock import Block
 from notion.api.notiondatabase import Database
-from notion.exceptions.errors import NotionInvalidJson, NotionObjectNotFound
+from notion.exceptions.errors import (
+    NotionInvalidJson,
+    NotionObjectNotFound,
+    NotionValidationError,
+)
 from notion.properties import *
 from notion.properties.build import build_payload
 
@@ -68,11 +70,10 @@ class Page(_TokenBlockMixin):
 
     ---
     :param id: (required) `page_id` of object in Notion.
-    :param token: (required) Bearer token provided when you create an integration.
-        set as `NOTION_TOKEN` in .env or set variable here.
+    :param token: (required) Bearer token provided when you create an integration.\
+        set as `NOTION_TOKEN` in .env or set variable here.\
         see https://developers.notion.com/reference/authentication.
-    :param notion_version: (optional) API version
-        see https://developers.notion.com/reference/versioning
+    :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
 
     https://developers.notion.com/reference/page
     """
@@ -86,7 +87,9 @@ class Page(_TokenBlockMixin):
         notion_version: Optional[str] = None,
     ) -> None:
         super().__init__(id, token=token, notion_version=notion_version)
-
+        if token:
+            self.token = token
+        self.notion_version: Optional[str] = notion_version
         self.logger = _NLOG.getChild(f"{self.__repr__()}")
 
     @classmethod
@@ -99,7 +102,7 @@ class Page(_TokenBlockMixin):
         or append block children to include content in the page.
 
         ---
-        :param parent_instance: (required) an instance of
+        :param parent_instance: (required) an instance of\
             `notion.api.notionpage.Page` or `notion.api.notiondatabase.Database`.
         :param page_title: (required)
         :param icon_url: (optional) #not yet implemented
@@ -107,7 +110,7 @@ class Page(_TokenBlockMixin):
 
         https://developers.notion.com/reference/post-page
         """
-        if parent_instance.type == "child_database":
+        if "child_database" in parent_instance.type:
             payload = build_payload(
                 Parent.database(parent_instance.id),
                 Properties(TitlePropertyValue([RichText(page_title)])),
@@ -128,7 +131,7 @@ class Page(_TokenBlockMixin):
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         try:
-            return self.properties[property_name]  # type: ignore[no-any-return]
+            return self.properties[property_name]
         except KeyError:
             raise NotionObjectNotFound(
                 f"{property_name} not found in page property values."
@@ -140,15 +143,23 @@ class Page(_TokenBlockMixin):
 
     @cached_property
     def properties(self) -> MutableMapping[str, Any]:
-        return self._retrieve["properties"]  # type: ignore[no-any-return]
+        return self._retrieve["properties"]
 
     @property
     def title(self) -> str:
-        title_keys = ["properties", "title", "title", 0, "text", "content"]
         try:
-            return str(reduce(getitem, title_keys, self._retrieve))  # type: ignore[arg-type]
+            if ("workspace" or "page_id") in self.parent_type:
+                return cast(str, self.properties["title"]["title"][0]["plain_text"])
+
+            database_title_property = [
+                k for k, v in self.properties.items() if "title" in v
+            ]
+            return cast(
+                str,
+                self.properties[database_title_property[0]]["title"][0]["plain_text"],
+            )
         except IndexError:
-            return ""  # page title is empty.
+            return ""  # title is empty
 
     @title.setter
     def title(self, __new_title: str) -> None:
@@ -158,15 +169,15 @@ class Page(_TokenBlockMixin):
 
     @property
     def url(self) -> MutableMapping[str, Any]:
-        return self._retrieve["url"]  # type: ignore[no-any-return]
+        return self._retrieve["url"]
 
     @property
     def icon(self) -> MutableMapping[str, Any]:
-        return self._retrieve["icon"]  # type: ignore[no-any-return]
+        return self._retrieve["icon"]
 
     @property
     def cover(self) -> MutableMapping[str, Any]:
-        return self._retrieve["cover"]  # type: ignore[no-any-return]
+        return self._retrieve["cover"]
 
     @property
     def delete_self(self) -> None:
@@ -185,9 +196,9 @@ class Page(_TokenBlockMixin):
         Retrieves a Page object using the ID specified.
 
         ---
-        :param filter_properties: (optional) A list of page property value IDs associated with the page.
-            Use this param to limit the response to a specific page property value or values.
-            To retrieve multiple properties, specify each page property ID.
+        :param filter_properties: (optional) A list of page property value IDs associated with the page.\
+            Use this param to limit the response to a specific page property value or values.\
+            To retrieve multiple properties, specify each page property ID.\
             E.g. ?filter_properties=iAk8&filter_properties=b7dh.
 
         https://developers.notion.com/reference/retrieve-a-page
@@ -222,9 +233,9 @@ class Page(_TokenBlockMixin):
             - a paginated list of property item values.
 
         ---
-        :param property_name: (required) property name in Notion *case-sensitive
+        :param property_name: (required) property name in Notion *case-sensitive\
             this endpoint only works with property_id's, internal function will retrieve this.
-        :param results_only: if true, returns the `results` key index[0] for paginated responses.
+        :param results_only: if true, returns the `results` key index[0] for paginated responses.\
             will be either a single dictionary or a list of dictionaries.
         :param property_item_only: if true, returns the `property_item` key.
 
@@ -283,52 +294,45 @@ class Page(_TokenBlockMixin):
 
         https://developers.notion.com/reference/patch-block-children
         """
-        return self._patch(
-            self._block_endpoint(self.id, children=True), payload=payload
-        )
+        return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
 
     def set_select(self, column_name: str, select_option: str) -> None:
         """
-        :param select_option: (required) if the option already exists, then it is
+        :param select_option: (required) if the option already exists, then it is\
             case sensitive. if the option does not exist, it will be created.
         """
-        color = [
-            m.value
-            for m in parse(
-                f"$.select.options[?(@.name=='{select_option}')].color"
-            ).find(Database(self.parent_id)[column_name])
-        ]
+        available = Database(
+            self.parent_id,
+            token=self.token,
+            notion_version=self.notion_version,
+        )[column_name]["select"]["options"]
+        names = {n.get("name"): n.get("color") for n in available}
 
-        if color[0]:
-            self._patch_properties(
-                Properties(
-                    SelectPropertyValue(column_name, Option(select_option, color[0]))
-                )
-            )
+        if set([select_option]).issubset(names):
+            option = Option(select_option, names.get(select_option))
         else:
-            self._patch_properties(
-                Properties(SelectPropertyValue(column_name, Option(select_option)))
-            )
+            option = Option(select_option)
 
-    def set_multiselect(
-        self, column_name: str, multi_select_options: list[str]
-    ) -> None:
+        self._patch_properties(Properties(SelectPropertyValue(column_name, option)))
+
+    def set_multiselect(self, column_name: str, multi_select_options: list[str]) -> None:
         """
-        :param multi_select_options: (required) list of strings for each select option.
-            if the option already exists, then it is case sensitive.
+        :param multi_select_options: (required) list of strings for each select option.\
+            if the option already exists, then it is case sensitive.\
             if the option does not exist, it will be created.
         """
         selected_options: list[Option] = []
 
+        available = Database(
+            self.parent_id,
+            token=self.token,
+            notion_version=self.notion_version,
+        )[column_name]["multi_select"]["options"]
+        names = {n.get("name"): n.get("color") for n in available}
+
         for option in multi_select_options:
-            color = [
-                m.value
-                for m in parse(
-                    f"$.multi_select.options[?(@.name=='{option}')].color"
-                ).find(Database(self.parent_id)[column_name])
-            ]
-            if color[0]:
-                selected_options.append(Option(option, color[0]))
+            if set([option]).issubset(names):
+                selected_options.append(Option(option, names.get(option)))
             else:
                 selected_options.append(Option(option))
 
@@ -338,26 +342,30 @@ class Page(_TokenBlockMixin):
 
     def set_status(self, column_name: str, status_option: str) -> None:
         """
-        :param status_option: (required) unlike select/multi-select,
-            status option must already exist when using this endpoint.
+        :param status_option: (required) unlike select/multi-select,\
+            status option must already exist when using this endpoint.\
             to create a new status option, use the database endpoints.
         """
-        color = [
-            m.value
-            for m in parse(
-                f"$.status.options[?(@.name=='{status_option}')].color"
-            ).find(Database(self.parent_id)[column_name])
-        ]
+        try:
+            available = Database(
+                self.parent_id,
+                token=self.token,
+                notion_version=self.notion_version,
+            )[column_name]["status"]["options"]
+            names = {n.get("name"): n.get("color") for n in available}
 
-        if color[0]:
-            self._patch_properties(
-                Properties(
-                    StatusPropertyValue(column_name, Option(status_option, color[0]))
+            if set([status_option]).issubset(names):
+                option = Option(status_option, names.get(status_option))
+            else:
+                option = Option(status_option)
+
+            self._patch_properties(Properties(StatusPropertyValue(column_name, option)))
+        except NotionValidationError:
+            self.logger.error(
+                "{} {}".format(
+                    NotionValidationError().__notes__[0],
+                    "Cannot create new status options via the API.",
                 )
-            )
-        else:
-            self._patch_properties(
-                Properties(StatusPropertyValue(column_name, Option(status_option)))
             )
 
     def set_date(
@@ -367,9 +375,9 @@ class Page(_TokenBlockMixin):
         end: Optional[Union[str, datetime]] = None,
     ) -> None:
         """
-        :param start: (required) A date, with an optional time.
+        :param start: (required) A date, with an optional time.\
             If the "date" value is a range, then start represents the start of the range.
-        :param end: (optional) A string representing the end of a date range.
+        :param end: (optional) A string representing the end of a date range.\
             If the value is null, then the date value is not a range.
         """
         if isinstance(start, datetime):

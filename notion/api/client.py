@@ -25,16 +25,7 @@ from __future__ import annotations
 import logging
 import os
 from types import ModuleType
-from typing import (
-    Any,
-    Iterable,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypeAlias,
-    Union,
-    cast,
-)
+from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union, cast
 
 try:
     import orjson
@@ -68,13 +59,11 @@ class _NotionClient:
         else:
             try:
                 self.token = os.environ["NOTION_TOKEN"]
-            except NameError:
-                pass
-            finally:
-                if self.token is None:
+            except KeyError:
+                if not token:
                     raise NotionUnauthorized(
-                        (
-                            f"notion.{self.__class__.__name__} Missing Token, ",
+                        "{}{}".format(
+                            f"notion.{self.__class__.__name__}: Missing Token, ",
                             "Check .env config | if token is named `NOTION_TOKEN`",
                         )
                     )
@@ -91,8 +80,6 @@ class _NotionClient:
         if notion_version is not None:
             self.headers["Notion-Version"] = notion_version
 
-    NotionEndpoint: TypeAlias = str
-
     @staticmethod
     def _block_endpoint(
         object_id: Optional[str] = None,
@@ -101,7 +88,7 @@ class _NotionClient:
         children: Optional[bool] = None,
         page_size: Optional[int] = None,
         start_cursor: Optional[str] = None,
-    ) -> NotionEndpoint:
+    ) -> str:
         object_id_ = f"/{object_id}" if object_id else ""
         children_ = "/children" if children else ""
         page_size_ = f"&page_size={page_size}" if page_size else ""
@@ -117,7 +104,7 @@ class _NotionClient:
     @staticmethod
     def _database_endpoint(
         object_id: Optional[str] = None, /, *, query: Optional[bool] = False
-    ) -> NotionEndpoint:
+    ) -> str:
         object_id_ = f"/{object_id}" if object_id else ""
         query_ = "/query" if query else ""
 
@@ -130,7 +117,7 @@ class _NotionClient:
         *,
         properties: Optional[bool] = False,
         property_id: Optional[str] = None,
-    ) -> NotionEndpoint:
+    ) -> str:
         object_id_ = f"/{object_id}" if object_id else ""
         properties_ = "/properties" if properties else ""
         property_id_ = f"/{property_id}" if property_id else ""
@@ -139,7 +126,7 @@ class _NotionClient:
 
     def _get(
         self,
-        url: NotionEndpoint,
+        url: str,
         /,
         *,
         payload: Optional[
@@ -166,7 +153,7 @@ class _NotionClient:
 
     def _post(
         self,
-        url: NotionEndpoint,
+        url: str,
         /,
         *,
         payload: Optional[
@@ -193,7 +180,7 @@ class _NotionClient:
 
     def _patch(
         self,
-        url: NotionEndpoint,
+        url: str,
         /,
         *,
         payload: Union[
@@ -212,7 +199,7 @@ class _NotionClient:
         validate_response(response)
         return response
 
-    def _delete(self, url: NotionEndpoint, /) -> MutableMapping[str, Any]:
+    def _delete(self, url: str, /) -> MutableMapping[str, Any]:
         response = cast(
             "MutableMapping[str, Any]",
             default_json.loads(requests.delete(url, headers=self.headers).text),
