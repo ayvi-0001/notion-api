@@ -92,7 +92,15 @@ class BlockFactory(_NotionClient):
 
     @_append.register
     @staticmethod
-    def _(target: Union[Page, Block], payload: MutableMapping[str, Any]) -> Block:
+    def _(target: Page, payload: MutableMapping[str, Any]) -> Block:
+        _append_method = methodcaller("_append", payload=payload)
+        new_block = _append_method(target)
+        id_new_block = str(new_block["results"][0]["id"])
+        return Block(id_new_block)
+
+    @_append.register
+    @staticmethod
+    def _(target: Block, payload: MutableMapping[str, Any]) -> Block:
         _append_method = methodcaller("_append", payload=payload)
         new_block = _append_method(target)
         id_new_block = str(new_block["results"][0]["id"])
@@ -411,10 +419,9 @@ class BlockFactory(_NotionClient):
         caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
     ) -> Block:
         """
-        :raises:
-        ```py
-        notion.exceptions.errors.NotionValidationError: body failed validation:
-        body.children[0].code.rich_text[0].text.content.length should be ≤ `2000`, instead was `57839`.
+        :raises: notion.exceptions.errors.NotionValidationError if code block is >= 2000 characters.
+                 >>> notion.exceptions.errors.NotionValidationError: body failed validation:
+                 >>> body.children[0].code.rich_text[0].text.content.length should be ≤ `2000`, instead was `57839`.
 
         https://developers.notion.com/reference/block#code-blocks
         """
@@ -490,9 +497,8 @@ class BlockFactory(_NotionClient):
         target: Union[Page, Block, MutableMapping[str, Any]], expression: str, /
     ) -> Block:
         """
-        :param expression: (required) A KaTeX compatible string
+        :param expression: (required) A KaTeX compatible string.
 
-        ---
         https://developers.notion.com/reference/block#equation-blocks
         """
         equation_block = BlockFactory._append(
