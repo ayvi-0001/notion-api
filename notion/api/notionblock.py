@@ -27,6 +27,7 @@ from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
+from notion.exceptions.errors import NotionValidationError, NotionObjectNotFound
 
 __all__: Sequence[str] = ["Block"]
 
@@ -96,9 +97,7 @@ class Block(_TokenBlockMixin):
 
     def _append(
         self,
-        payload: Union[
-            MutableMapping[str, Any], Union[Iterable[bytes], bytes, bytearray]
-        ],
+        payload: Union[MutableMapping[str, Any], Union[bytes, Iterable[bytes]]],
     ) -> MutableMapping[str, Any]:
         """
         Creates/appends new children blocks to the parent block_id specified.
@@ -111,7 +110,7 @@ class Block(_TokenBlockMixin):
         return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
 
     @property
-    def delete_self(self) -> None:
+    def delete_self(self) -> Union[MutableMapping[str, Any], None]:
         """
         Sets a Block object, including page blocks, to archived: true
         using the ID specified. Note: in the Notion UI application,
@@ -119,29 +118,72 @@ class Block(_TokenBlockMixin):
         accessed and restored. To restore the block with the API,
         use the Update a block or Update page respectively.
 
+        :returns: Mapping of the deleted block object.
+
         https://developers.notion.com/reference/delete-a-block
         """
-        self._delete(self._block_endpoint(self.id))
+        if self.is_archived:
+            self.logger.info("delete_self did nothing. Block is already archived.")
+            return None
+
+        block = self._delete(self._block_endpoint(self.id))
         self.logger.info("Deleted Self.")
+        return block
 
     @property
-    def restore_self(self) -> None:
+    def restore_self(self) -> Union[MutableMapping[str, Any], None]:
         """
-        Sets "archived" key to false.
-        Only works if the parent page has not been deleted from the trash.
+        Sets "archived" key to false. Parent page must still exist in Notion's trash.
+        :returns: If block is archived, a Mapping of the restored block object, else None.
+
+        https://developers.notion.com/reference/update-a-block
         """
-        self._patch(self._block_endpoint(self.id), payload=(b'{"archived": false}'))
+        if not self.is_archived:
+            self.logger.info("restore_self did nothing. Block is not archived.")
+            return None
+
+        block = self._patch(
+            self._block_endpoint(self.id), payload=(b'{"archived": false}')
+        )
         self.logger.info("Restored Self.")
+        return block
 
-    def delete_child(self, children_id: list[str]) -> None:
-        for id in children_id:
-            self._delete(self._block_endpoint(self.id))
-            self.logger.info(f"Deleted child block `{id}`.")
+    def delete_child(
+        self, children_id: Optional[list[str]] = None, *, all: Optional[bool] = False
+    ) -> None:
+        if not self.has_children:
+            self.logger.info("delete_child did nothing. Block has no children.")
+            return None
 
-    def restore_child(self, children_id: list[str]) -> None:
-        for id in children_id:
-            self._patch(self._block_endpoint(self.id), payload=b'{"archived": false}')
-            self.logger.info(f"Restored child block `{id}`.")
+        if children_id:
+            for id in children_id:
+                try:
+                    self._delete(self._block_endpoint(id))
+                    self.logger.info(f"Deleted child block `{id}`.")
+                except NotionValidationError as error:
+                    raise NotionObjectNotFound(
+                        "%s %s %s"
+                        % (
+                            self.__repr__(),
+                            "tried deleting a block with an invalid id:",
+                            error,
+                        )
+                    )
+        elif all:
+            children = self.retrieve_children().get("results", [])
+            for results in children:
+                try:
+                    self._delete(self._block_endpoint(results["id"]))
+                    self.logger.info(f"Deleted child block `{results['id']}`.")
+                except NotionValidationError as error:
+                    raise NotionObjectNotFound(
+                        "%s %s %s"
+                        % (
+                            self.__repr__(),
+                            "tried deleting a block with an invalid id:",
+                            error,
+                        )
+                    )
 
     def update(
         self,

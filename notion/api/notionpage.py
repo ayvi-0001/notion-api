@@ -94,7 +94,7 @@ class Page(_TokenBlockMixin):
 
     @classmethod
     def create(
-        cls, parent_instance: Union[Page, Database, Block], /, *, page_title: str
+        cls, parent_instance: Union[Page, Database, Block], page_title: str
     ) -> Page:
         """
         Creates a blank page with properties.
@@ -124,9 +124,13 @@ class Page(_TokenBlockMixin):
         new_page = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
 
         cls_ = cls(new_page["id"])
-        cls_.logger.info(f"Page created in {parent_instance.__repr__()}")
-        cls_.logger.info(f"Url: {new_page['url']}")
-
+        cls_.logger.info(
+            "%s. %s"
+            % (
+                f"Page created in {parent_instance.__repr__()}",
+                f"Url: {new_page['url']}",
+            )
+        )
         return cls_
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
@@ -181,11 +185,19 @@ class Page(_TokenBlockMixin):
 
     @property
     def delete_self(self) -> None:
+        if self.is_archived:
+            self.logger.info("delete_self did nothing. Page is already archived.")
+            return None
+
         self._delete(self._block_endpoint(self.id))
         self.logger.info("Deleted self.")
 
     @property
     def restore_self(self) -> None:
+        if not self.is_archived:
+            self.logger.info("restore_self did nothing. Page is not archived.")
+            return None
+
         self._patch(self._pages_endpoint(self.id), payload=(b'{"archived": false}'))
         self.logger.info("Restored self.")
 
@@ -209,8 +221,7 @@ class Page(_TokenBlockMixin):
                 name_id = self.properties[name]["id"]
                 _pages_endpoint_filtered_prop += f"filter_properties={name_id}&"
             return self._get(_pages_endpoint_filtered_prop)
-        else:
-            return self._get(self._pages_endpoint(self.id))
+        return self._get(self._pages_endpoint(self.id))
 
     def _retrieve_property_id(self, property_name: str) -> str:
         """Internal function to retrieve the id of a property.
@@ -219,8 +230,7 @@ class Page(_TokenBlockMixin):
         """
         if property_name in self.properties:
             return str(self.properties[property_name]["id"])
-        else:
-            raise NotionInvalidJson("Property name not found in parent schema.")
+        raise NotionInvalidJson("Property name not found in parent schema.")
 
     def retrieve_property_item(
         self,
@@ -301,12 +311,13 @@ class Page(_TokenBlockMixin):
         :param select_option: (required) if the option already exists, then it is\
             case sensitive. if the option does not exist, it will be created.
         """
-        available = Database(
+        current_options = Database(
             self.parent_id,
             token=self.token,
             notion_version=self.notion_version,
         )[column_name]["select"]["options"]
-        names = {n.get("name"): n.get("color") for n in available}
+
+        names = {n.get("name"): n.get("color") for n in current_options}
 
         if set([select_option]).issubset(names):
             option = Option(select_option, names.get(select_option))
@@ -323,12 +334,13 @@ class Page(_TokenBlockMixin):
         """
         selected_options: list[Option] = []
 
-        available = Database(
+        current_options = Database(
             self.parent_id,
             token=self.token,
             notion_version=self.notion_version,
         )[column_name]["multi_select"]["options"]
-        names = {n.get("name"): n.get("color") for n in available}
+
+        names = {n.get("name"): n.get("color") for n in current_options}
 
         for option in multi_select_options:
             if set([option]).issubset(names):
@@ -347,12 +359,13 @@ class Page(_TokenBlockMixin):
             to create a new status option, use the database endpoints.
         """
         try:
-            available = Database(
+            current_options = Database(
                 self.parent_id,
                 token=self.token,
                 notion_version=self.notion_version,
             )[column_name]["status"]["options"]
-            names = {n.get("name"): n.get("color") for n in available}
+
+            names = {n.get("name"): n.get("color") for n in current_options}
 
             if set([status_option]).issubset(names):
                 option = Option(status_option, names.get(status_option))
@@ -362,7 +375,8 @@ class Page(_TokenBlockMixin):
             self._patch_properties(Properties(StatusPropertyValue(column_name, option)))
         except NotionValidationError:
             self.logger.error(
-                "{} {}".format(
+                "%s %s"
+                % (
                     NotionValidationError().__notes__[0],
                     "Cannot create new status options via the API.",
                 )
@@ -381,9 +395,9 @@ class Page(_TokenBlockMixin):
             If the value is null, then the date value is not a range.
         """
         if isinstance(start, datetime):
-            start = start.replace().astimezone(self.tz)
+            start = start.astimezone(self.tz)
         if end and isinstance(end, datetime):
-            end = end.replace().astimezone(self.tz)
+            end = end.astimezone(self.tz)
 
         self._patch_properties(
             Properties(DatePropertyValue(column_name, start=start, end=end))
@@ -431,7 +445,9 @@ class Page(_TokenBlockMixin):
         """
         self._patch_properties(Properties(NumberPropertyValue(column_name, new_number)))
 
-    def set_people(self, column_name: str, user_array: list[UserObject]) -> None:
+    def set_people(
+        self, column_name: str, user_array: list[Union[UserObject, BotObject]]
+    ) -> None:
         self._patch_properties(Properties(PeoplePropertyValue(column_name, user_array)))
 
     def set_email(self, column_name: str, email: str) -> None:

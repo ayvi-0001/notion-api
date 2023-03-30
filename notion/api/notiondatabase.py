@@ -117,7 +117,7 @@ class Database(_TokenBlockMixin):
 
     @classmethod
     def create(
-        cls, parent_instance: Page, /, *, database_title: str, name_column: str = "Name"
+        cls, parent_instance: Page, database_title: str, name_column: str
     ) -> Database:
         """
         Creates a non-inline database in the specified parent page,
@@ -145,9 +145,13 @@ class Database(_TokenBlockMixin):
         new_db = cls._post(parent_instance, cls._database_endpoint(), payload=schema)
 
         cls_ = cls(new_db["id"])
-        cls_.logger.info(f"New database created in {parent_instance.__repr__()}")
-        cls_.logger.info(f"Url: {new_db['url']}")
-
+        cls_.logger.info(
+            "%s. %s"
+            % (
+                f"Database created in {parent_instance.__repr__()}",
+                f"Url: {new_db['url']}",
+            )
+        )
         return cls_
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
@@ -172,7 +176,7 @@ class Database(_TokenBlockMixin):
         try:
             return str(self.retrieve["title"][0]["text"]["content"])
         except IndexError:
-            return ""
+            return ""  # title is empty.
 
     @title.setter
     def title(self, __new_title: str) -> None:
@@ -189,10 +193,10 @@ class Database(_TokenBlockMixin):
         return bool(self.retrieve["is_inline"])
 
     @inline.setter
-    def inline(self, __inline_status: bool) -> None:
+    def inline(self, __inline: bool) -> None:
         self._patch(
             self._database_endpoint(self.id),
-            payload=default_json.dumps({"is_inline": __inline_status}),
+            payload=default_json.dumps({"is_inline": __inline}),
         )
 
     @property
@@ -205,11 +209,19 @@ class Database(_TokenBlockMixin):
 
     @property
     def delete_self(self) -> None:
+        if self.is_archived:
+            self.logger.info("delete_self did nothing. Database is already archived.")
+            return None
+
         self._delete(self._block_endpoint(self.id))
         self.logger.info("Deleted self.")
 
     @property
     def restore_self(self) -> None:
+        if not self.is_archived:
+            self.logger.info("restore_self did nothing. Database is not archived.")
+            return None
+
         self._patch(self._database_endpoint(self.id), payload=(b'{"archived": false}'))
         self.logger.info("Restored self.")
 
@@ -280,8 +292,8 @@ class Database(_TokenBlockMixin):
                 name_id = self._property_schema[name].get("id")
                 query_url += "filter_properties=" + name_id + "&"
             return self._post(query_url, payload=payload)
-        else:
-            return self._post(query_url, payload=payload)
+
+        return self._post(query_url, payload=payload)
 
     def dual_relation_column(
         self, property_name: str, database_id: str, synced_property_name: str
@@ -314,7 +326,8 @@ class Database(_TokenBlockMixin):
             pass  # if Notion patches this in between versions
 
         self.logger.info(
-            "{} {}".format(
+            "%s %s"
+            % (
                 f"Created/Updated dual_relation property `{property_name}` ",
                 f" linked to notion.Database('{database_id}').",
             )
@@ -325,7 +338,8 @@ class Database(_TokenBlockMixin):
             Properties(RelationPropertyObject.single(property_name, database_id))
         )
         self.logger.info(
-            "{} {}".format(
+            "%s %s"
+            % (
                 f"Created/Updated dual_relation property `{property_name}` ",
                 f" linked to notion.Database('{database_id}').",
             )
