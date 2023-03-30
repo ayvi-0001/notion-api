@@ -119,7 +119,7 @@ class _Single_Property(NotionObject):
 
 
 class RelationPropertyObject(PropertyObject, NotionObject):
-    __slots__: Sequence[str] = ("name", "_related_to_")
+    __slots__: Sequence[str] = ("name", "_related_to")
 
     def __init__(
         self,
@@ -130,16 +130,18 @@ class RelationPropertyObject(PropertyObject, NotionObject):
         synced_property_name: Optional[str] = None,
     ) -> None:
         """
-        Use classmethods `dual` | `single`
+        Use classmethods:
+         - `dual`
+         - `single`
 
         https://developers.notion.com/reference/property-object#relation
         """
         super().__init__(property_name=property_name)
-        self._related_to_: Union[_Dual_Property, _Single_Property]
+        self._related_to: Union[_Dual_Property, _Single_Property]
 
         try:
             self.set("type", "relation")
-            self.set("relation", self._related_to_)
+            self.set("relation", self._related_to)
         except AttributeError:
             raise errors.NotionInvalidJson("Use classmethods.")
 
@@ -149,11 +151,11 @@ class RelationPropertyObject(PropertyObject, NotionObject):
     ) -> RelationPropertyObject:
         """
         :param database_id: (required) The database that the relation property refers to.\
-            The corresponding linked page values must belong to the database in order to be valid.
+                             The corresponding linked page values must belong to the database in order to be valid.
         :param synced_property_name: (required) The name of the corresponding property that is\
-            updated in the related database when this property is changed.
+                                      updated in the related database when this property is changed.
         """
-        cls._related_to_ = _Dual_Property(database_id, synced_property_name)
+        cls._related_to = _Dual_Property(database_id, synced_property_name)
         return cls(
             property_name,
             database_id=database_id,
@@ -164,9 +166,9 @@ class RelationPropertyObject(PropertyObject, NotionObject):
     def single(cls, property_name: str, database_id: str, /) -> RelationPropertyObject:
         """
         :param database_id: (required) The database that the relation property refers to.\
-            The corresponding linked page values must belong to the database in order to be valid.
+                             The corresponding linked page values must belong to the database in order to be valid.
         """
-        cls._related_to_ = _Single_Property(database_id)
+        cls._related_to = _Single_Property(database_id)
         return cls(property_name, database_id=database_id)
 
 
@@ -178,9 +180,9 @@ class Option(NotionObject):
     ) -> None:
         """
         :param name: (required) The name of the option as it appears in the Notion UI.\
-            Note: Commas (",") are not valid for select values.
+                      Note: Commas (",") are not valid for select values.
         :param color: (required) The color of the option as rendered in the Notion UI.\
-            Use `notion.properties.PropertyColor` for reference.
+                       Use `notion.properties.PropertyColor` for reference.
         """
         super().__init__()
         self.set("name", option_name)

@@ -61,8 +61,9 @@ class _TokenBlockMixin(_NotionClient):
             UUID(self.id)
         except ValueError:
             raise NotionObjectNotFound(
-                "{} {}".format(
-                    f"{self.__repr__()} instatiation failed validation: ",
+                "%s %s"
+                % (
+                    f"{self.__repr__()} instatiation failed validation:",
                     f"id should be a valid uuid, instead was `'{self.id}'`",
                 )
             )

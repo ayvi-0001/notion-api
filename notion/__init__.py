@@ -19,15 +19,22 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 """ 
-for properties:
->>> import notion.properties as prop
+### Properties:
+>>> from notion import properties
 
-for queries:
->>> import notion.query as query
+### Queries:
+>>> from notion import query
+query objects:
+ - SortFilter
+ - PropertyFilter
+ - CompoundFilter
+ - TimestampFilter
+ - EntryTimestampSort
+ - PropertyValueSort
+
+To combine a CompoundFilter/PropertyFilter with a SortFilter, use `notion.build_payload(...)`
 """
-
 from typing import Sequence
 
 from notion.api import Block, BlockFactory, Database, Page, Workspace

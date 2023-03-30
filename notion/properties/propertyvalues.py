@@ -54,7 +54,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
-from notion.properties.common import NotionUUID, UserObject
+from notion.properties.common import NotionUUID, UserObject, BotObject
 from notion.properties.options import FunctionFormat
 from notion.properties.propertyobjects import Option, PropertyObject
 from notion.properties.richtext import Equation, Mention, RichText
@@ -307,7 +307,9 @@ class CheckboxPropertyValue(PagePropertyValue, NotionObject):
 class PeoplePropertyValue(PagePropertyValue, NotionObject):
     __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, user_array: list[UserObject], /) -> None:
+    def __init__(
+        self, property_name: str, user_array: list[Union[UserObject, BotObject]], /
+    ) -> None:
         """
         :param user_array: (required) An array of user objects.\
             The Retrieve a page endpoint can't be guaranteed to return more than 25 people\

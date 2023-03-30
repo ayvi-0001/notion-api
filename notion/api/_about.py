@@ -27,11 +27,15 @@ __all__: Sequence[str] = (
     "__notion_version__",
     "__base_url__",
     "__version__",
+    "__package_url__",
+    "__package_json__",
 )
 
 __notion_version__: Final[str] = "2022-06-28"
 __content_type__: Final[str] = "application/json"
 __base_url__: Final[str] = "https://api.notion.com/v1/"
-__version__: Final[str] = "0.3.5"
+__version__: Final[str] = "0.3.7"
+__package_url__: Final[str] = "https://pypi.org/pypi/notion-api/"
+__package_json__: Final[str] = "https://pypi.org/pypi/notion-api/json"
 
 # Previous Notion-Version headers `"2021-05-11"`, `"2021-05-13"`, `"2021-08-16"`, `"2022-02-22"`

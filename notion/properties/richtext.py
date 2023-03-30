@@ -20,12 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-"""
-Rich text objects contain the data that Notion uses to display 
-formatted text,mentions, and inline equations. 
-Arrays of rich text objects within database property objects and page property value objects 
-are used to create what a user experiences as a single text value in Notion.
-"""
 from __future__ import annotations
 
 from typing import Optional, Sequence, Union
@@ -53,7 +47,14 @@ class RichText(NotionObject):
         *,
         link: Optional[str] = None,
     ) -> None:
-        """https://developers.notion.com/reference/rich-text"""
+        """
+        Rich text objects contain the data that Notion uses to display
+        formatted text,mentions, and inline equations.
+        Arrays of rich text objects within database property objects and page property value objects
+        are used to create what a user experiences as a single text value in Notion.
+
+        https://developers.notion.com/reference/rich-text
+        """
         super().__init__()
         self.set("type", "text")
         self.nest("text", "content", content)
@@ -68,7 +69,7 @@ class Equation(NotionObject):
     def __init__(
         self, expression: str, /, *, annotations: Optional[Annotations] = None
     ) -> None:
-        """https://developers.notion.com/reference/rich-text"""
+        """https://developers.notion.com/reference/rich-text#equation"""
         super().__init__()
         self.set("type", "equation")
         self.nest("equation", "expression", expression)
@@ -88,7 +89,13 @@ class Mention(NotionObject):
         annotations: Optional[Annotations] = None,
     ) -> None:
         """
-        Classmethods: `user`, `today`, `database`, `page`, `link_preview`, `date`.
+        Use Classmethods:
+         - `user`
+         - `today`
+         - `database`
+         - `page`
+         - `link_preview`
+         - `date`
 
         https://developers.notion.com/reference/rich-text#mention
         """
@@ -109,9 +116,7 @@ class Mention(NotionObject):
         annotations: Optional[Annotations] = None,
     ) -> Mention:
         """
-        Cannot mention Bots
-        :raises: `notion.exceptions.errors.NotionValidationError` Content creation Failed.
-
+        :raises: `notion.exceptions.errors.NotionValidationError` if trying to mention a Bot.
         https://developers.notion.com/reference/rich-text#user-mention-type-object
         """
         return cls(

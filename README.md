@@ -2,9 +2,13 @@
 
 <p align="center">
     <a href="https://pypi.org/project/notion-api"><img alt="PYPI" src="https://img.shields.io/pypi/v/notion-api"></a>
+    &nbsp;
     <img alt="last commit" src="https://img.shields.io/github/last-commit/ayvi-0001/notion-api?color=%239146ff"></a>
+    &nbsp;
     <a href="https://developers.notion.com/reference/versioning"><img alt="notion versioning" src="https://img.shields.io/static/v1?label=notion-API-version&message=2022-06-28&color=%232e1a00"></a>
+    &nbsp;
     <a href="https://github.com/ayvi-0001/notion-api/blob/main/LICENSE"><img alt="license: MIT" src="https://img.shields.io/static/v1?label=license&message=MIT&color=informational"></a>
+    &nbsp;
     <img alt="code style: black" src="https://img.shields.io/static/v1?label=code%20style&message=black&color=000000"></a>
 </p>
 
@@ -13,15 +17,17 @@ A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting
 
 This project is still a work in progress, and features will continue to change. Below are a few examples of the current functionality. 
 
+# Install
 ```
 pip install notion-api
 ```
 
+# Usage
 ---
 ```py
-import notion
-
 import dotenv
+
+import notion
 
 dotenv.load_dotenv()  # client will check for env variable 'NOTION_TOKEN',
 
@@ -33,7 +39,7 @@ homepage = notion.Page('773b08ff38b44521b44b115827e850f2', token="secret_n2m52d1
 # however this currently doesn't work with `notion.api.notionworkspace.Workspace`.
 
 
-# __get_item__ will search properties for pages and property objects for databases.
+# __get_item__ will search for properties in a Page, and for property objects in a Database.
 homepage['dependencies']
 # {
 #     "id": "WYYq",
@@ -67,7 +73,8 @@ homepage.title = "New Page Title"
 
 ---
 ## Creating Pages/Databases/Blocks
-Pages and Databases are created by passing an existing page/database instance as a parent to a classmethod.
+
+Pages and Databases are created with a classmethod by passing an existing page/database instance as a parent.
 
 ```py
 new_database = notion.Database.create(
@@ -81,7 +88,7 @@ new_page = notion.Page.create(new_database, page_title="A new database row")
 
 Blocks can be created with `notion.api.blocktypefactory.BlockFactory` by appending to an exisiting Block or Page.
 ```py
-import notion.properties as prop
+from notion import properties as prop
 
 # BlockFactory returns the new block as a Block object.
 original_synced_block = notion.BlockFactory.new_synced_block(homepage)
@@ -94,7 +101,8 @@ notion.BlockFactory.paragraph(original_synced_block, [prop.RichText('This is a s
 notion.BlockFactory.reference_synced_block(new_page, original_synced_block.id)
 ```
 
-### Example function: Appending blocks to a page as a reminder.
+### _Example function: Appending blocks to a page as a reminder._
+
 ```py
 def notion_block_reminder(page_id: str, message: str, user_name: str) -> None:
     target_page = notion.Page('0b9eccfa890e4c3390175ee10c664a35')
@@ -102,7 +110,7 @@ def notion_block_reminder(page_id: str, message: str, user_name: str) -> None:
         target_page,
         [
             prop.Mention.user(
-                notion.Workspace.retrieve_user(user_name=user_name),
+                notion.Workspace.retrieve_user(user_name="Your Name"),
                 annotations=prop.Annotations(
                     code=True, bold=True, color=prop.BlockColor.purple
                 ),
@@ -117,7 +125,7 @@ def notion_block_reminder(page_id: str, message: str, user_name: str) -> None:
             prop.RichText(":"),
         ],
     )
-    notion.BlockFactory.paragraph(mentionblock, [prop.RichText("message")])
+    notion.BlockFactory.paragraph(mentionblock, [prop.RichText("message here")])
     notion.BlockFactory.divider(target_page)
 ```
 
@@ -147,7 +155,7 @@ new_database.multiselect_column(
         prop.Option("option-b", prop.PropertyColor.green),
         prop.Option("option-c", prop.PropertyColor.blue),
     ],  # if an option does not already exist, a new one will be created with a random color.
-)       # this is not try for `status` column types, which can only be edited via UI.
+)       # this is not true for `status` column types, which can only be edited via UI.
 
 new_page.set_multiselect("options", ["option-a", "option-b"])
 ```
@@ -155,36 +163,36 @@ new_page.set_multiselect("options", ["option-a", "option-b"])
 ---
 ## Database Queries
 
+A single `notion.query.propfilter.PropertyFilter` is equivalent to filtering one property type in Notion.
+To build filters equivalent to Notion's 'advanced filters', use `notion.query.compound.CompoundFilter`.
+
 ```py
 from datetime import datetime
 from datetime import timedelta
 
-import notion.query as query
-
-# Compound filters support combining `and`/`or` filters.
-# or a single `notion.query.propfilter.PropertyFilter` can be used.
+from notion import query
 
 today = datetime.today().isoformat()
 tomorrow = (datetime.today() + timedelta(1)).isoformat()
 
 query_filter = query.CompoundFilter()._and(
-    query.PropertyFilter.date("date", "date", "on_or_after", "today"),
-    query.PropertyFilter.date("date", "date", "before", "tomorrow"),
+    query.PropertyFilter.date("date", "date", "on_or_after", today),  # required
+    query.PropertyFilter.date("date", "date", "before", tomorrow),  # required
     query.CompoundFilter()._or(
-        query.PropertyFilter.text("name", "title", "contains", "your page title"),
-        query.PropertyFilter.text("name", "title", "contains", "your other page title"),
+        query.PropertyFilter.text("name", "title", "contains", "your page title"),  # either this
+        query.PropertyFilter.text("name", "title", "contains", "your other page title"),  # or this
     ),
 )
 
 query_sort = query.SortFilter([query.EntryTimestampSort.created_time_descending()])
 
+# `notion.build_payload`: helper function to combine Compound/Property filters && Sort filters.
 query_result = new_database.query(
-    # build_payload: helper to combine dictionaries.
     payload=notion.build_payload(query_filter, query_sort),
     filter_property_values=[
         "name",
         "options",
-    ],  # Pass a list of property names to filter results.
+    ],  # pass a list of property names to filter results.
 )
 ```
 ---
