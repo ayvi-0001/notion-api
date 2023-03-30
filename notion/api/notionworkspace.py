@@ -23,7 +23,7 @@
 from operator import methodcaller
 from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 
-from notion.api._about import *
+from notion.api._about import __base_url__
 from notion.api._about import __notion_version__
 from notion.api.client import _NotionClient
 from notion.api.notionblock import Block
@@ -36,7 +36,7 @@ from notion.exceptions.errors import (
 )
 from notion.properties.build import NotionObject, build_payload
 from notion.properties.common import Parent, UserObject, BotObject
-from notion.properties.richtext import Equation, Mention, RichText
+from notion.properties.richtext import Mention, RichText
 from notion.query.sort import EntryTimestampSort, SortFilter
 
 __all__: Sequence[str] = ["Workspace"]
@@ -63,12 +63,13 @@ class Workspace(_NotionClient):
         user_id: Optional[str] = None,
         me: Optional[bool] = None,
     ) -> str:
-        _search = "search" if search else ""
-        _users = "users" if users else ""
-        _user_id = f"/{user_id}" if user_id else ""
-        _me = "/me" if me else ""
-
-        return f"{__base_url__}{_search}{_users}{_user_id}{_me}"
+        return "%s%s%s%s%s" % (
+            __base_url__,
+            "search" if search else "",
+            "users" if users else "",
+            f"/{user_id}" if user_id else "",
+            "/me" if me else "",
+        )
 
     @staticmethod
     def _comments_endpoint(
@@ -77,12 +78,12 @@ class Workspace(_NotionClient):
         page_size: Optional[int] = None,
         start_cursor: Optional[str] = None,
     ) -> str:
-        comments = "comments"
-        block_id_ = f"?block_id={block_id}" if block_id else ""
-        page_size_ = f"&page_size={page_size}" if page_size else ""
-        start_cursor_ = f"&start_cursor={start_cursor}" if start_cursor else ""
-
-        return f"{__base_url__}{comments}{block_id_}{page_size_}{start_cursor_}"
+        return "%scomments%s%s%s" % (
+            __base_url__,
+            f"?block_id={block_id}" if block_id else "",
+            f"&page_size={page_size}" if page_size else "",
+            f"&start_cursor={start_cursor}" if start_cursor else "",
+        )
 
     @staticmethod
     def retrieve_token_bot() -> MutableMapping[str, Any]:
@@ -93,9 +94,13 @@ class Workspace(_NotionClient):
         """
         retrieve_token_bot_endpoint = methodcaller(
             "_workspace_endpoint", users=True, me=True
+        )(Workspace())
+        retrieve_bot_token_method = methodcaller("_get", retrieve_token_bot_endpoint)
+
+        return cast(
+            MutableMapping[str, Any],
+            retrieve_bot_token_method(Workspace()),
         )
-        url = retrieve_token_bot_endpoint(Workspace())
-        return cast("MutableMapping[str, Any]", methodcaller("_get", url)(Workspace()))
 
     @staticmethod
     def list_all_users(
@@ -106,15 +111,22 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/get-users
         """
-        payload: dict[str, Any] = {}
-        if page_size:
-            payload |= {"page_size": page_size}
-        if cursor:
-            payload |= {"next_cursor": cursor}
-        list_all_users_endpoint = methodcaller("_workspace_endpoint", users=True)
+        all_users_endpoint = methodcaller("_workspace_endpoint", users=True)(Workspace())
+
+        if any([page_size, cursor]):
+            payload: dict[str, Any] = {}
+            if page_size:
+                payload |= {"page_size": page_size}
+            if cursor:
+                payload |= {"next_cursor": cursor}
+
+            all_users_method = methodcaller("_get", all_users_endpoint, payload=payload)
+        else:
+            all_users_method = methodcaller("_get", all_users_endpoint)
+
         return cast(
-            "MutableMapping[str, Any]",
-            methodcaller("_get", list_all_users_endpoint(Workspace()))(Workspace()),
+            MutableMapping[str, Any],
+            all_users_method(Workspace()),
         )
 
     @staticmethod
@@ -133,22 +145,23 @@ class Workspace(_NotionClient):
             if not any([user_name, user_id]):
                 raise ValueError("Must input either user_name or user_id.")
 
-            map_users = {
+            all_users = {
                 n.get("name"): n.get("id")
                 for n in Workspace.list_all_users().get("results", [])
             }
 
-            if set([user_name]).issubset(map_users):
-                user_id = cast(str, map_users.get(user_name))
+            if set([user_name]).issubset(all_users):
+                user_id = cast(str, all_users.get(user_name))
 
             retrieve_user_endpoint = methodcaller(
                 "_workspace_endpoint",
                 users=True,
                 user_id=user_id,
-            )
-            user = methodcaller("_get", retrieve_user_endpoint(Workspace()))(Workspace())
+            )(Workspace())
 
-            while user["type"] == "bot":
+            user = methodcaller("_get", retrieve_user_endpoint)(Workspace())
+
+            if user["type"] == "bot":
                 return BotObject(
                     id=user["id"],
                     name=user["name"],
@@ -177,7 +190,7 @@ class Workspace(_NotionClient):
     @staticmethod
     def retrieve_comments(
         *,
-        notion_id: Union[Page, Block, str],
+        thread: Union[Page, Block, str],
         page_size: Optional[int] = None,
         start_cursor: Optional[str] = None,
     ) -> MutableMapping[str, Any]:
@@ -189,20 +202,21 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/retrieve-a-comment
         """
-        if isinstance(notion_id, str):
-            block = notion_id
+        if isinstance(thread, Page) or isinstance(thread, Block):
+            block = thread.id
         else:
-            block = notion_id.id
+            block = thread
 
         retrieve_comments_endpoint = methodcaller(
             "_comments_endpoint",
             block_id=block,
             page_size=page_size,
             start_cursor=start_cursor,
-        )
+        )(Workspace())
+
         return cast(
-            "MutableMapping[str, Any]",
-            methodcaller("_get", retrieve_comments_endpoint(Workspace()))(Workspace()),
+            MutableMapping[str, Any],
+            methodcaller("_get", retrieve_comments_endpoint)(Workspace()),
         )
 
     @staticmethod
@@ -211,7 +225,7 @@ class Workspace(_NotionClient):
         page: Optional[Union[Page, Block, str]] = None,
         block: Optional[Union[Block, str]] = None,
         discussion_id: Optional[str] = None,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        comment: Sequence[Union[RichText, Mention]],
     ) -> Union[MutableMapping[str, Any], None]:
         """
         There are two locations you can add a new comment to:
@@ -233,73 +247,81 @@ class Workspace(_NotionClient):
             that thread if found, else will raise `notion.exceptions.errors.NotionObjectNotFound`
         :param discussion_id: (1 of `page`/`block`/`discussion_id` required)\
             a string representing the discussion_id of a comment object.
-        :param rich_text: (required) either a `notion.properties.richtext.Richtext` object\
+        :param comment: (required) either a `notion.properties.richtext.Richtext` object\
             or `notion.properties.richtext.Mention` object.
 
         https://developers.notion.com/reference/create-a-comment
         """
         retrieve_comments_endpoint = methodcaller(
             "_comments_endpoint",
-        )
-        comment: NotionObject = NotionObject()
-        comment.set("rich_text", rich_text)
+        )(Workspace())
+
+        comment_object: NotionObject = NotionObject()
+        comment_object.set("rich_text", comment)
 
         if page:
             if isinstance(page, Page):
-                parent_object = Parent.page(page.id)
+                payload = build_payload(Parent.page(page.id), comment_object)
             elif isinstance(page, Block):
-                parent_object = Parent.page(page.parent_id)
+                payload = build_payload(Parent.page(page.parent_id), comment_object)
             elif isinstance(page, str):
-                parent_object = Parent.page(page)
+                payload = build_payload(Parent.page(page), comment_object)
 
+            comment_method = methodcaller(
+                "_post",
+                retrieve_comments_endpoint,
+                payload=payload,
+            )
             return cast(
-                "MutableMapping[str, Any]",
-                methodcaller(
-                    "_post",
-                    retrieve_comments_endpoint(Workspace()),
-                    payload=build_payload(parent_object, comment),
-                )(Workspace()),
+                MutableMapping[str, Any],
+                comment_method(Workspace()),
             )
 
         if block:
             if isinstance(block, Block):
-                comment_thread = Workspace.retrieve_comments(notion_id=block.id)
+                comment_thread = Workspace.retrieve_comments(thread=block.id)
             else:
-                comment_thread = Workspace.retrieve_comments(notion_id=block)
+                comment_thread = Workspace.retrieve_comments(thread=block)
 
-            if not comment_thread.get("results"):
+            if not comment_thread.get("results", []):
                 raise NotionObjectNotFound(
-                    "{} {} {}".format(
-                        "Did not find a comment thread in this block to add too.",
+                    "%s %s %s"
+                    % (
+                        "Did not find a comment thread in this block.",
                         f"Notion API version {__notion_version__} currently does not",
                         "Support creating new comment threads on a block.",
                     )
                 )
             # regardless of the discussion_id used in a comment thread on a block,
-            # the next comment will always appear last,
-            # so only getting first discussion_id.
-            discussion_thread = {
-                "discussion_id": comment_thread.get("results", [])[0].get(
-                    "discussion_id"
-                )
-            }
+            # the next comment will always appear last, so we only get the first discussion_id.
+            payload = build_payload(
+                {
+                    "discussion_id": comment_thread.get("results", [])[0].get(
+                        "discussion_id"
+                    )
+                },
+                comment_object,
+            )
+            comment_method = methodcaller(
+                "_post",
+                retrieve_comments_endpoint,
+                payload=payload,
+            )
             return cast(
-                "MutableMapping[str, Any]",
-                methodcaller(
-                    "_post",
-                    retrieve_comments_endpoint(Workspace()),
-                    payload=build_payload(discussion_thread, comment),
-                )(Workspace()),
+                MutableMapping[str, Any],
+                comment_method(Workspace()),
             )
 
         if discussion_id:
+            payload = build_payload({"discussion_id": discussion_id}, comment_object)
+            comment_method = methodcaller(
+                "_post",
+                retrieve_comments_endpoint,
+                payload=payload,
+            )
             return cast(
-                "MutableMapping[str, Any]",
-                methodcaller(
-                    "_post",
-                    retrieve_comments_endpoint(Workspace()),
-                    payload=build_payload({"discussion_id": discussion_id}, comment),
-                )(Workspace()),
+                MutableMapping[str, Any],
+                comment_method(Workspace()),
             )
 
         elif not any([page, block, discussion_id]):
@@ -384,11 +406,13 @@ class Workspace(_NotionClient):
         if sort_ascending:
             payload |= SortFilter([EntryTimestampSort.last_edited_time_ascending()])
 
+        workspace_endpoint = methodcaller("_workspace_endpoint", search=True)
+        search_method = methodcaller(
+            "_post",
+            workspace_endpoint(Workspace()),
+            payload=payload,
+        )
         return cast(
-            "MutableMapping[str, Any]",
-            methodcaller(
-                "_post",
-                methodcaller("_workspace_endpoint", search=True)(Workspace()),
-                payload=payload,
-            )(Workspace()),
+            MutableMapping[str, Any],
+            search_method(Workspace()),
         )
