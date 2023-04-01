@@ -3,6 +3,8 @@
 <p align="center">
     <a href="https://pypi.org/project/notion-api"><img alt="PYPI" src="https://img.shields.io/pypi/v/notion-api"></a>
     &nbsp;
+    <img alt="pyversions" src="https://img.shields.io/pypi/pyversions/notion-api"></a>
+    &nbsp;
     <img alt="last commit" src="https://img.shields.io/github/last-commit/ayvi-0001/notion-api?color=%239146ff"></a>
     &nbsp;
     <a href="https://developers.notion.com/reference/versioning"><img alt="notion versioning" src="https://img.shields.io/static/v1?label=notion-API-version&message=2022-06-28&color=%232e1a00"></a>
@@ -12,7 +14,9 @@
     <img alt="code style: black" src="https://img.shields.io/static/v1?label=code%20style&message=black&color=000000"></a>
 </p>
 
- 
+__Disclaimer: This is an _unofficial_ package and has no affiliation with Notion.so__  
+<br>
+
 A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.  
 
 This project is still a work in progress, and features will continue to change. Below are a few examples of the current functionality. 
