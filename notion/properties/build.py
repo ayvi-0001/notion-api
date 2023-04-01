@@ -21,16 +21,9 @@
 # SOFTWARE.
 
 from __future__ import annotations
-from types import ModuleType
-from typing import (
-    Any,
-    Iterable,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-)
 
+from types import ModuleType
+from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union, cast
 
 try:
     import orjson
@@ -39,7 +32,7 @@ try:
 except ModuleNotFoundError:
     import json
 
-    default_json: ModuleType = json  # type: ignore[no-redef]
+    default_json: ModuleType = json
 
 __all__: Sequence[str] = ["build_payload"]
 
@@ -50,18 +43,18 @@ def build_payload(
     final: dict[str, Any] = {}
     for o in __obj:
         final.update(o)
-    return default_json.dumps(final)
+    return cast(Union[Iterable[bytes], bytes, bytearray], default_json.dumps(final))
 
 
 class NotionObject(dict[str, Any]):
     def set(self, __key: str, __val: Any) -> None:
         self[__key] = __val
 
-    def nest(self, key: str, __key: Optional[str], __val: Any) -> None:
-        if key not in self:
-            self.set(key, {__key: __val})
+    def nest(self, __Pkey: str, __Ckey: Optional[str], __val: Any) -> None:
+        if __Pkey not in self:
+            self.set(__Pkey, {__Ckey: __val})
         else:
-            self[key].update({__key: __val})
+            self[__Pkey].update({__Ckey: __val})
 
     def set_array(
         self,

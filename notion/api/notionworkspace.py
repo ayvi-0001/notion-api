@@ -23,19 +23,18 @@
 from operator import methodcaller
 from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 
-from notion.api._about import __base_url__
-from notion.api._about import __notion_version__
+from notion.api._about import __base_url__, __notion_version__
 from notion.api.client import _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
 from notion.exceptions.errors import (
+    NotionInvalidRequest,
     NotionInvalidRequestUrl,
     NotionObjectNotFound,
-    NotionInvalidRequest,
     NotionValidationError,
 )
 from notion.properties.build import NotionObject, build_payload
-from notion.properties.common import Parent, UserObject, BotObject
+from notion.properties.common import BotObject, Parent, UserObject
 from notion.properties.richtext import Mention, RichText
 from notion.query.sort import EntryTimestampSort, SortFilter
 
@@ -381,12 +380,12 @@ class Workspace(_NotionClient):
         #### Parameters
         :param page_size: (optional) The number of items from the full list desired in the response. Maximum/Default: 100
         :param query: (optional) When supplied, limits which pages are returned by comparing the query to the page title.\
-            If the query parameter is not provided, the response will contain all pages (and child pages) in the results.
+                       If the query parameter is not provided, the response will contain all pages (and child pages) in the results.
         :param filter_pages: (optional) sets the `value` key in the Search Filter object to `page`
         :param filter_databases:(optional)  sets the `value` key in the Search Filter object to `database`
         :param sort_ascending: (optional) Limitation: Currently only a single sort is allowed and\
-            is limited to last_edited_time. The default sort is by last_edited_time descending.\
-            If sort_ascending is set to `True`, the default sort will be overridden.
+                                is limited to last_edited_time. The default sort is by last_edited_time descending.\
+                                If sort_ascending is set to `True`, the default sort will be overridden.
         :param start_cursor: (optional) If supplied, will return a page of results starting after provided cursor.
 
         https://developers.notion.com/reference/post-search

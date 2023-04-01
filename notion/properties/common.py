@@ -19,10 +19,15 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+""" 
+A page with a workspace parent is a top-level page within a Notion workspace. 
+https://developers.notion.com/reference/parent-object#workspace-parent
 
+Cannot create pages/databases at the top-level via the API.
+"""
 from __future__ import annotations
 
-from typing import Optional, Sequence, Any
+from typing import Any, Optional, Sequence
 
 from notion.properties.build import NotionObject
 
@@ -30,8 +35,8 @@ __all__: Sequence[str] = (
     "Parent",
     "UserObject",
     "BotObject",
-    "NotionUUID",
-    "NotionURL",
+    "_NotionUUID",
+    "_NotionURL",
 )
 
 
@@ -42,6 +47,7 @@ class Parent(NotionObject):
         """
         Pages, databases, and blocks are either located inside other pages, databases, and blocks,
         or are located at the top level of a workspace. This location is known as the "parent".
+        Parent information is represented by a consistent parent object throughout the API.
 
         Parenting rules:
          - Pages can be parented by other pages, databases, blocks, or by the whole workspace.
@@ -56,14 +62,22 @@ class Parent(NotionObject):
 
     @classmethod
     def page(cls, id: str, /) -> Parent:
+        """https://developers.notion.com/reference/parent-object#page-parent"""
         return cls(id, type="page_id")
 
     @classmethod
     def database(cls, id: str, /) -> Parent:
+        """https://developers.notion.com/reference/parent-object#database-parent"""
         return cls(id, type="database_id")
 
     @classmethod
     def block(cls, id: str, /) -> Parent:
+        """
+        A page may have a block parent if it is created inline in a chunk of text,
+        or is located beneath another block like a toggle or bullet block.
+
+        https://developers.notion.com/reference/parent-object#block-parent
+        """
         return cls(id, type="block_id")
 
 
@@ -99,7 +113,11 @@ class UserObject(NotionObject):
         The remaining properties may appear if the user is being rendered in a rich text or
         page property context, and the bot has the correct capabilities to access those properties.
 
-        ---
+        If your integration doesn't yet have access to the mentioned user,
+        then the plain_text that would include a user's name reads as "@Anonymous".
+        To update the integration to get access to the user,
+        update the integration capabilities on the integration settings page.
+
         All parameters are display-only and cannot be updated in Notion.
 
         https://developers.notion.com/reference/user
@@ -113,7 +131,7 @@ class UserObject(NotionObject):
         if email:
             self.nest("person", "email", email)
         else:
-            self.set("person", {})  # must at least be an empty object.
+            self.set("person", {})
 
 
 class BotObject(NotionObject):
@@ -138,7 +156,7 @@ class BotObject(NotionObject):
         self.nest("bot", "workspace_name", workspace_name)
 
 
-class NotionURL(NotionObject):
+class _NotionURL(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, url: str, /) -> None:
@@ -147,7 +165,7 @@ class NotionURL(NotionObject):
         self.set("url", url)
 
 
-class NotionUUID(NotionObject):
+class _NotionUUID(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, id: str, /) -> None:

@@ -44,8 +44,27 @@ from notion.exceptions.errors import (
     NotionObjectNotFound,
     NotionValidationError,
 )
-from notion.properties import *
 from notion.properties.build import build_payload
+from notion.properties.common import BotObject, Parent, UserObject, _NotionUUID
+from notion.properties.files import ExternalFile, FilesPropertyValue, InternalFile
+from notion.properties.propertyobjects import Option
+from notion.properties.propertyvalues import (
+    CheckboxPropertyValue,
+    DatePropertyValue,
+    EmailPropertyValue,
+    MultiSelectPropertyValue,
+    NumberPropertyValue,
+    PeoplePropertyValue,
+    PhoneNumberPropertyValue,
+    Properties,
+    RelationPropertyValue,
+    RichTextPropertyValue,
+    SelectPropertyValue,
+    StatusPropertyValue,
+    TitlePropertyValue,
+    URLPropertyValue,
+)
+from notion.properties.richtext import RichText
 
 if TYPE_CHECKING:
     from datetime import timedelta
@@ -89,6 +108,7 @@ class Page(_TokenBlockMixin):
         super().__init__(id, token=token, notion_version=notion_version)
         if token:
             self.token = token
+
         self.notion_version: Optional[str] = notion_version
         self.logger = _NLOG.getChild(f"{self.__repr__()}")
 
@@ -103,7 +123,7 @@ class Page(_TokenBlockMixin):
 
         ---
         :param parent_instance: (required) an instance of\
-            `notion.api.notionpage.Page` or `notion.api.notiondatabase.Database`.
+                                `notion.api.notionpage.Page` or `notion.api.notiondatabase.Database`.
         :param page_title: (required)
         :param icon_url: (optional) #not yet implemented
         :param cover: (optional) #not yet implemented
@@ -125,17 +145,13 @@ class Page(_TokenBlockMixin):
 
         cls_ = cls(new_page["id"])
         cls_.logger.info(
-            "%s. %s"
-            % (
-                f"Page created in {parent_instance.__repr__()}",
-                f"Url: {new_page['url']}",
-            )
+            f"Database created in {parent_instance.__repr__()}. Url: {new_page['url']}"
         )
         return cls_
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         try:
-            return self.properties[property_name]
+            return cast(MutableMapping[str, Any], self.properties[property_name])
         except KeyError:
             raise NotionObjectNotFound(
                 f"{property_name} not found in page property values."
@@ -147,7 +163,7 @@ class Page(_TokenBlockMixin):
 
     @cached_property
     def properties(self) -> MutableMapping[str, Any]:
-        return self._retrieve["properties"]
+        return cast(MutableMapping[str, Any], self._retrieve["properties"])
 
     @property
     def title(self) -> str:
@@ -173,15 +189,15 @@ class Page(_TokenBlockMixin):
 
     @property
     def url(self) -> MutableMapping[str, Any]:
-        return self._retrieve["url"]
+        return cast(MutableMapping[str, Any], self._retrieve["url"])
 
     @property
     def icon(self) -> MutableMapping[str, Any]:
-        return self._retrieve["icon"]
+        return cast(MutableMapping[str, Any], self._retrieve["icon"])
 
     @property
     def cover(self) -> MutableMapping[str, Any]:
-        return self._retrieve["cover"]
+        return cast(MutableMapping[str, Any], self._retrieve["cover"])
 
     @property
     def delete_self(self) -> None:
@@ -204,14 +220,13 @@ class Page(_TokenBlockMixin):
     def retrieve(
         self, *, filter_properties: Optional[list[str]] = None
     ) -> MutableMapping[str, Any]:
-        """
+        """ 
         Retrieves a Page object using the ID specified.
 
-        ---
         :param filter_properties: (optional) A list of page property value IDs associated with the page.\
-            Use this param to limit the response to a specific page property value or values.\
-            To retrieve multiple properties, specify each page property ID.\
-            E.g. ?filter_properties=iAk8&filter_properties=b7dh.
+                                   Use this param to limit the response to a specific page property value or values.\
+                                   To retrieve multiple properties, specify each page property ID.\
+                                   E.g. ?filter_properties=iAk8&filter_properties=b7dh.
 
         https://developers.notion.com/reference/retrieve-a-page
         """
@@ -244,9 +259,9 @@ class Page(_TokenBlockMixin):
 
         ---
         :param property_name: (required) property name in Notion *case-sensitive\
-            this endpoint only works with property_id's, internal function will retrieve this.
+                               this endpoint only works with property_id's, internal function will retrieve this.
         :param results_only: if true, returns the `results` key index[0] for paginated responses.\
-            will be either a single dictionary or a list of dictionaries.
+                             will be either a single dictionary or a list of dictionaries.
         :param property_item_only: if true, returns the `property_item` key.
 
         https://developers.notion.com/reference/retrieve-a-page-property
@@ -268,8 +283,7 @@ class Page(_TokenBlockMixin):
         """
         Updates page property values for the specified page.
         Properties not set via the properties parameter will remain unchanged.
-        If the parent is a database,
-        new property values must conform to the parent database's property schema.
+        If parent is a database, new property values must conform to the parent database's property schema.
 
         https://developers.notion.com/reference/patch-page
         """
@@ -285,6 +299,7 @@ class Page(_TokenBlockMixin):
         See block objects for more detail on determining if that block has nested children.
         In order to receive a complete representation of a block, you
         may need to recursively retrieve block children of child blocks.
+
         page_size Default: 100 page_size Maximum: 100.
 
         https://developers.notion.com/reference/get-block-children
@@ -309,7 +324,7 @@ class Page(_TokenBlockMixin):
     def set_select(self, column_name: str, select_option: str) -> None:
         """
         :param select_option: (required) if the option already exists, then it is\
-            case sensitive. if the option does not exist, it will be created.
+                               case sensitive. if the option does not exist, it will be created.
         """
         current_options = Database(
             self.parent_id,
@@ -329,8 +344,8 @@ class Page(_TokenBlockMixin):
     def set_multiselect(self, column_name: str, multi_select_options: list[str]) -> None:
         """
         :param multi_select_options: (required) list of strings for each select option.\
-            if the option already exists, then it is case sensitive.\
-            if the option does not exist, it will be created.
+                                      if the option already exists, then it is case sensitive.\
+                                      if the option does not exist, it will be created.
         """
         selected_options: list[Option] = []
 
@@ -355,8 +370,8 @@ class Page(_TokenBlockMixin):
     def set_status(self, column_name: str, status_option: str) -> None:
         """
         :param status_option: (required) unlike select/multi-select,\
-            status option must already exist when using this endpoint.\
-            to create a new status option, use the database endpoints.
+                               status option must already exist when using this endpoint.\
+                               to create a new status option, use the database endpoints.
         """
         try:
             current_options = Database(
@@ -375,11 +390,7 @@ class Page(_TokenBlockMixin):
             self._patch_properties(Properties(StatusPropertyValue(column_name, option)))
         except NotionValidationError:
             self.logger.error(
-                "%s %s"
-                % (
-                    NotionValidationError().__notes__[0],
-                    "Cannot create new status options via the API.",
-                )
+                f"{NotionValidationError().__notes__[0]}\nCannot create new status options via the API."
             )
 
     def set_date(
@@ -390,9 +401,9 @@ class Page(_TokenBlockMixin):
     ) -> None:
         """
         :param start: (required) A date, with an optional time.\
-            If the "date" value is a range, then start represents the start of the range.
+                       If the "date" value is a range, then start represents the start of the range.
         :param end: (optional) A string representing the end of a date range.\
-            If the value is null, then the date value is not a range.
+                     If the value is null, then the date value is not a range.
         """
         if isinstance(start, datetime):
             start = start.astimezone(self.tz)
@@ -427,9 +438,9 @@ class Page(_TokenBlockMixin):
         """
         :param related_ids: (required) list of notion page ids to reference
         """
-        list_ids: list[NotionUUID] = []
+        list_ids: list[_NotionUUID] = []
         for id in related_ids:
-            list_ids.append(NotionUUID(id))
+            list_ids.append(_NotionUUID(id))
 
         self._patch_properties(Properties(RelationPropertyValue(column_name, list_ids)))
 
@@ -445,9 +456,7 @@ class Page(_TokenBlockMixin):
         """
         self._patch_properties(Properties(NumberPropertyValue(column_name, new_number)))
 
-    def set_people(
-        self, column_name: str, user_array: list[Union[UserObject, BotObject]]
-    ) -> None:
+    def set_people(self, column_name: str, user_array: Sequence[UserObject]) -> None:
         self._patch_properties(Properties(PeoplePropertyValue(column_name, user_array)))
 
     def set_email(self, column_name: str, email: str) -> None:

@@ -40,7 +40,7 @@ from __future__ import annotations
 import abc
 from typing import Optional, Sequence, Union
 
-from notion.exceptions import errors
+from notion.exceptions.errors import NotionInvalidJson
 from notion.properties.build import NotionObject
 from notion.properties.options import FunctionFormat, NumberFormats, PropertyColor
 
@@ -98,20 +98,22 @@ class TitlePropertyObject(PropertyObject, NotionObject):
         self.set("title", {})
 
 
-class _Dual_Property(NotionObject):
+class _DualProperty(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, database_id: str, synced_property_name: str) -> None:
+        """Internal use for RelationPropertyObject."""
         super().__init__()
         self.set("database_id", database_id)
         self.set("type", "dual_property")
         self.nest("dual_property", "synced_property_name", synced_property_name)
 
 
-class _Single_Property(NotionObject):
+class _SingleProperty(NotionObject):
     __slots__: Sequence[str] = ()
 
-    def __init__(self, database_id: str, /) -> None:
+    def __init__(self, database_id: str) -> None:
+        """Internal use for RelationPropertyObject."""
         super().__init__()
         self.set("database_id", database_id)
         self.set("type", "single_property")
@@ -137,13 +139,13 @@ class RelationPropertyObject(PropertyObject, NotionObject):
         https://developers.notion.com/reference/property-object#relation
         """
         super().__init__(property_name=property_name)
-        self._related_to: Union[_Dual_Property, _Single_Property]
+        self.relation_type: Union[_DualProperty, _SingleProperty]
 
         try:
             self.set("type", "relation")
-            self.set("relation", self._related_to)
+            self.set("relation", self.relation_type)
         except AttributeError:
-            raise errors.NotionInvalidJson("Use classmethods.")
+            raise NotionInvalidJson("Use classmethods.")
 
     @classmethod
     def dual(
@@ -155,7 +157,7 @@ class RelationPropertyObject(PropertyObject, NotionObject):
         :param synced_property_name: (required) The name of the corresponding property that is\
                                       updated in the related database when this property is changed.
         """
-        cls._related_to = _Dual_Property(database_id, synced_property_name)
+        cls.relation_type = _DualProperty(database_id, synced_property_name)
         return cls(
             property_name,
             database_id=database_id,
@@ -168,7 +170,7 @@ class RelationPropertyObject(PropertyObject, NotionObject):
         :param database_id: (required) The database that the relation property refers to.\
                              The corresponding linked page values must belong to the database in order to be valid.
         """
-        cls._related_to = _Single_Property(database_id)
+        cls.relation_type = _SingleProperty(database_id)
         return cls(property_name, database_id=database_id)
 
 
@@ -186,10 +188,7 @@ class Option(NotionObject):
         """
         super().__init__()
         self.set("name", option_name)
-        if not color:
-            self.set("color", PropertyColor.default.value)
-        else:
-            self.set("color", color)
+        self.set("color", color) if color else None
 
 
 class MultiSelectPropertyObject(PropertyObject, NotionObject):

@@ -23,7 +23,7 @@
 from typing import Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
-from notion.properties.common import NotionURL
+from notion.properties.common import _NotionURL
 from notion.properties.files import ExternalFile
 from notion.properties.options import BlockColor, CodeBlockLang
 from notion.properties.richtext import Equation, Mention, RichText
@@ -63,10 +63,7 @@ class BlockChildren(NotionObject):
         self,
         block_type_objects_array: Optional[list[NotionObject]] = None,
     ) -> None:
-        """
-        array of block objects: The nested child blocks (if any)
-        https://developers.notion.com/reference/block
-        """
+        """https://developers.notion.com/reference/block"""
         super().__init__()
         if not block_type_objects_array:
             block_type_objects_array = []
@@ -276,7 +273,7 @@ class EmbedBlocktype(NotionObject):
         """https://developers.notion.com/reference/block#embed"""
         super().__init__()
         self.set("type", "embed")
-        self.set("embed", NotionURL(embedded_url))
+        self.set("embed", _NotionURL(embedded_url))
 
 
 class BookmarkBlocktype(NotionObject):
@@ -292,7 +289,7 @@ class BookmarkBlocktype(NotionObject):
         """https://developers.notion.com/reference/block#bookmark"""
         super().__init__()
         self.set("type", "bookmark")
-        self.set("bookmark", NotionURL(bookmark_url))
+        self.set("bookmark", _NotionURL(bookmark_url))
         self.nest("bookmark", "caption", caption) if caption else None
 
 

@@ -32,7 +32,7 @@ from __future__ import annotations
 from typing import Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
-from notion.properties.common import NotionURL
+from notion.properties.common import _NotionURL
 from notion.properties.propertyvalues import PagePropertyValue
 from notion.properties.richtext import Equation, Mention, RichText
 
@@ -52,7 +52,8 @@ class FilesPropertyValue(PagePropertyValue, NotionObject):
         property_name: str,
         array_of_files: list[Union[InternalFile, ExternalFile]],
     ) -> None:
-        """When updating a file property, the value is overwritten by the array of files passed.
+        """
+        When updating a file property, the value is overwritten by the array of files passed.
         Although Notion doesn't support uploading files, if you pass a file object containing a file hosted by Notion,
         it remains one of the files. To remove any file, just don't pass it in the update response.
 
@@ -60,8 +61,8 @@ class FilesPropertyValue(PagePropertyValue, NotionObject):
         ExternalFiles are a file object corresponding to an external file that has been linked to in Notion.
 
         ---
-        :param array_of_files: (required) An array of objects containing information about the files.
-            Either InternalFile(), ExternalFile() or a combination of both.
+        :param array_of_files: (required) An array of objects containing information about the files.\
+                                Either InternalFile(), ExternalFile() or a combination of both.
 
         https://developers.notion.com/reference/page-property-values#files
         """
@@ -70,14 +71,12 @@ class FilesPropertyValue(PagePropertyValue, NotionObject):
         self.set("files", array_of_files)
 
 
-# Internal file type Icons currently not supported.
 class Icon(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, file_url: str, /) -> None:
         """
-        Internal object for setting the icon of a page.
-        Internal file type Icons currently not supported.
+        Internal object for setting the icon of a page. Internal file type Icons currently not supported.
         """
         super().__init__()
         self.set("icon", ExternalFile(file_url))
@@ -100,7 +99,7 @@ class ExternalFile(NotionObject):
         """
         super().__init__()
         self.set("type", "external")
-        self.set("external", NotionURL(url))
+        self.set("external", _NotionURL(url))
         self.set("caption", caption) if caption else None
 
 
@@ -115,15 +114,14 @@ class InternalFile(NotionObject):
         caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
     ) -> None:
         """
-        Internal files are any files hosted on Notion, and will begin with:
-            https://s3.us-west-2.amazonaws.com/secure.notion-static.com/{block_id}/...
-
+        Internal files are any files hosted on Notion
+        They begin with: https://s3.us-west-2.amazonaws.com/secure.notion-static.com/{block_id}/...
         You can retrieve links to Notion-hosted files via the Retrieve block children endpoint.
 
         https://developers.notion.com/reference/file-object#notion-hosted-files
         """
         super().__init__()
         self.set("type", "file")
-        self.set("file", NotionURL(url))
+        self.set("file", _NotionURL(url))
         self.set("name", name) if name else None
         self.set("caption", caption) if caption else None

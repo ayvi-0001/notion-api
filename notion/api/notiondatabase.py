@@ -32,6 +32,7 @@ from typing import (
     Optional,
     Sequence,
     Union,
+    cast,
 )
 
 try:
@@ -41,11 +42,11 @@ try:
 except ModuleNotFoundError:
     import json
 
-    default_json: ModuleType = json  # type: ignore[no-redef]
+    default_json: ModuleType = json
 
 from notion.api.blockmixin import _TokenBlockMixin
-from notion.api.notionblock import Block
 from notion.api.client import _NLOG
+from notion.api.notionblock import Block
 from notion.exceptions.errors import NotionInvalidRequest, NotionObjectNotFound
 from notion.properties import *
 
@@ -76,8 +77,8 @@ class Database(_TokenBlockMixin):
     ---
     :param id: (required) `database_id` of object in Notion.
     :param token: (required) Bearer token provided when you create an integration.\
-        set as `NOTION_TOKEN` in .env or set variable here.\
-        see https://developers.notion.com/reference/authentication.
+                   set as `NOTION_TOKEN` in .env or set variable here.\
+                   see https://developers.notion.com/reference/authentication.
     :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
 
     ---
@@ -97,7 +98,7 @@ class Database(_TokenBlockMixin):
         target_block = Block(id, token=token, notion_version=notion_version)
         if target_block.type != "child_database":
             raise NotionInvalidRequest(
-                f"{target_block.__repr__()} does not reference a Database"
+                f"{target_block.__repr__()} does not reference a Database."
             )
         return super().__new__(cls)
 
@@ -112,51 +113,45 @@ class Database(_TokenBlockMixin):
         super().__init__(id, token=token, notion_version=notion_version)
         if token:
             self.token = token
+
         self.notion_version: Optional[str] = notion_version
         self.logger = _NLOG.getChild(f"{self.__repr__()}")
 
     @classmethod
     def create(
-        cls, parent_instance: Page, database_title: str, name_column: str
+        cls, parent_instance: Page, database_title: str, name_column: Optional[str] = None
     ) -> Database:
         """
-        Creates a non-inline database in the specified parent page,
-        with the specified properties schema.
+        Creates a non-inline database in the specified parent page, with the specified properties schema.
         Currently, Databases cannot be created to the parent workspace.
+
 
         ---
         :param parent_instance: (required) an instance of `notion.api.notionpage.Page`.
         :param database_title: (required) title of new database.
-        :param name_column: (required) name for main column for page names.
+        :param name_column: (required) name for main column for page names. Defaults to "Name".
 
-        :raises: `notion.exceptions.errors.NotionInvalidRequest`\
-            if trying to create a database directly inside another database.
+        :raises: `NotionObjectNotFound` if trying to create a database directly inside another database.
 
         https://developers.notion.com/reference/create-a-database
         """
-        if parent_instance.type == "child_database":
-            raise NotionInvalidRequest("Cannot create a database in a database.")
+        payload = build_payload(
+            Parent.page(parent_instance.id),
+            TitlePropertyValue([RichText(database_title)]),
+            Properties(TitlePropertyObject(name_column if name_column else "Name")),
+        )
 
-        parent = Parent.page(parent_instance.id)
-        title = TitlePropertyValue([RichText(database_title)])
-        properties = Properties(TitlePropertyObject(name_column))
-        schema = build_payload(parent, title, properties)
-
-        new_db = cls._post(parent_instance, cls._database_endpoint(), payload=schema)
+        new_db = cls._post(parent_instance, cls._database_endpoint(), payload=payload)
 
         cls_ = cls(new_db["id"])
         cls_.logger.info(
-            "%s. %s"
-            % (
-                f"Database created in {parent_instance.__repr__()}",
-                f"Url: {new_db['url']}",
-            )
+            f"Database created in {parent_instance.__repr__()}. Url: {new_db['url']}"
         )
         return cls_
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         try:
-            return self._property_schema[property_name]
+            return cast(MutableMapping[str, Any], self._property_schema[property_name])
         except KeyError:
             raise NotionObjectNotFound(
                 f"{property_name} not found in page property values."
@@ -169,7 +164,7 @@ class Database(_TokenBlockMixin):
 
     @cached_property
     def _property_schema(self) -> MutableMapping[str, Any]:
-        return self.retrieve["properties"]
+        return cast(MutableMapping[str, Any], self.retrieve["properties"])
 
     @property
     def title(self) -> str:
@@ -190,7 +185,7 @@ class Database(_TokenBlockMixin):
 
         returns the current inline status.
         """
-        return bool(self.retrieve["is_inline"])
+        return cast(bool, (self.retrieve["is_inline"]))
 
     @inline.setter
     def inline(self, __inline: bool) -> None:
@@ -205,7 +200,7 @@ class Database(_TokenBlockMixin):
 
     @property
     def icon(self) -> MutableMapping[str, Any]:
-        return self.retrieve["icon"]
+        return cast(MutableMapping[str, Any], self.retrieve["icon"])
 
     @property
     def delete_self(self) -> None:
@@ -278,9 +273,9 @@ class Database(_TokenBlockMixin):
 
         ---
         :param payload: (optional) filter/sort objects to apply to query.\
-            filter objects built in `notion.query`
+                         filter objects built in `notion.query`
         :param filter_property_values: (optional) list of property names,\
-            query will only return the selected properties.
+                                        query will only return the selected properties.
 
         https://developers.notion.com/reference/post-database-query
         """
@@ -300,9 +295,9 @@ class Database(_TokenBlockMixin):
     ) -> None:
         """
         :param database_id: (required) The database that the relation property refers to.\
-            The corresponding linked page values must belong to the database in order to be valid.
+                             The corresponding linked page values must belong to the database in order to be valid.
         :param synced_property_name: (required) The name of the corresponding property that is\
-            updated in the related database when this property is changed.
+                                      updated in the related database when this property is changed.
         """
         self._update(
             Properties(
@@ -372,9 +367,7 @@ class Database(_TokenBlockMixin):
         )
         self.logger.info(f"Created/Updated rollup property `{property_name}`.")
 
-    def select_column_column(
-        self, property_name: str, /, *, options: list[Option]
-    ) -> None:
+    def select_column(self, property_name: str, /, *, options: list[Option]) -> None:
         """
         If `property_name` is a select column that already exists,
         then the available options will be overwritten with the new list passed to this method.
@@ -389,9 +382,7 @@ class Database(_TokenBlockMixin):
         self._update(Properties(SelectPropertyObject(property_name, options=options)))
         self.logger.info(f"Created/Updated select property `{property_name}`.")
 
-    def multiselect_column(
-        self, property_name: str, /, *, options: list[Option]
-    ) -> None:
+    def multiselect_column(self, property_name: str, /, *, options: list[Option]) -> None:
         """
         If `property_name` is a multi-select column that already exists,
         then the available options will be overwritten with the new list passed to this method.

@@ -25,7 +25,7 @@ from __future__ import annotations
 from typing import Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
-from notion.properties.common import NotionURL, UserObject
+from notion.properties.common import UserObject, _NotionURL
 from notion.properties.options import BlockColor
 
 __all__: Sequence[str] = (
@@ -58,8 +58,8 @@ class RichText(NotionObject):
         super().__init__()
         self.set("type", "text")
         self.nest("text", "content", content)
-        self.nest("text", "link", NotionURL(link)) if link else None
-        if annotations is not None and annotations != {}:
+        self.nest("text", "link", _NotionURL(link)) if link else None
+        if annotations and annotations != {}:
             self.set("annotations", annotations)
 
 
@@ -73,7 +73,7 @@ class Equation(NotionObject):
         super().__init__()
         self.set("type", "equation")
         self.nest("equation", "expression", expression)
-        if annotations is not None and annotations != {}:
+        if annotations and annotations != {}:
             self.set("annotations", annotations)
 
 
@@ -104,36 +104,44 @@ class Mention(NotionObject):
         self.nest("mention", "type", type)
         self.nest("mention", type, mention_type_object)
 
-        if annotations is not None and annotations != {}:
+        if annotations and annotations != {}:
             self.set("annotations", annotations)
 
     @classmethod
     def user(
         cls,
-        mention_type_object: Union[UserObject, NotionObject],
+        user_object: UserObject,
         /,
         *,
         annotations: Optional[Annotations] = None,
     ) -> Mention:
         """
+        If your integration doesn't yet have access to the mentioned user,
+        then the plain_text that would include a user's name reads as "@Anonymous".
+        To update the integration to get access to the user,
+        update the integration capabilities on the integration settings page.
+
         :raises: `notion.exceptions.errors.NotionValidationError` if trying to mention a Bot.
+
         https://developers.notion.com/reference/rich-text#user-mention-type-object
         """
+
         return cls(
             type="user",
-            mention_type_object=mention_type_object,
+            mention_type_object=user_object,
             annotations=annotations,
         )
 
     @classmethod
     def today(cls, *, annotations: Optional[Annotations] = None) -> Mention:
         """https://developers.notion.com/reference/rich-text#template-mention-type-object"""
-        _mention_type_object = NotionObject()
-        _mention_type_object.set("type", "template_mention_date")
-        _mention_type_object.set("template_mention_date", "today")
+        template_mention_date = NotionObject()
+        template_mention_date.set("type", "template_mention_date")
+        template_mention_date.set("template_mention_date", "today")
+
         return cls(
             type="template_mention",
-            mention_type_object=_mention_type_object,
+            mention_type_object=template_mention_date,
             annotations=annotations,
         )
 
@@ -142,22 +150,24 @@ class Mention(NotionObject):
         cls, database_id: str, *, annotations: Optional[Annotations] = None
     ) -> Mention:
         """https://developers.notion.com/reference/rich-text#database-mention-type-object"""
-        _mention_type_object = NotionObject()
-        _mention_type_object.set("id", database_id)
+        database_mention = NotionObject()
+        database_mention.set("id", database_id)
+
         return cls(
             type="database",
-            mention_type_object=_mention_type_object,
+            mention_type_object=database_mention,
             annotations=annotations,
         )
 
     @classmethod
     def page(cls, page_id: str, *, annotations: Optional[Annotations] = None) -> Mention:
         """https://developers.notion.com/reference/rich-text#page-mention-type-object"""
-        _mention_type_object = NotionObject()
-        _mention_type_object.set("id", page_id)
+        page_mention = NotionObject()
+        page_mention.set("id", page_id)
+
         return cls(
             type="page",
-            mention_type_object=_mention_type_object,
+            mention_type_object=page_mention,
             annotations=annotations,
         )
 
@@ -166,11 +176,12 @@ class Mention(NotionObject):
         cls, url: str, *, annotations: Optional[Annotations] = None
     ) -> Mention:
         """https://developers.notion.com/reference/rich-text#link-preview-mention-type-object"""
-        _mention_type_object = NotionObject()
-        _mention_type_object.set("url", url)
+        link_preview_mention = NotionObject()
+        link_preview_mention.set("url", url)
+
         return cls(
             type="link_preview",
-            mention_type_object=_mention_type_object,
+            mention_type_object=link_preview_mention,
             annotations=annotations,
         )
 
@@ -182,13 +193,14 @@ class Mention(NotionObject):
         *,
         annotations: Optional[Annotations] = None,
     ) -> Mention:
-        """https://developers.notion.com/reference/rich-text#link-preview-mention-type-object"""
-        _mention_type_object = NotionObject()
-        _mention_type_object.set("start", start)
-        _mention_type_object.set("end", end) if end else None
+        """https://developers.notion.com/reference/rich-text#date-mention-type-object"""
+        date_mention = NotionObject()
+        date_mention.set("start", start)
+        date_mention.set("end", end) if end else None
+
         return cls(
             type="date",
-            mention_type_object=_mention_type_object,
+            mention_type_object=date_mention,
             annotations=annotations,
         )
 
@@ -203,7 +215,7 @@ class Annotations(NotionObject):
         strike: Optional[bool] = None,
         underline: Optional[bool] = None,
         code: Optional[bool] = None,
-        color: Optional[BlockColor] = None,
+        color: Union[Optional[BlockColor], str] = None,
     ) -> None:
         """https://developers.notion.com/reference/rich-text#the-annotation-object"""
         super().__init__()
@@ -212,9 +224,9 @@ class Annotations(NotionObject):
         self.set("italic", italic) if italic else None
         self.set("strike", strike) if strike else None
         self.set("underline", underline) if underline else None
-        self.set("color", color) if color else None
-        self.set("color", BlockColor.default.value) if not color else None
         self.set("code", code) if code else None
 
+        self.set("color", color) if color else None
+
         if not any([[bold, italic, strike, underline, code, color]]):
-            pass  # annotations must be defined or non-existent, or Notion will return error
+            pass

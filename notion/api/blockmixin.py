@@ -25,14 +25,12 @@ from __future__ import annotations
 from datetime import datetime, tzinfo
 from functools import cached_property
 from typing import Any, MutableMapping, Optional, Sequence, Union, cast
-from uuid import UUID
 
 from pytz import BaseTzInfo, timezone
 from tzlocal import get_localzone
 
 from notion.api._about import *
 from notion.api.client import _NotionClient
-from notion.exceptions.errors import NotionObjectNotFound
 
 __all__: Sequence[str] = ["_TokenBlockMixin"]
 
@@ -56,17 +54,6 @@ class _TokenBlockMixin(_NotionClient):
 
         self.tz: BaseTzInfo = get_localzone()
         self.id: str = id.replace("-", "")
-
-        try:
-            UUID(self.id)
-        except ValueError:
-            raise NotionObjectNotFound(
-                "%s %s"
-                % (
-                    f"{self.__repr__()} instatiation failed validation:",
-                    f"id should be a valid uuid, instead was `'{self.id}'`",
-                )
-            )
 
     @cached_property
     def _block(self) -> MutableMapping[str, Any]:
@@ -104,7 +91,7 @@ class _TokenBlockMixin(_NotionClient):
     def parent_id(self) -> str:
         _parent_id = self._block["parent"][self.parent_type]
         if _parent_id is True:  # parent is workspace
-            workspace = self._get(f"{__base_url__}%s" % "users/me")
+            workspace = self._get("%s%s" % (__base_url__, "users/me"))
             # return workspace name
             return "workspace: %s" % workspace["bot"]["workspace_name"]
         else:

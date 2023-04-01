@@ -27,7 +27,7 @@ from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
-from notion.exceptions.errors import NotionValidationError, NotionObjectNotFound
+from notion.exceptions.errors import NotionObjectNotFound, NotionValidationError
 
 __all__: Sequence[str] = ["Block"]
 
@@ -62,6 +62,7 @@ class Block(_TokenBlockMixin):
         super().__init__(id, token=token, notion_version=notion_version)
         if token:
             self.token = token
+
         self.notion_version: Optional[str] = notion_version
         self.logger = _NLOG.getChild(f"{self.__repr__()}")
 

@@ -24,7 +24,6 @@ A block object represents content within Notion. Blocks can be text, lists, medi
 Some blocks have more content nested inside them. Some examples are indented paragraphs, lists, and toggles. 
 The nested content is called children, and children are blocks, too.
 
-Block types that support children
 Block types which support children are:
     "paragraph", "bulleted_list_item", "numbered_list_item", "toggle", "to_do", "quote", "callout", 
     "synced_block", "template", "column", "child_page", "child_database", and "table". 
@@ -43,7 +42,32 @@ from typing import Any, MutableMapping, Optional, Sequence, Union
 from notion.api.client import _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
-from notion.properties import *
+from notion.properties.blocktypes import (
+    BlockChildren,
+    BookmarkBlocktype,
+    BreadcrumbBlock,
+    BulletedListItemBlocktype,
+    CalloutBlocktype,
+    CodeBlocktype,
+    DividerBlock,
+    DuplicateSyncedBlockType,
+    EmbedBlocktype,
+    EquationBlocktype,
+    Heading1BlockType,
+    Heading2BlockType,
+    Heading3BlockType,
+    LinkToPageBlockType,
+    NewLineBreak,
+    NumberedListItemBlocktype,
+    OriginalSyncedBlockType,
+    ParagraphBlocktype,
+    QuoteBlocktype,
+    TableOfContentsBlocktype,
+    ToDoBlocktype,
+    ToggleBlocktype,
+)
+from notion.properties.options import BlockColor, CodeBlockLang
+from notion.properties.richtext import Equation, Mention, RichText
 
 __all__: Sequence[str] = ["BlockFactory"]
 
@@ -84,7 +108,7 @@ class BlockFactory(_NotionClient):
 
     @singledispatchmethod
     @staticmethod
-    def _append(  # type: ignore[empty-body]
+    def _append(
         target: Union[Page, Block, MutableMapping[str, Any]],
         payload: MutableMapping[str, Any],
     ) -> Block:
@@ -108,7 +132,7 @@ class BlockFactory(_NotionClient):
 
     @_append.register
     @staticmethod
-    def _(target: dict, payload: MutableMapping[str, Any]) -> Block:  # type: ignore[type-arg]
+    def _(target: dict, payload: MutableMapping[str, Any]) -> Block:
         """
         If target is not an instance of Page or Block,
         It can also be a block object from a list of results
@@ -155,8 +179,7 @@ class BlockFactory(_NotionClient):
     def reference_synced_block(
         target: Union[Page, Block, MutableMapping[str, Any]], block_id: str
     ) -> Block:
-        """
-        ### Reference Synced Block
+        """### Reference Synced Block
         To sync the content of the original synced_block with another synced_block,
         the developer simply needs to refer to that synced_block using the synced_from property.
 
@@ -175,12 +198,11 @@ class BlockFactory(_NotionClient):
 
     @staticmethod
     def new_synced_block(target: Union[Page, Block, MutableMapping[str, Any]]) -> Block:
-        """
+        """### Original Synced Block
         Similar to the UI, there are two versions of a synced_block --
         the original block that was created first and doesn't yet sync with anything else,
         and the reference blocks that are synced to the original synced block.
 
-        ### Original Synced Block
         To create a synced_block, the developer needs to create an original synced block.
         Developers will be able to identify the original synced_block because it does not
         "sync_from" any other block (synced_from property is set to null).
@@ -194,8 +216,7 @@ class BlockFactory(_NotionClient):
         appended to other blocks with `BlockWrite.reference_synced_block(...)`.
         return it to get the new block id and use as a target to append new children.
 
-        View `notion.properties.blocktypes.OriginalSyncedBlock`, or Notion API reference
-        for more information.
+        View `notion.properties.blocktypes.OriginalSyncedBlock`, or Notion API reference for more information.
 
         https://developers.notion.com/reference/block#synced-block-blocks
         """
@@ -208,6 +229,7 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def breadcrumb(target: Union[Page, Block, MutableMapping[str, Any]]) -> Block:
         """https://developers.notion.com/reference/block#breadcrumb-blocks"""
+
         breadcrumb_block = BlockFactory._append(
             target, BlockChildren([BreadcrumbBlock()])
         )
@@ -216,6 +238,7 @@ class BlockFactory(_NotionClient):
     @staticmethod
     def divider(target: Union[Page, Block, MutableMapping[str, Any]]) -> Block:
         """https://developers.notion.com/reference/block#divider-blocks"""
+
         divider_block = BlockFactory._append(target, BlockChildren([DividerBlock()]))
         return divider_block
 
@@ -233,6 +256,7 @@ class BlockFactory(_NotionClient):
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> Block:
         """https://developers.notion.com/reference/block#quote-blocks"""
+
         quote_block = BlockFactory._append(
             target, BlockChildren([QuoteBlocktype(rich_text, block_color=block_color)])
         )
@@ -253,6 +277,7 @@ class BlockFactory(_NotionClient):
         ---
         https://developers.notion.com/reference/block#callout-blocks
         """
+
         callout_block = BlockFactory._append(
             target,
             BlockChildren(
@@ -270,6 +295,7 @@ class BlockFactory(_NotionClient):
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> Block:
         """https://developers.notion.com/reference/block#paragraph-blocks"""
+
         paragraph_block = BlockFactory._append(
             target,
             BlockChildren([ParagraphBlocktype(rich_text, block_color=block_color)]),
@@ -286,6 +312,7 @@ class BlockFactory(_NotionClient):
         is_toggleable: Optional[bool] = False,
     ) -> Block:
         """https://developers.notion.com/reference/block#heading-one-blocks"""
+
         heading1_block = BlockFactory._append(
             target,
             BlockChildren(
@@ -308,6 +335,7 @@ class BlockFactory(_NotionClient):
         is_toggleable: Optional[bool] = False,
     ) -> Block:
         """https://developers.notion.com/reference/block#heading-two-blocks"""
+
         heading2_block = BlockFactory._append(
             target,
             BlockChildren(
@@ -330,6 +358,7 @@ class BlockFactory(_NotionClient):
         is_toggleable: Optional[bool] = False,
     ) -> Block:
         """https://developers.notion.com/reference/block#heading-three-blocks"""
+
         heading3_block = BlockFactory._append(
             target,
             BlockChildren(
@@ -351,6 +380,7 @@ class BlockFactory(_NotionClient):
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> Block:
         """https://developers.notion.com/reference/block#bulleted-list-item-blocks"""
+
         bulleted_list_block = BlockFactory._append(
             target,
             BlockChildren(
@@ -368,6 +398,7 @@ class BlockFactory(_NotionClient):
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> Block:
         """https://developers.notion.com/reference/block#numbered-list-item-blocks"""
+
         numbered_list_block = BlockFactory._append(
             target,
             BlockChildren(
@@ -386,6 +417,7 @@ class BlockFactory(_NotionClient):
         checked: Optional[bool] = False,
     ) -> Block:
         """https://developers.notion.com/reference/block#to-do-blocks"""
+
         to_do_block = BlockFactory._append(
             target,
             BlockChildren(
@@ -425,11 +457,10 @@ class BlockFactory(_NotionClient):
 
         https://developers.notion.com/reference/block#code-blocks
         """
+
         code_block = BlockFactory._append(
             target,
-            BlockChildren(
-                [CodeBlocktype(rich_text, language=language, caption=caption)]
-            ),
+            BlockChildren([CodeBlocktype(rich_text, language=language, caption=caption)]),
         )
         return code_block
 
@@ -461,6 +492,7 @@ class BlockFactory(_NotionClient):
 
         https://developers.notion.com/reference/block#embed-blocks
         """
+
         embed_url_block = BlockFactory._append(
             target, BlockChildren([EmbedBlocktype(embedded_url)])
         )
@@ -501,6 +533,7 @@ class BlockFactory(_NotionClient):
 
         https://developers.notion.com/reference/block#equation-blocks
         """
+
         equation_block = BlockFactory._append(
             target, BlockChildren([EquationBlocktype(expression)])
         )
@@ -514,6 +547,7 @@ class BlockFactory(_NotionClient):
         block_color: Optional[Union[BlockColor, str]] = None,
     ) -> Block:
         """https://developers.notion.com/reference/block#table-of-contents-blocks"""
+
         table_of_contents_block = BlockFactory._append(
             target, BlockChildren([TableOfContentsBlocktype(block_color=block_color)])
         )
