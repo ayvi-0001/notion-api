@@ -21,7 +21,7 @@
 # SOFTWARE.
 """ 
 ### Properties:
->>> from notion import properties
+>>> from notion import properties as prop
 
 ### Queries:
 >>> from notion import query
@@ -37,11 +37,11 @@ To combine a CompoundFilter/PropertyFilter with a SortFilter, use `notion.build_
 """
 from typing import Sequence
 
-from notion.api import Block, BlockFactory, Database, Page, Workspace
-from notion.properties.build import build_payload
-
 import notion.properties as properties
 import notion.query as query
+from notion.api import Block, BlockFactory, Database, Page, Workspace
+from notion.api._pkgv import inspect_pkg_version
+from notion.properties.build import build_payload
 
 __all__: Sequence[str] = (
     "Page",
@@ -52,4 +52,5 @@ __all__: Sequence[str] = (
     "build_payload",
     "properties",
     "query",
+    "inspect_pkg_version",
 )
