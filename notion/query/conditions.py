@@ -23,6 +23,7 @@
 https://developers.notion.com/reference/post-database-query-filter#type-specific-filter-conditionss
 """
 from __future__ import annotations
+
 from typing import Literal, Sequence, TypeAlias, Union
 
 __all__: Sequence[str] = (

@@ -30,29 +30,33 @@ __all__: Sequence[str] = ["PropertyFilter"]
 
 
 class PropertyFilter(NotionObject):
-    __slots__: Sequence[str] = (
-        "_property_name",
-        "_property_type",
-    )
+    __slots__: Sequence[str] = ("_property_type",)
 
     def __init__(
         self,
         property_name: str,
         filter_condition: FilterConditions,
         filter_value: Any,
-        /,
+        _property_type: str,
     ) -> None:
         """
-        Classmethods:
-            text, checkbox, number, select, multi_select, status, date, people, files, relation.
-
         A filter is a single condition used to specify and limit the entries returned from a database query.
         Database queries can be filtered by page property values.
-        The API supports filtering by the following property types:
-            rich_text, phone_number, number, checkbox, select, multi-select, date,
-            people, files, relation, status, and formula.
 
-        You may also filter a database by created_time or last_edited_time, even if these aren't present as properties on the database.
+        Use classmethods:
+            - text
+            - checkbox
+            - number
+            - select
+            - multi_select
+            - status
+            - date
+            - people
+            - files
+            - relation.
+
+        NOTE: You may also filter a database by created_time or last_edited_time,
+              even if these aren't present as properties on the database.
 
         https://developers.notion.com/reference/post-database-query-filter
 
@@ -63,10 +67,8 @@ class PropertyFilter(NotionObject):
         https://developers.notion.com/reference/post-database-query-filter#type-specific-filter-conditions
         """
         super().__init__()
-        self._property_type: str
-        self._property_name: str = property_name
         self.nest("filter", "property", property_name)
-        self.nest("filter", self._property_type, {filter_condition: filter_value})
+        self.nest("filter", _property_type, {filter_condition: filter_value})
 
     @classmethod
     def text(
@@ -77,8 +79,11 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
-        cls._property_type = property_type
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#rich-text"""
+
+        return cls(
+            property_name, filter_condition, filter_value, _property_type=property_type
+        )
 
     @classmethod
     def checkbox(
@@ -88,8 +93,11 @@ class PropertyFilter(NotionObject):
         filter_value: bool,
         /,
     ) -> PropertyFilter:
-        cls._property_type = "checkbox"
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#checkbox"""
+
+        return cls(
+            property_name, filter_condition, filter_value, _property_type="checkbox"
+        )
 
     @classmethod
     def number(
@@ -99,8 +107,9 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, float, bool],
         /,
     ) -> PropertyFilter:
-        cls._property_type = "number"
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#number"""
+
+        return cls(property_name, filter_condition, filter_value, _property_type="number")
 
     @classmethod
     def select(
@@ -110,8 +119,9 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
-        cls._property_type = "select"
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#select"""
+
+        return cls(property_name, filter_condition, filter_value, _property_type="select")
 
     @classmethod
     def multi_select(
@@ -121,8 +131,11 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
-        cls._property_type = "multi_select"
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#multi-select"""
+
+        return cls(
+            property_name, filter_condition, filter_value, _property_type="multi_select"
+        )
 
     @classmethod
     def status(
@@ -132,8 +145,9 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
-        cls._property_type = "status"
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#status"""
+
+        return cls(property_name, filter_condition, filter_value, _property_type="status")
 
     @classmethod
     def date(
@@ -144,9 +158,15 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, bool, dict[str, Any]],
         /,
     ) -> PropertyFilter:
-        """When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`"""
-        cls._property_type = property_type
-        return cls(property_name, filter_condition, filter_value)
+        """
+        When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`
+
+        https://developers.notion.com/reference/post-database-query-filter#date
+        """
+
+        return cls(
+            property_name, filter_condition, filter_value, _property_type=property_type
+        )
 
     @classmethod
     def people(
@@ -157,15 +177,17 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
-        cls._property_type = property_type
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#people"""
+
+        return cls(
+            property_name, filter_condition, filter_value, _property_type=property_type
+        )
 
     @classmethod
     def files(
         cls,
         property_name: str,
         filter_condition: FilesConditions,
-        filter_value: bool = True,
         /,
     ) -> PropertyFilter:
         """
@@ -173,8 +195,10 @@ class PropertyFilter(NotionObject):
 
         https://developers.notion.com/reference/post-database-query-filter#files-filter-condition
         """
-        cls._property_type = "files"
-        return cls(property_name, filter_condition, filter_value)
+
+        return cls(
+            property_name, filter_condition, filter_value=True, _property_type="files"
+        )
 
     @classmethod
     def relation(
@@ -184,5 +208,8 @@ class PropertyFilter(NotionObject):
         filter_value: Union[str, bool],
         /,
     ) -> PropertyFilter:
-        cls._property_type = "relation"
-        return cls(property_name, filter_condition, filter_value)
+        """https://developers.notion.com/reference/post-database-query-filter#relation"""
+
+        return cls(
+            property_name, filter_condition, filter_value, _property_type="relation"
+        )

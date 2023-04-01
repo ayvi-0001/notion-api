@@ -21,7 +21,7 @@
 # SOFTWARE.
 from __future__ import annotations
 
-from typing import Optional, Sequence, Union
+from typing import Sequence, Union
 
 from notion.properties.build import NotionObject
 
@@ -43,8 +43,7 @@ class SortFilter(NotionObject):
         Database queries can also be sorted by two or more properties, which is formally called a nested sort.
         The sort object listed first in the nested sort list takes precedence.
 
-        :param sort_object: (required) List containing one of\
-            `notion.query.sort.PropertyValueSort` or `notion.query.sort.EntryTimestampSort`
+        :param sort_object: (required) A list containing _one_ of PropertyValueSort or EntryTimestampSort
 
         https://developers.notion.com/reference/post-database-query-sort#sort-object
         """
@@ -55,70 +54,62 @@ class SortFilter(NotionObject):
 class PropertyValueSort(NotionObject):
     __slots__: Sequence[str] = ()
 
-    def __init__(
-        self, property_name: str, /, *, direction: Optional[str] = None
-    ) -> None:
+    def __init__(self, property_name: str, /, *, direction: str) -> None:
         """
         This sort orders the database query by a particular property.
-        https://developers.notion.com/reference/post-database-query-sort#sort-object
+
+        Use one of the following classmethods:
+        - `ascending`
+        - `descending`
+
+        https://developers.notion.com/reference/post-database-query-sort#property-value-sort
         """
         super().__init__()
         self.set("property", property_name)
         self.set("direction", direction)
 
     @classmethod
-    def ascending(
-        cls, property_name: str, /, *, direction: Optional[str] = "ascending"
-    ) -> PropertyValueSort:
-        return cls(property_name, direction=direction)
+    def ascending(cls, property_name: str) -> PropertyValueSort:
+        return cls(property_name, direction="ascending")
 
     @classmethod
-    def descending(
-        cls, property_name: str, /, *, direction: Optional[str] = "descending"
-    ) -> PropertyValueSort:
-        return cls(property_name, direction=direction)
+    def descending(cls, property_name: str) -> PropertyValueSort:
+        return cls(property_name, direction="descending")
 
 
 class EntryTimestampSort(NotionObject):
-    __slots__: Sequence[str] = ("_timestamp", "_direction")
+    __slots__: Sequence[str] = ("timestamp", "direction")
 
-    def __init__(self) -> None:
+    def __init__(self, *, timestamp: str, direction: str) -> None:
         """
         This sort orders the database query by the timestamp associated with a database entry.
 
-        Required:
-        - must use either `created_time_ascending` or `created_time_descending` classmethod.
-        - must use either `last_edited_time_ascending` or `last_edited_time_descending` classmethod.
+        Use one of the following classmethods:
+        - `created_time_ascending`
+        - `created_time_descending`
+        - `last_edited_time_ascending`
+        - `last_edited_time_descending`
 
         https://developers.notion.com/reference/post-database-query-sort#entry-timestamp-sort
         """
         super().__init__()
-
-        self._timestamp: str
-        self._direction: str
-        self.set("timestamp", self._timestamp)
-        self.set("direction", self._direction)
+        self.timestamp: str = timestamp
+        self.direction: str = direction
+        self.set("timestamp", self.timestamp)
+        self.set("direction", self.direction)
 
     @classmethod
     def created_time_ascending(cls) -> EntryTimestampSort:
-        cls._timestamp = "created_time"
-        cls._direction = "ascending"
-        return cls()
+        return cls(timestamp="created_time", direction="ascending")
 
     @classmethod
     def created_time_descending(cls) -> EntryTimestampSort:
-        cls._timestamp = "created_time"
-        cls._direction = "descending"
-        return cls()
+        return cls(timestamp="created_time", direction="descending")
 
     @classmethod
     def last_edited_time_ascending(cls) -> EntryTimestampSort:
-        cls._timestamp = "last_edited_time"
-        cls._direction = "ascending"
-        return cls()
+        return cls(timestamp="last_edited_time", direction="ascending")
 
     @classmethod
     def last_edited_time_descending(cls) -> EntryTimestampSort:
-        cls._timestamp = "last_edited_time"
-        cls._direction = "descending"
-        return cls()
+        return cls(timestamp="last_edited_time", direction="descending")

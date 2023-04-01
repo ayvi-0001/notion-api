@@ -37,8 +37,8 @@ class CompoundFilter(NotionObject):
     def __init__(self) -> None:
         """NOTE: only up to two nesting levels deep.
 
-        :method _and(): combine all filters in an `and` grouping.
-        :method _or(): combine all filters in an `or` grouping.
+        :method: _and() combine all filters in an `and` grouping.
+        :method: _or() combine all filters in an `or` grouping.
 
         Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
 
@@ -49,13 +49,19 @@ class CompoundFilter(NotionObject):
     def _and(
         self, *filters: Union[PropertyFilter, CompoundFilter, TimestampFilter]
     ) -> CompoundFilter:
-        filters_ = [f["filter"] if "filter" in f else f for f in filters]
-        self.nest("filter", "and", filters_)
+        """
+        Example compound filter conditions
+        https://developers.notion.com/reference/post-database-query-filter#example-compound-filter-conditions
+        """
+        self.nest("filter", "and", [f["filter"] if "filter" in f else f for f in filters])
         return self
 
     def _or(
         self, *filters: Union[PropertyFilter, CompoundFilter, TimestampFilter]
     ) -> CompoundFilter:
-        filters_ = [f["filter"] if "filter" in f else f for f in filters]
-        self.nest("filter", "or", filters_)
+        """
+        Example compound filter conditions
+        https://developers.notion.com/reference/post-database-query-filter#example-compound-filter-conditions
+        """
+        self.nest("filter", "or", [f["filter"] if "filter" in f else f for f in filters])
         return self
