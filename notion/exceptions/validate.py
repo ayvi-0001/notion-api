@@ -29,8 +29,6 @@ __all__: Sequence[str] = ["validate_response"]
 
 def validate_response(response: MutableMapping[str, Any]) -> Union[_NotionErrors, None]:
     r"""
-    To be used on responses from notion.Page, notion.Database, notion.Block.
-
     Example:
     ```py
     page = notion.Page("12345")
@@ -55,37 +53,42 @@ def validate_response(response: MutableMapping[str, Any]) -> Union[_NotionErrors
     The request body does not match the schema for the expected parameters.
     ```
 
-    https://developers.notion.com/reference/errors
+    More info on Errors and Request Limits:
+     - https://developers.notion.com/reference/errors
+     - https://developers.notion.com/reference/request-limits
     """
-    if "error" in response.values():
-        code = response["code"]
-        message = response["message"]
+    if not "error" in response.values():
+        return None
 
-        if "invalid_json" in code:
+    code = response["code"]
+    message = response["message"]
+
+    match code:
+        case "invalid_json":
             raise NotionInvalidJson(message)
-        if "invalid_request_url" in code:
+        case "invalid_request_url":
             raise NotionInvalidRequestUrl(message)
-        if "invalid_request" in code:
+        case "invalid_request":
             raise NotionInvalidRequest(message)
-        if "validation_error" in code:
+        case "validation_error":
             raise NotionValidationError(message)
-        if "missing_version" in code:
+        case "missing_version":
             raise NotionMissingVersion(message)
-        if "unauthorized" in code:
+        case "unauthorized":
             raise NotionUnauthorized(message)
-        if "restricted_resource" in code:
+        case "restricted_resource":
             raise NotionRestrictedResource(message)
-        if "object_not_found" in code:
+        case "object_not_found":
             raise NotionObjectNotFound(message)
-        if "conflict_error" in code:
+        case "conflict_error":
             raise NotionConflictError(message)
-        if "rate_limited" in code:
+        case "rate_limited":
             raise NotionRateLimited(message)
-        if "internal_server_error" in code:
+        case "internal_server_error":
             raise NotionInternalServerError(message)
-        if "service_unavailable" in code:
+        case "service_unavailable":
             raise NotionServiceUnavailable(message)
-        if "database_connection_unavailable" in code:
+        case "database_connection_unavailable":
             raise NotionDatabaseConnectionUnavailable(message)
-
-    return None
+        case _:
+            return None
