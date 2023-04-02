@@ -24,28 +24,15 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterable,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, Union, cast
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
 from notion.api.notionblock import Block
 from notion.api.notiondatabase import Database
-from notion.exceptions.errors import (
-    NotionInvalidJson,
-    NotionObjectNotFound,
-    NotionValidationError,
-)
+from notion.exceptions.errors import NotionInvalidJson
 from notion.properties.build import build_payload
-from notion.properties.common import BotObject, Parent, UserObject, _NotionUUID
+from notion.properties.common import Parent, UserObject, _NotionUUID
 from notion.properties.files import ExternalFile, FilesPropertyValue, InternalFile
 from notion.properties.propertyobjects import Option
 from notion.properties.propertyvalues import (
@@ -75,23 +62,22 @@ __all__: Sequence[str] = ["Page"]
 class Page(_TokenBlockMixin):
     """
     The Page object contains the page property values of a single Notion page.
-    All pages have a Parent. If the parent is a database,
-    the property values conform to the schema laid out database's properties.
+    All pages have a Parent. If the parent is a database, 
+    the property values conform to the schema laid out in the database's properties. 
     Otherwise, the only property value is the title.
 
-    Page content is available as blocks.
-    Content can be read using retrieve block children and appended using append block children.
+    Page content is available as blocks:
+        - Read using retrieve block children.
+        - Appended using append block children.
 
-    NOTE: The current version of the Notion api does not allow pages to be created
-    to the parent `workspace`. This is why it's necessary to pass a parent instance
-    `notion.api.notionpage.Page` or `notion.api.notiondatabase.Database` to the `create`
-    class methods, to provide a valid parent id.
+    NOTE: The current version of the Notion api does not allow pages to be created to the parent `workspace`. 
+    Objects created through the API must be created with a parent of an existing Page/Database/Block.
 
     ---
     :param id: (required) `page_id` of object in Notion.
     :param token: (required) Bearer token provided when you create an integration.\
-        set as `NOTION_TOKEN` in .env or set variable here.\
-        see https://developers.notion.com/reference/authentication.
+                   set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
+                   see https://developers.notion.com/reference/authentication.
     :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
 
     https://developers.notion.com/reference/page
@@ -110,20 +96,19 @@ class Page(_TokenBlockMixin):
             self.token = token
 
         self.notion_version: Optional[str] = notion_version
-        self.logger = _NLOG.getChild(f"{self.__repr__()}")
+        self.logger = _NLOG.getChild(self.__repr__())
 
     @classmethod
     def create(
         cls, parent_instance: Union[Page, Database, Block], page_title: str
     ) -> Page:
         """
-        Creates a blank page with properties.
-        Follow with class methods to add values to properties described in parent database schema,
-        or append block children to include content in the page.
+        Creates a blank page.
+        Use Page methods to add values to properties described in parent database schema.
+        Add content to page by appending block children with notion.api.blocktypefactory.BlockFactory.
 
         ---
-        :param parent_instance: (required) an instance of\
-                                `notion.api.notionpage.Page` or `notion.api.notiondatabase.Database`.
+        :param parent_instance: (required) eithr a Page or Database instance.
         :param page_title: (required)
         :param icon_url: (optional) #not yet implemented
         :param cover: (optional) #not yet implemented
@@ -145,17 +130,14 @@ class Page(_TokenBlockMixin):
 
         cls_ = cls(new_page["id"])
         cls_.logger.info(
-            f"Database created in {parent_instance.__repr__()}. Url: {new_page['url']}"
+            f"Page created in {parent_instance.__repr__()}. Url: {new_page['url']}"
         )
         return cls_
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
-        try:
+        if property_name in self.properties:
             return cast(MutableMapping[str, Any], self.properties[property_name])
-        except KeyError:
-            raise NotionObjectNotFound(
-                f"{property_name} not found in page property values."
-            )
+        raise NotionInvalidJson(f"{property_name} not found in page property values.")
 
     @cached_property
     def _retrieve(self) -> MutableMapping[str, Any]:
@@ -171,13 +153,10 @@ class Page(_TokenBlockMixin):
             if ("workspace" or "page_id") in self.parent_type:
                 return cast(str, self.properties["title"]["title"][0]["plain_text"])
 
-            database_title_property = [
-                k for k, v in self.properties.items() if "title" in v
+            database_title_property = self.properties[
+                [k for k, v in self.properties.items() if "title" in v][0]
             ]
-            return cast(
-                str,
-                self.properties[database_title_property[0]]["title"][0]["plain_text"],
-            )
+            return cast(str, database_title_property["title"][0]["plain_text"])
         except IndexError:
             return ""  # title is empty
 
@@ -203,7 +182,7 @@ class Page(_TokenBlockMixin):
     def delete_self(self) -> None:
         if self.is_archived:
             self.logger.info("delete_self did nothing. Page is already archived.")
-            return None
+            return
 
         self._delete(self._block_endpoint(self.id))
         self.logger.info("Deleted self.")
@@ -212,7 +191,7 @@ class Page(_TokenBlockMixin):
     def restore_self(self) -> None:
         if not self.is_archived:
             self.logger.info("restore_self did nothing. Page is not archived.")
-            return None
+            return
 
         self._patch(self._pages_endpoint(self.id), payload=(b'{"archived": false}'))
         self.logger.info("Restored self.")
@@ -239,10 +218,7 @@ class Page(_TokenBlockMixin):
         return self._get(self._pages_endpoint(self.id))
 
     def _retrieve_property_id(self, property_name: str) -> str:
-        """Internal function to retrieve the id of a property.
-
-        :raises: `notion.exceptions.errors.NotionInvalidJson`
-        """
+        """Internal function to retrieve the id of a property."""
         if property_name in self.properties:
             return str(self.properties[property_name]["id"])
         raise NotionInvalidJson("Property name not found in parent schema.")
@@ -275,10 +251,7 @@ class Page(_TokenBlockMixin):
         )
 
     def _patch_properties(
-        self,
-        payload: Union[
-            MutableMapping[str, Any], Union[Iterable[bytes], bytes, bytearray]
-        ],
+        self, payload: MutableMapping[str, Any]
     ) -> MutableMapping[str, Any]:
         """
         Updates page property values for the specified page.
@@ -300,22 +273,17 @@ class Page(_TokenBlockMixin):
         In order to receive a complete representation of a block, you
         may need to recursively retrieve block children of child blocks.
 
-        page_size Default: 100 page_size Maximum: 100.
-
         https://developers.notion.com/reference/get-block-children
         """
-        return Block(self.id).retrieve_children(
-            page_size=page_size, start_cursor=start_cursor
+        return self._get(
+            self._block_endpoint(
+                self.id, children=True, page_size=page_size, start_cursor=start_cursor
+            )
         )
 
-    def _append(
-        self,
-        payload: Union[
-            MutableMapping[str, Any], Union[Iterable[bytes], bytes, bytearray]
-        ],
-    ) -> MutableMapping[str, Any]:
+    def _append(self, payload: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         """
-        Used internally by `notion.api.blocktypefactory.BlockFactory`.
+        Used internally by notion.api.blocktypefactory.BlockFactory.
 
         https://developers.notion.com/reference/patch-block-children
         """
@@ -326,13 +294,14 @@ class Page(_TokenBlockMixin):
         :param select_option: (required) if the option already exists, then it is\
                                case sensitive. if the option does not exist, it will be created.
         """
-        current_options = Database(
+        parent_db = Database(
             self.parent_id,
             token=self.token,
             notion_version=self.notion_version,
-        )[column_name]["select"]["options"]
+        )
 
-        names = {n.get("name"): n.get("color") for n in current_options}
+        current_options = parent_db[column_name]["select"]["options"]
+        names = {o.get("name"): o.get("color") for o in current_options}
 
         if set([select_option]).issubset(names):
             option = Option(select_option, names.get(select_option))
@@ -349,13 +318,14 @@ class Page(_TokenBlockMixin):
         """
         selected_options: list[Option] = []
 
-        current_options = Database(
+        parent_db = Database(
             self.parent_id,
             token=self.token,
             notion_version=self.notion_version,
-        )[column_name]["multi_select"]["options"]
+        )
 
-        names = {n.get("name"): n.get("color") for n in current_options}
+        current_options = parent_db[column_name]["multi_select"]["options"]
+        names = {o.get("name"): o.get("color") for o in current_options}
 
         for option in multi_select_options:
             if set([option]).issubset(names):
@@ -371,27 +341,24 @@ class Page(_TokenBlockMixin):
         """
         :param status_option: (required) unlike select/multi-select,\
                                status option must already exist when using this endpoint.\
-                               to create a new status option, use the database endpoints.
+                               to create a new status option, use the database endpoints.\
+                               option is case-sensitive.
         """
-        try:
-            current_options = Database(
-                self.parent_id,
-                token=self.token,
-                notion_version=self.notion_version,
-            )[column_name]["status"]["options"]
+        parent_db = Database(
+            self.parent_id,
+            token=self.token,
+            notion_version=self.notion_version,
+        )
 
-            names = {n.get("name"): n.get("color") for n in current_options}
+        current_options = parent_db[column_name]["status"]["options"]
+        names = {o.get("name"): o.get("color") for o in current_options}
 
-            if set([status_option]).issubset(names):
-                option = Option(status_option, names.get(status_option))
-            else:
-                option = Option(status_option)
+        if set([status_option]).issubset(names):
+            option = Option(status_option, names.get(status_option))
+        else:
+            option = Option(status_option)
 
-            self._patch_properties(Properties(StatusPropertyValue(column_name, option)))
-        except NotionValidationError:
-            self.logger.error(
-                f"{NotionValidationError().__notes__[0]}\nCannot create new status options via the API."
-            )
+        self._patch_properties(Properties(StatusPropertyValue(column_name, option)))
 
     def set_date(
         self,
@@ -415,9 +382,6 @@ class Page(_TokenBlockMixin):
         )
 
     def set_text(self, column_name: str, new_text: Union[str, Any]) -> None:
-        """
-        :param new_text: (required) to replace the current text
-        """
         self._patch_properties(
             Properties(RichTextPropertyValue(column_name, [RichText(new_text)]))
         )
@@ -445,9 +409,6 @@ class Page(_TokenBlockMixin):
         self._patch_properties(Properties(RelationPropertyValue(column_name, list_ids)))
 
     def set_checkbox(self, column_name: str, value: bool) -> None:
-        """
-        :param value: (required) to replace the current bool
-        """
         self._patch_properties(Properties(CheckboxPropertyValue(column_name, value)))
 
     def set_number(self, column_name: str, new_number: Union[float, timedelta]) -> None:

@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import os
 from types import ModuleType
-from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union, cast
+from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 
 try:
     import orjson
@@ -60,14 +60,13 @@ class _NotionClient:
             try:
                 self.token = os.environ["NOTION_TOKEN"]
             except KeyError:
-                if not token:
-                    raise NotionUnauthorized(
-                        "%s. %s."
-                        % (
-                            f"notion.{self.__class__.__name__}: Missing Token",
-                            "Check if `NOTION_TOKEN` is set in environment variables",
-                        )
+                raise NotionUnauthorized(
+                    "%s. %s."
+                    % (
+                        f"notion.{self.__class__.__name__}: Missing Token",
+                        "Check if `NOTION_TOKEN` is set in environment variables",
                     )
+                )
 
         __auth__ = f"Bearer {self.token}"
 
@@ -129,9 +128,7 @@ class _NotionClient:
         url: str,
         /,
         *,
-        payload: Optional[
-            Union[MutableMapping[str, Any], Union[bytes, Iterable[bytes]]]
-        ] = None,
+        payload: Optional[Union[MutableMapping[str, Any], str, bytes, bytearray]] = None,
     ) -> MutableMapping[str, Any]:
         if not payload:
             response = default_json.loads(requests.get(url, headers=self.headers).text)
@@ -141,7 +138,6 @@ class _NotionClient:
             response = default_json.loads(
                 requests.post(url, headers=self.headers, json=payload).text
             )
-
         validate_response(response)
         return cast(MutableMapping[str, Any], response)
 
@@ -150,9 +146,7 @@ class _NotionClient:
         url: str,
         /,
         *,
-        payload: Optional[
-            Union[MutableMapping[str, Any], Union[bytes, Iterable[bytes]]]
-        ] = None,
+        payload: Optional[Union[MutableMapping[str, Any], str, bytes, bytearray]] = None,
     ) -> MutableMapping[str, Any]:
         if not payload:
             response = default_json.loads(requests.post(url, headers=self.headers).text)
@@ -162,7 +156,6 @@ class _NotionClient:
             response = default_json.loads(
                 requests.post(url, headers=self.headers, data=payload).text
             )
-
         validate_response(response)
         return cast(MutableMapping[str, Any], response)
 
@@ -171,19 +164,17 @@ class _NotionClient:
         url: str,
         /,
         *,
-        payload: Union[MutableMapping[str, Any], Union[bytes, Iterable[bytes]]],
+        payload: Union[MutableMapping[str, Any], str, bytes, bytearray],
     ) -> MutableMapping[str, Any]:
         if isinstance(payload, dict):
             payload = default_json.dumps(payload)
         response = default_json.loads(
             requests.patch(url, headers=self.headers, data=payload).text
         )
-
         validate_response(response)
         return cast(MutableMapping[str, Any], response)
 
     def _delete(self, url: str, /) -> MutableMapping[str, Any]:
         response = default_json.loads(requests.delete(url, headers=self.headers).text)
-
         validate_response(response)
         return cast(MutableMapping[str, Any], response)

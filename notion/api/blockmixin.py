@@ -130,4 +130,4 @@ class _TokenBlockMixin(_NotionClient):
         return dt.astimezone(tz=self.tz)
 
     def __repr__(self) -> str:
-        return f"notion.{self.__class__.__name__}('{self.id}')"
+        return f"notion.{self.__class__.__name__}('{getattr(self, 'id', '')}')"

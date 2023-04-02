@@ -32,18 +32,14 @@ class SortFilter(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(
-        self, sort_object: list[Union[PropertyValueSort, EntryTimestampSort]]
+        self, sort_object: Sequence[Union[PropertyValueSort, EntryTimestampSort]]
     ) -> None:
         """
-        A sort is a condition used to order the entries returned from a database query.
         A database query can be sorted by a property and/or timestamp and in a given direction.
-        For example,
-        a library database can be sorted by the "Name of a book" (i.e. property) and in ascending (i.e. direction).
+        Database queries can also be sorted by two or more properties.
 
-        Database queries can also be sorted by two or more properties, which is formally called a nested sort.
-        The sort object listed first in the nested sort list takes precedence.
-
-        :param sort_object: (required) A list containing _one_ of PropertyValueSort or EntryTimestampSort
+        :param sort_object: (required) A list containing PropertyValueSort/EntryTimestampSort\
+                             The sort object listed first in the nested sort list takes precedence.
 
         https://developers.notion.com/reference/post-database-query-sort#sort-object
         """

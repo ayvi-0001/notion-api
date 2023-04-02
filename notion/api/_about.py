@@ -34,8 +34,25 @@ __all__: Sequence[str] = (
 __notion_version__: Final[str] = "2022-06-28"
 __content_type__: Final[str] = "application/json"
 __base_url__: Final[str] = "https://api.notion.com/v1/"
-__version__: Final[str] = "0.3.8"
+__version__: Final[str] = "0.3.9"
 __package_url__: Final[str] = "https://pypi.org/pypi/notion-api/"
 __package_json__: Final[str] = "https://pypi.org/pypi/notion-api/json"
 
-# Previous Notion-Version headers `"2021-05-11"`, `"2021-05-13"`, `"2021-08-16"`, `"2022-02-22"`
+
+# Notion API Changlog
+# https://developers.notion.com/page/changelog
+
+# New changes to notion.so
+# https://www.notion.so/releases
+
+# Notion Platform Roadmap
+# https://developers.notion.com/page/notion-platform-roadmap
+
+# API Reference
+# https://developers.notion.com/reference/intro
+
+# Previous Notion-Version headers
+#  - "2021-05-11"
+#  - "2021-05-13"
+#  - "2021-08-16"
+#  - "2022-02-22"

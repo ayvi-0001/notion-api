@@ -23,7 +23,7 @@
 from __future__ import annotations
 
 from types import ModuleType
-from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union, cast
+from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 
 try:
     import orjson
@@ -37,13 +37,11 @@ except ModuleNotFoundError:
 __all__: Sequence[str] = ["build_payload"]
 
 
-def build_payload(
-    *__obj: MutableMapping[str, Any]
-) -> Union[Iterable[bytes], bytes, bytearray]:
+def build_payload(*__obj: MutableMapping[str, Any]) -> Union[str, bytes]:
     final: dict[str, Any] = {}
     for o in __obj:
         final.update(o)
-    return cast(Union[Iterable[bytes], bytes, bytearray], default_json.dumps(final))
+    return cast(Union[str, bytes], default_json.dumps(final))
 
 
 class NotionObject(dict[str, Any]):

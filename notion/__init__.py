@@ -26,14 +26,10 @@
 ### Queries:
 >>> from notion import query
 query objects:
- - SortFilter
+ - SortFilter[PropertyValueSort | EntryTimestampSort]
+ - CompoundFilter[CompoundFilter | PropertyFilter | TimestampFilter]
  - PropertyFilter
- - CompoundFilter
  - TimestampFilter
- - EntryTimestampSort
- - PropertyValueSort
-
-To combine a CompoundFilter/PropertyFilter with a SortFilter, use `notion.build_payload(...)`
 """
 from typing import Sequence
 

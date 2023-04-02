@@ -23,11 +23,10 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Any, Iterable, MutableMapping, Optional, Sequence, Union
+from typing import Any, MutableMapping, Optional, Sequence, Union
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
-from notion.exceptions.errors import NotionObjectNotFound, NotionValidationError
 
 __all__: Sequence[str] = ["Block"]
 
@@ -44,8 +43,8 @@ class Block(_TokenBlockMixin):
     ---
     :param id: (required) `block_id` of object in Notion.
     :param token: (required) Bearer token provided when you create an integration.\
-        set as `NOTION_TOKEN` in .env or set variable here.\
-        see https://developers.notion.com/reference/authentication.
+                   set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
+                   see https://developers.notion.com/reference/authentication.
     :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
 
     https://developers.notion.com/reference/block
@@ -64,7 +63,7 @@ class Block(_TokenBlockMixin):
             self.token = token
 
         self.notion_version: Optional[str] = notion_version
-        self.logger = _NLOG.getChild(f"{self.__repr__()}")
+        self.logger = _NLOG.getChild(self.__repr__())
 
     @cached_property
     def retrieve(self) -> MutableMapping[str, Any]:
@@ -98,13 +97,13 @@ class Block(_TokenBlockMixin):
 
     def _append(
         self,
-        payload: Union[MutableMapping[str, Any], Union[bytes, Iterable[bytes]]],
+        payload: Union[MutableMapping[str, Any], str, bytes, bytearray],
     ) -> MutableMapping[str, Any]:
         """
         Creates/appends new children blocks to the parent block_id specified.
         Returns a paginated list of newly created children block objects.
 
-        Used internally by `notion.api.blocktypefactory.BlockFactory`.
+        Used internally by notion.api.blocktypefactory.BlockFactory.
 
         https://developers.notion.com/reference/patch-block-children
         """
@@ -154,43 +153,25 @@ class Block(_TokenBlockMixin):
     ) -> None:
         if not self.has_children:
             self.logger.info("delete_child did nothing. Block has no children.")
-            return None
+            return
+
+        if all:
+            children = [
+                block["id"] for block in self.retrieve_children().get("results", [])
+            ]
+            for id in children:
+                self._delete(self._block_endpoint(id))
+            self.logger.info(f"Deleted all child blocks.")
+            return
 
         if children_id:
             for id in children_id:
-                try:
-                    self._delete(self._block_endpoint(id))
-                    self.logger.info(f"Deleted child block `{id}`.")
-                except NotionValidationError as error:
-                    raise NotionObjectNotFound(
-                        "%s %s %s"
-                        % (
-                            self.__repr__(),
-                            "tried deleting a block with an invalid id:",
-                            error,
-                        )
-                    )
-        elif all:
-            children = self.retrieve_children().get("results", [])
-            for results in children:
-                try:
-                    self._delete(self._block_endpoint(results["id"]))
-                    self.logger.info(f"Deleted child block `{results['id']}`.")
-                except NotionValidationError as error:
-                    raise NotionObjectNotFound(
-                        "%s %s %s"
-                        % (
-                            self.__repr__(),
-                            "tried deleting a block with an invalid id:",
-                            error,
-                        )
-                    )
+                self._delete(self._block_endpoint(id))
+                self.logger.info(f"Deleted child block `{id}`.")
 
     def update(
         self,
-        payload: Union[
-            MutableMapping[str, Any], Union[Iterable[bytes], bytes, bytearray]
-        ],
+        payload: Union[MutableMapping[str, Any], Union[bytearray, bytes, bytearray]],
     ) -> MutableMapping[str, Any]:
         """
         Updates content for the specified block_id based on the block

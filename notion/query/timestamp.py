@@ -31,21 +31,15 @@ __all__: Sequence[str] = ["TimestampFilter"]
 
 
 class TimestampFilter(NotionObject):
-    __slots__: Sequence[str] = ["_type"]
+    __slots__: Sequence[str] = ()
 
     def __init__(
         self,
         filter_condition: DateConditions,
         filter_value: Union[str, MutableMapping[str, Any]],
-        /,
-        *,
-        _type: Optional[str] = None,
+        type: Optional[str] = None,
     ) -> None:
         """
-        A timestamp filter object must contain a timestamp key corresponding to the type of timestamp
-        and a key matching that timestamp type which contains a date filter condition.
-        Possible values are: "created_time", "last_edited_time".
-
         Use classmethods:
          - created_time
          - last_edited_time
@@ -53,17 +47,14 @@ class TimestampFilter(NotionObject):
         https://developers.notion.com/reference/post-database-query-filter#timestamp-filter-object
         """
         super().__init__()
-        self.nest("filter", "timestamp", _type)
-        self.nest("filter", _type, {filter_condition: filter_value})
+        self.nest("filter", "timestamp", type)
+        self.nest("filter", type, {filter_condition: filter_value})
 
     @classmethod
     def created_time(
         cls,
         filter_condition: DateConditions,
         filter_value: Union[str, MutableMapping[str, Any]],
-        /,
-        *,
-        _type: Optional[str] = None,
     ) -> TimestampFilter:
         """
         :param filter_condition: One of the available DateConditions. Must be a string (ISO 8601 date).\
@@ -76,16 +67,13 @@ class TimestampFilter(NotionObject):
 
         https://developers.notion.com/reference/post-database-query-filter#timestamp-filter-object
         """
-        return cls(filter_condition, filter_value, _type="created_time")
+        return cls(filter_condition, filter_value, type="created_time")
 
     @classmethod
     def last_edited_time(
         cls,
         filter_condition: DateConditions,
         filter_value: Union[str, MutableMapping[str, Any]],
-        /,
-        *,
-        _type: Optional[str] = None,
     ) -> TimestampFilter:
         """
         :param filter_condition: One of the available DateConditions. Must be a string (ISO 8601 date).\
@@ -98,4 +86,4 @@ class TimestampFilter(NotionObject):
 
         https://developers.notion.com/reference/post-database-query-filter#timestamp-filter-object
         """
-        return cls(filter_condition, filter_value, _type="last_edited_time")
+        return cls(filter_condition, filter_value, type="last_edited_time")

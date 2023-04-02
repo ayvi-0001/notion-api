@@ -43,7 +43,7 @@ __all__: Sequence[str] = ["Workspace"]
 
 class Workspace(_NotionClient):
     """
-    `notion.api.notionworkspace.Workspace` uses static methods and doesn't require an instance,
+    notion.api.notionworkspace.Workspace uses static methods and doesn't require an instance,
     but currently requires the token be set as an environment variable.
     """
 
@@ -52,7 +52,7 @@ class Workspace(_NotionClient):
 
     @staticmethod
     def __repr__() -> str:
-        return f"notion.{Workspace().__class__.__name__}"
+        return f"notion.{Workspace().__class__.__name__}()"
 
     @staticmethod
     def _workspace_endpoint(
@@ -86,7 +86,8 @@ class Workspace(_NotionClient):
 
     @staticmethod
     def retrieve_token_bot() -> MutableMapping[str, Any]:
-        """Retrieves the bot User associated with the API token provided in the authorization header.
+        """
+        Retrieves the bot User associated with the API token provided in the authorization header.
         The bot will have an owner field with information about the person who authorized the integration.
 
         https://developers.notion.com/reference/get-self
@@ -105,9 +106,8 @@ class Workspace(_NotionClient):
     def list_all_users(
         *, page_size: Optional[int] = None, cursor: Optional[str] = None
     ) -> MutableMapping[str, Any]:
-        """Returns a paginated list of Users for the workspace.
-        The response may contain fewer than page_size of results.
-
+        """
+        Returns a paginated list of Users for the workspace.
         https://developers.notion.com/reference/get-users
         """
         all_users_endpoint = methodcaller("_workspace_endpoint", users=True)(Workspace())
@@ -132,11 +132,11 @@ class Workspace(_NotionClient):
     def retrieve_user(
         *, user_name: Optional[str] = None, user_id: Optional[str] = None
     ) -> Union[UserObject, BotObject]:
-        """Retrieves a User using either the user name or ID specified.
+        """
+        Retrieves a User using either the user name or ID specified.
 
-        ---
-        :param user_name: (1 of `user_name` or `user_id` required) User name in Notion.
-        :param user_id: (1 of `user_name` or `user_id` required) Identifier for a Notion user
+        :param user_name: (1 of user_name or user_id required) User name in Notion.
+        :param user_id: (1 of user_name or user_id required) Identifier for a Notion user
 
         https://developers.notion.com/reference/get-users
         """
@@ -234,20 +234,17 @@ class Workspace(_NotionClient):
         Comments added will always appear as the newest comment in the thread.
 
         ---
-        :param page: (1 of `page`/`block`/`discussion_id` required)\
-            either a string representing the id of a page, or an instance of `notion.api.notionpage.Page`.\
-            passing a string id of child block inside a page will raise\
-            `notion.exceptions.errors.NotionObjectNotFound`\
-            passing a `notion.api.notionblock.Block` instance to the `page` param\
-            will create a comment to the parent_id of the block.
-        :param block: (1 of `page`/`block`/`discussion_id` required)\
-            either a string representing the id of a page, or an instance of `notion.api.notionblock.Block`.\
-            Will search the block for an existing discussion thread, and comment in\
-            that thread if found, else will raise `notion.exceptions.errors.NotionObjectNotFound`
-        :param discussion_id: (1 of `page`/`block`/`discussion_id` required)\
-            a string representing the discussion_id of a comment object.
-        :param comment: (required) either a `notion.properties.richtext.Richtext` object\
-            or `notion.properties.richtext.Mention` object.
+        :param page: (1 of page/block/discussion_id required)\
+                      either a string representing the id of a page, or a Page instance.\
+                      - passing a string id of child block inside a page will raise NotionObjectNotFound\
+                      - passing a Block instance to the page param will create a comment to the parent_id of the block.
+        :param block: (1 of page/block/discussion_id required)\
+                       either a string representing the id of a block, or a Block instance.\
+                       Will search the block for an existing discussion thread,\
+                        and comment in that thread if found.
+        :param discussion_id: (1 of page/block/discussion_id required)\
+                               a string representing the discussion_id of a comment object.
+        :param comment: (required) either a Richtext/Mention object.
 
         https://developers.notion.com/reference/create-a-comment
         """

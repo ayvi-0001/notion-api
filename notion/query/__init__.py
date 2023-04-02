@@ -21,20 +21,17 @@
 # SOFTWARE.
 
 """ 
-See https://developers.notion.com/reference/post-database-query for info on database queries and filter/sort objects.
+https://developers.notion.com/reference/post-database-query 
 
-`notion.query.PropertyFilter` && `notion.query.TimestampFilter` for individual filters as used in Notion UI.
+notion.query.PropertyFilter && notion.query.TimestampFilter for individual filters as used in Notion UI.
 
-`notion.query.CompoundFilter` to combine filters.
-    :method: _and(): combine all filters in an `and` grouping.
-    :method: _or(): combine all filters in an `or` grouping.
+notion.query.CompoundFilter to combine filters.
+    :method: _and(): combine all filters in an and grouping.
+    :method: _or(): combine all filters in an or grouping.
 
-    Create a separate CompoundFilter object to nest an `and`/`or` operator inside another `and`/`or`.
+    Create a separate CompoundFilter object to nest an and/or operator inside another and/or.
 
-`notion.query.SortFilter` takes a list of either *`notion.query.PropertyValueSort` | `notion.query.EntryTimestampSort`
-
-To combine a CompoundFilter/PropertyFilter with a SortFilter,
-use `notion.build_payload(...)`
+notion.query.SortFilter takes a list of either *notion.query.PropertyValueSort | notion.query.EntryTimestampSort
 """
 from typing import Sequence
 
