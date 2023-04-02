@@ -3,19 +3,42 @@
 <p align="center">
     <a href="https://pypi.org/project/notion-api"><img alt="PYPI" src="https://img.shields.io/pypi/v/notion-api"></a>
     &nbsp;
+    <a href="https://pypi.org/project/notion-api"><img alt="PYPI" src="https://img.shields.io/pypi/status/notion-api"></a>
+    &nbsp;
     <img alt="pyversions" src="https://img.shields.io/pypi/pyversions/notion-api"></a>
     &nbsp;
     <img alt="last commit" src="https://img.shields.io/github/last-commit/ayvi-0001/notion-api?color=%239146ff"></a>
     &nbsp;
     <a href="https://developers.notion.com/reference/versioning"><img alt="notion versioning" src="https://img.shields.io/static/v1?label=notion-API-version&message=2022-06-28&color=%232e1a00"></a>
     &nbsp;
+</p>
+<p align="center">
     <a href="https://github.com/ayvi-0001/notion-api/blob/main/LICENSE"><img alt="license: MIT" src="https://img.shields.io/static/v1?label=license&message=MIT&color=informational"></a>
     &nbsp;
-    <img alt="code style: black" src="https://img.shields.io/static/v1?label=code%20style&message=black&color=000000"></a>
+    <a href="https://github.com/psf/black"><img alt="code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+    &nbsp;
+    <a href="https://pycqa.github.io/isort/"><img alt="code style: black" src="https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336"></a>
+
 </p>
 
 __Disclaimer: This is an _unofficial_ package and has no affiliation with Notion.so__  
+
+<div border="0" align="center">
+    <table>
+        <tr>
+            <td align="center"><b>A few useful links:</b></td>
+        </tr>
+            <td> <a href="https://developers.notion.com/reference/intro">API Reference</a></td><tr>
+        </td>
+            <td><a href="https://developers.notion.com/page/changelog">Notion API Changlog </img></a></tr>
+            <td> <a href="https://www.notion.so/releases">Notion.so Releases</a></td></tr>
+            <td> <a href="https://developers.notion.com/page/notion-platform-roadmap">Notion Platform Roadmap</a></td>
+        </tr>
+    </table>
+</div>
+
 <br>
+
 
 A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.  
 
@@ -23,27 +46,25 @@ This project is still a work in progress, and features will continue to change. 
 
 # Install
 ```
-pip install notion-api
+pip install -U notion-api
 ```
 
 # Usage
----
 ```py
 import dotenv
 
 import notion
 
-dotenv.load_dotenv()  # client will check for env variable 'NOTION_TOKEN',
+dotenv.load_dotenv()  # client will check for env variable 'NOTION_TOKEN'.
 
 homepage = notion.Page('773b08ff38b44521b44b115827e850f2')
 parent_db = notion.Database(homepage.parent_id)
 
-# optionally can reference secret through `token` arg:
+# or assign through `token` parameter.
 homepage = notion.Page('773b08ff38b44521b44b115827e850f2', token="secret_n2m52d1***")
-# however this currently doesn't work with `notion.api.notionworkspace.Workspace`.
 
 
-# __get_item__ will search for properties in a Page, and for property objects in a Database.
+# __get_item__ searchs for page property values if indexing a Page..
 homepage['dependencies']
 # {
 #     "id": "WYYq",
@@ -56,6 +77,7 @@ homepage['dependencies']
 #     "has_more": false
 # }
 
+# ..and searchs for property objects if indexing a Database.
 parent_db['dependencies']
 # {
 #     "id": "WYYq",
@@ -76,27 +98,29 @@ homepage.title = "New Page Title"
 ```
 
 ---
+<br>
+
 ## Creating Pages/Databases/Blocks
 
-Pages and Databases are created with a classmethod by passing an existing page/database instance as a parent.
+The current version of the Notion api does not allow pages to be created to the parent `workspace`.
+Create objects by passing an existing Page/Database instance as an arg to the `create` classmethods.
 
 ```py
 new_database = notion.Database.create(
     homepage, database_title="A new database", name_column="name"
 ) 
-# name column refers to column containing page titles. 
+# name column refers to the column containing pages/page titles. 
 # Defaults to "Name" if None (all strings in Notion API are case-sensitive).
 
 new_page = notion.Page.create(new_database, page_title="A new database row")
 ```
 
-Blocks can be created with `notion.api.blocktypefactory.BlockFactory` by appending to an exisiting Block or Page.
+Blocks can be created with `notion.api.blocktypefactory.BlockFactory` by appending to an exisiting Block or Page. The new block is always returned as a `notion.api.notionblock.Block` instance.
 ```py
 from notion import properties as prop
 
-# BlockFactory returns the new block as a Block object.
-original_synced_block = notion.BlockFactory.new_synced_block(homepage)
 # `new_synced_block` refers to the original synced block in the Notion UI.
+original_synced_block = notion.BlockFactory.new_synced_block(homepage)
 
 # Adding content to the synced block
 notion.BlockFactory.paragraph(original_synced_block, [prop.RichText('This is a synced block.')])
@@ -105,16 +129,16 @@ notion.BlockFactory.paragraph(original_synced_block, [prop.RichText('This is a s
 notion.BlockFactory.reference_synced_block(new_page, original_synced_block.id)
 ```
 
-### _Example function: Appending blocks to a page as a reminder._
+**_Example function: Appending blocks to a page as a reminder._**
 
 ```py
-def notion_block_reminder(page_id: str, message: str, user_name: str) -> None:
-    target_page = notion.Page('0b9eccfa890e4c3390175ee10c664a35')
+def in_block_reminder(page_id: str, message: str, user_name: str) -> None:
+    target_page = notion.Page(page_id)
     mentionblock = notion.BlockFactory.paragraph(
         target_page,
         [
             prop.Mention.user(
-                notion.Workspace.retrieve_user(user_name="Your Name"),
+                notion.Workspace.retrieve_user(user_name=user_name),
                 annotations=prop.Annotations(
                     code=True, bold=True, color=prop.BlockColor.purple
                 ),
@@ -129,15 +153,20 @@ def notion_block_reminder(page_id: str, message: str, user_name: str) -> None:
             prop.RichText(":"),
         ],
     )
-    notion.BlockFactory.paragraph(mentionblock, [prop.RichText("message here")])
+    notion.BlockFactory.paragraph(mentionblock, [prop.RichText(message)])
     notion.BlockFactory.divider(target_page)
 ```
 
+```py
+>>> in_block_reminder(page_id="0b9eccfa890e4c3390175ee10c664a35", message="message here", user_name="Your Name")
+```
 <p align="center">
-    <img src="https://raw.githubusercontent.com/ayvi-0001/notion-api/main/images/example_function_reminder.png">  
+    <img src="https://raw.githubusercontent.com/ayvi-0001/notion-api/main/images/example_function_reminder.png">
 </p>
 
 ---
+<br>
+
 ## Add, Set, & Delete - Page property values / Database property objects
 
 The first argument for all database column methods is the name of the property,  
@@ -158,13 +187,18 @@ new_database.multiselect_column(
         prop.Option("option-a", prop.PropertyColor.red),
         prop.Option("option-b", prop.PropertyColor.green),
         prop.Option("option-c", prop.PropertyColor.blue),
-    ],  # if an option does not already exist, a new one will be created with a random color.
-)       # this is not true for `status` column types, which can only be edited via UI.
+    ],
+)
+
+# if an option does not already exist, a new one will be created with a random color.
+# this is not true for `status` column types, which can only be edited via UI.
 
 new_page.set_multiselect("options", ["option-a", "option-b"])
 ```
 
 ---
+<br>
+
 ## Database Queries
 
 A single `notion.query.propfilter.PropertyFilter` is equivalent to filtering one property type in Notion.
@@ -176,30 +210,34 @@ from datetime import timedelta
 
 from notion import query
 
-today = datetime.today().isoformat()
-tomorrow = (datetime.today() + timedelta(1)).isoformat()
+TODAY = datetime.combine(datetime.today(), datetime.min.time())
+TOMORROW = TODAY + timedelta(1)
 
 query_filter = query.CompoundFilter()._and(
-    query.PropertyFilter.date("date", "date", "on_or_after", today),  # required
-    query.PropertyFilter.date("date", "date", "before", tomorrow),  # required
+    query.PropertyFilter.date("date", "created_time", "on_or_after", TODAY.isoformat()),
+    query.PropertyFilter.date("date", "created_time", "before", TOMORROW.isoformat()),
     query.CompoundFilter()._or(
-        query.PropertyFilter.text("name", "title", "contains", "your page title"),  # either this
-        query.PropertyFilter.text("name", "title", "contains", "your other page title"),  # or this
+        query.PropertyFilter.text("name", "title", "contains", "your page title"),
+        query.PropertyFilter.text("name", "title", "contains", "your other page title"),
     ),
 )
 
-query_sort = query.SortFilter([query.EntryTimestampSort.created_time_descending()])
+query_sort = query.SortFilter(
+    [
+        query.PropertyValueSort.ascending("your property name"),
+        query.EntryTimestampSort.created_time_descending(),
+    ]
+)
 
-# `notion.build_payload`: helper function to combine Compound/Property filters && Sort filters.
 query_result = new_database.query(
-    payload=notion.build_payload(query_filter, query_sort),
-    filter_property_values=[
-        "name",
-        "options",
-    ],  # pass a list of property names to filter results.
+    filter=query_filter,
+    sort=query_sort,
+    page_size=5,
+    filter_property_values=["name", "options"],
 )
 ```
 ---
+<br>
 
 ## Exceptions & Validating Responses
 
