@@ -123,11 +123,11 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/delete-a-block
         """
         if self.is_archived:
-            self.logger.info("delete_self did nothing. Block is already archived.")
+            self.logger.debug("delete_self did nothing. Block is already archived.")
             return None
 
         block = self._delete(self._block_endpoint(self.id))
-        self.logger.info("Deleted Self.")
+        self.logger.debug("Deleted Self.")
         return block
 
     @property
@@ -139,20 +139,20 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/update-a-block
         """
         if not self.is_archived:
-            self.logger.info("restore_self did nothing. Block is not archived.")
+            self.logger.debug("restore_self did nothing. Block is not archived.")
             return None
 
         block = self._patch(
             self._block_endpoint(self.id), payload=(b'{"archived": false}')
         )
-        self.logger.info("Restored Self.")
+        self.logger.debug("Restored Self.")
         return block
 
     def delete_child(
         self, children_id: Optional[list[str]] = None, *, all: Optional[bool] = False
     ) -> None:
         if not self.has_children:
-            self.logger.info("delete_child did nothing. Block has no children.")
+            self.logger.debug("delete_child did nothing. Block has no children.")
             return
 
         if all:
@@ -161,13 +161,13 @@ class Block(_TokenBlockMixin):
             ]
             for id in children:
                 self._delete(self._block_endpoint(id))
-            self.logger.info(f"Deleted all child blocks.")
+            self.logger.debug(f"Deleted all child blocks.")
             return
 
         if children_id:
             for id in children_id:
                 self._delete(self._block_endpoint(id))
-                self.logger.info(f"Deleted child block `{id}`.")
+                self.logger.debug(f"Deleted child block `{id}`.")
 
     def update(
         self,

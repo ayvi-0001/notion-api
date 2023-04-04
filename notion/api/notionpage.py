@@ -129,7 +129,7 @@ class Page(_TokenBlockMixin):
         new_page = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
 
         cls_ = cls(new_page["id"])
-        cls_.logger.info(
+        cls_.logger.debug(
             f"Page created in {parent_instance.__repr__()}. Url: {new_page['url']}"
         )
         return cls_
@@ -181,20 +181,20 @@ class Page(_TokenBlockMixin):
     @property
     def delete_self(self) -> None:
         if self.is_archived:
-            self.logger.info("delete_self did nothing. Page is already archived.")
+            self.logger.debug("delete_self did nothing. Page is already archived.")
             return
 
         self._delete(self._block_endpoint(self.id))
-        self.logger.info("Deleted self.")
+        self.logger.debug("Deleted self.")
 
     @property
     def restore_self(self) -> None:
         if not self.is_archived:
-            self.logger.info("restore_self did nothing. Page is not archived.")
+            self.logger.debug("restore_self did nothing. Page is not archived.")
             return
 
         self._patch(self._pages_endpoint(self.id), payload=(b'{"archived": false}'))
-        self.logger.info("Restored self.")
+        self.logger.debug("Restored self.")
 
     def retrieve(
         self, *, filter_properties: Optional[list[str]] = None

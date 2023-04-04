@@ -160,7 +160,7 @@ class Database(_TokenBlockMixin):
         new_db = cls._post(parent_instance, cls._database_endpoint(), payload=payload)
 
         cls_ = cls(new_db["id"])
-        cls_.logger.info(
+        cls_.logger.debug(
             f"Database created in {parent_instance.__repr__()}. Url: {new_db['url']}"
         )
         return cls_
@@ -219,20 +219,20 @@ class Database(_TokenBlockMixin):
     @property
     def delete_self(self) -> None:
         if self.is_archived:
-            self.logger.info("delete_self did nothing. Database is already archived.")
+            self.logger.debug("delete_self did nothing. Database is already archived.")
             return None
 
         self._delete(self._block_endpoint(self.id))
-        self.logger.info("Deleted self.")
+        self.logger.debug("Deleted self.")
 
     @property
     def restore_self(self) -> None:
         if not self.is_archived:
-            self.logger.info("restore_self did nothing. Database is not archived.")
+            self.logger.debug("restore_self did nothing. Database is not archived.")
             return None
 
         self._patch(self._database_endpoint(self.id), payload=(b'{"archived": false}'))
-        self.logger.info("Restored self.")
+        self.logger.debug("Restored self.")
 
     def _update(
         self,
@@ -254,7 +254,7 @@ class Database(_TokenBlockMixin):
         https://developers.notion.com/reference/update-property-schema-object#removing-a-property
         """
         self._update(payload={"properties": {name_or_id: None}})
-        self.logger.info(f"Deleted property `{name_or_id}`")
+        self.logger.debug(f"Deleted property `{name_or_id}`")
 
     def rename_property(self, old_name: str, new_name: str) -> None:
         """
@@ -335,13 +335,13 @@ class Database(_TokenBlockMixin):
         except NotionValidationError:
             pass
 
-        self.logger.info(f"Created/Updated dual_relation property `{property_name}`.")
+        self.logger.debug(f"Created/Updated dual_relation property `{property_name}`.")
 
     def single_relation_column(self, property_name: str, database_id: str) -> None:
         self._update(
             Properties(RelationPropertyObject.single(property_name, database_id))
         )
-        self.logger.info(f"Created/Updated dual_relation property `{property_name}`.")
+        self.logger.debug(f"Created/Updated dual_relation property `{property_name}`.")
 
     def rollup_column(
         self,
@@ -363,7 +363,7 @@ class Database(_TokenBlockMixin):
             function,
         )
         self._update((Properties(rollup_property)))
-        self.logger.info(f"Created/Updated rollup property `{property_name}`.")
+        self.logger.debug(f"Created/Updated rollup property `{property_name}`.")
 
     def select_column(self, property_name: str, /, *, options: list[Option]) -> None:
         """
@@ -377,7 +377,7 @@ class Database(_TokenBlockMixin):
         You can pass an empty list to `options` to clear the available options, and re-add them with custom colors.
         """
         self._update(Properties(SelectPropertyObject(property_name, options=options)))
-        self.logger.info(f"Created/Updated select property `{property_name}`.")
+        self.logger.debug(f"Created/Updated select property `{property_name}`.")
 
     def multiselect_column(self, property_name: str, /, *, options: list[Option]) -> None:
         """
@@ -393,7 +393,7 @@ class Database(_TokenBlockMixin):
         self._update(
             Properties(MultiSelectPropertyObject(property_name, options=options))
         )
-        self.logger.info(f"Created/Updated multi-select property `{property_name}`.")
+        self.logger.debug(f"Created/Updated multi-select property `{property_name}`.")
 
     def number_column(
         self,
@@ -401,56 +401,56 @@ class Database(_TokenBlockMixin):
         format: Optional[Union[NumberFormats, str]] = NumberFormats.number,
     ) -> None:
         self._update(Properties(NumberPropertyObject(property_name, format)))
-        self.logger.info(f"Created/Updated number property `{property_name}`.")
+        self.logger.debug(f"Created/Updated number property `{property_name}`.")
 
     def checkbox_column(self, property_name: str) -> None:
         self._update(Properties(CheckboxPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated checkbox property `{property_name}`.")
+        self.logger.debug(f"Created/Updated checkbox property `{property_name}`.")
 
     def date_column(self, property_name: str) -> None:
         self._update(Properties(DatePropertyObject(property_name)))
-        self.logger.info(f"Created/Updated date property `{property_name}`.")
+        self.logger.debug(f"Created/Updated date property `{property_name}`.")
 
     def text_column(self, property_name: str) -> None:
         self._update(Properties(RichTextPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated text property `{property_name}`.")
+        self.logger.debug(f"Created/Updated text property `{property_name}`.")
 
     def formula_column(self, property_name: str, /, *, expression: str) -> None:
         self._update(Properties(FormulaPropertyObject(property_name, expression)))
-        self.logger.info(f"Created/Updated formula property `{property_name}`.")
+        self.logger.debug(f"Created/Updated formula property `{property_name}`.")
 
     def created_time_column(self, property_name: str) -> None:
         self._update(Properties(CreatedTimePropertyObject(property_name)))
-        self.logger.info(f"Created/Updated created_time property `{property_name}`.")
+        self.logger.debug(f"Created/Updated created_time property `{property_name}`.")
 
     def created_by_column(self, property_name: str) -> None:
         self._update(Properties(CreatedByPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated created_by property `{property_name}`.")
+        self.logger.debug(f"Created/Updated created_by property `{property_name}`.")
 
     def last_edited_time_column(self, property_name: str) -> None:
         self._update(Properties(LastEditedTimePropertyObject(property_name)))
-        self.logger.info(f"Created/Updated last_edited property `{property_name}`.")
+        self.logger.debug(f"Created/Updated last_edited property `{property_name}`.")
 
     def last_edited_by_column(self, property_name: str) -> None:
         self._update(Properties(LastEditedByPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated last_edited_by property `{property_name}`.")
+        self.logger.debug(f"Created/Updated last_edited_by property `{property_name}`.")
 
     def files_column(self, property_name: str) -> None:
         self._update(Properties(FilesPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated files property `{property_name}`.")
+        self.logger.debug(f"Created/Updated files property `{property_name}`.")
 
     def email_column(self, property_name: str) -> None:
         self._update(Properties(EmailPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated email property `{property_name}`.")
+        self.logger.debug(f"Created/Updated email property `{property_name}`.")
 
     def url_column(self, property_name: str) -> None:
         self._update(Properties(URLPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated url property `{property_name}`.")
+        self.logger.debug(f"Created/Updated url property `{property_name}`.")
 
     def phone_number_column(self, property_name: str) -> None:
         self._update(Properties(PhoneNumberPropertyObject(property_name)))
-        self.logger.info(f"Created/Updated phone_number property `{property_name}`.")
+        self.logger.debug(f"Created/Updated phone_number property `{property_name}`.")
 
     def people_column(self, property_name: str) -> None:
         self._update(Properties(PeoplePropertyObject(property_name)))
-        self.logger.info(f"Created/Updated people property `{property_name}`.")
+        self.logger.debug(f"Created/Updated people property `{property_name}`.")
