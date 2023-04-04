@@ -28,13 +28,12 @@ from notion.api.client import _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
 from notion.exceptions.errors import (
-    NotionInvalidRequest,
     NotionInvalidRequestUrl,
     NotionObjectNotFound,
     NotionValidationError,
 )
 from notion.properties.build import NotionObject, build_payload
-from notion.properties.common import BotObject, Parent, UserObject
+from notion.properties.common import Parent, UserObject
 from notion.properties.richtext import Mention, RichText
 from notion.query.sort import EntryTimestampSort, SortFilter
 
@@ -131,7 +130,7 @@ class Workspace(_NotionClient):
     @staticmethod
     def retrieve_user(
         *, user_name: Optional[str] = None, user_id: Optional[str] = None
-    ) -> Union[UserObject, BotObject]:
+    ) -> UserObject:
         """
         Retrieves a User using either the user name or ID specified.
 
@@ -140,51 +139,43 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/get-users
         """
-        try:
-            if not any([user_name, user_id]):
-                raise ValueError("Must input either user_name or user_id.")
+        if not any([user_name, user_id]):
+            raise ValueError("Must input either user_name or user_id.")
 
-            all_users = {
-                n.get("name"): n.get("id")
-                for n in Workspace.list_all_users().get("results", [])
-            }
+        all_users = {
+            n.get("name"): n.get("id")
+            for n in Workspace.list_all_users().get("results", [])
+        }
 
-            if set([user_name]).issubset(all_users):
-                user_id = cast(str, all_users.get(user_name))
-
-            retrieve_user_endpoint = methodcaller(
-                "_workspace_endpoint",
-                users=True,
-                user_id=user_id,
-            )(Workspace())
-
-            user = methodcaller("_get", retrieve_user_endpoint)(Workspace())
-
-            if user["type"] == "bot":
-                return BotObject(
-                    id=user["id"],
-                    name=user["name"],
-                    avatar_url=user["avatar_url"] if user["avatar_url"] else None,
-                    bot=user["bot"],
-                    workspace_name=user["bot"]["workspace_name"],
+        if set([user_name]).issubset(all_users):
+            user_id = cast(str, all_users.get(user_name))
+        else:
+            raise NotionValidationError(
+                "%s%s%s"
+                % (
+                    f"{Workspace.__repr__()}: Could not find ",
+                    f"{'user_name' if user_name else 'user_id'}: ",
+                    f"{user_name if user_name else user_id}",
                 )
-
-            return UserObject(
-                id=user["id"],
-                name=user["name"],
-                avatar_url=user["avatar_url"] if user["avatar_url"] else None,
-                email=user["person"]["email"] if user["person"]["email"] else None,
             )
 
-        except TypeError:
-            raise NotionInvalidRequest(
-                f"{Workspace.__repr__()}: Cannot use positional arguments for this method.",
-            )
-        except (KeyError, NotionValidationError):
-            method = "user_name" if user_name else "user_id"
-            raise NotionInvalidRequest(
-                f"{Workspace.__repr__()}: Could not find {method}: {user_name if user_name else user_id} ",
-            )
+        retrieve_user_endpoint = methodcaller(
+            "_workspace_endpoint",
+            users=True,
+            user_id=user_id,
+        )(Workspace())
+
+        user = methodcaller("_get", retrieve_user_endpoint)(Workspace())
+
+        if user["type"] == "bot":
+            raise TypeError("User is a bot. Use retrieve_token_bot() instead.")
+
+        return UserObject(
+            id=user["id"],
+            name=user["name"],
+            avatar_url=user["avatar_url"] if user["avatar_url"] else None,
+            email=user["person"]["email"] if user["person"]["email"] else None,
+        )
 
     @staticmethod
     def retrieve_comments(
@@ -279,7 +270,7 @@ class Workspace(_NotionClient):
             else:
                 comment_thread = Workspace.retrieve_comments(thread=block)
 
-            if not comment_thread.get("results", []):
+            if not comment_thread.get("results"):
                 raise NotionObjectNotFound(
                     "%s %s %s"
                     % (
@@ -291,11 +282,7 @@ class Workspace(_NotionClient):
             # regardless of the discussion_id used in a comment thread on a block,
             # the next comment will always appear last, so we only get the first discussion_id.
             payload = build_payload(
-                {
-                    "discussion_id": comment_thread.get("results", [])[0].get(
-                        "discussion_id"
-                    )
-                },
+                {"discussion_id": comment_thread["results"][0]["discussion_id"]},
                 comment_object,
             )
             comment_method = methodcaller(
@@ -320,11 +307,9 @@ class Workspace(_NotionClient):
                 comment_method(Workspace()),
             )
 
-        elif not any([page, block, discussion_id]):
-            raise NotionInvalidRequestUrl(
-                "Either a parent page/block, or a discussion_id is required (not both)"
-            )
-        return None
+        raise NotionInvalidRequestUrl(
+            "Either a parent page/block, or a discussion_id is required (not both)"
+        )
 
     @staticmethod
     def search(
