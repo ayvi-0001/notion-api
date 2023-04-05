@@ -13,7 +13,7 @@
     &nbsp;
 </p>
 <p align="center">
-    <a href="https://github.com/ayvi-0001/notion-api/blob/main/LICENSE"><img alt="license: MIT" src="https://img.shields.io/static/v1?label=license&message=MIT&color=informational"></a>
+    <a href="https://github.com/ayvi-0001/notion-api/blob/main/LICENSE"><img alt="license: MIT" src="https://img.shields.io/github/license/ayvi-0001/notion-api?color=informational"></a>
     &nbsp;
     <a href="https://github.com/psf/black"><img alt="code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
     &nbsp;
@@ -30,7 +30,7 @@ __Disclaimer: This is an _unofficial_ package and has no affiliation with Notion
         </tr>
             <td> <a href="https://developers.notion.com/reference/intro">API Reference</a></td><tr>
         </td>
-            <td><a href="https://developers.notion.com/page/changelog">Notion API Changlog </img></a></tr>
+            <td><a href="https://developers.notion.com/page/changelog">Notion API Changelog </img></a></tr>
             <td> <a href="https://www.notion.so/releases">Notion.so Releases</a></td></tr>
             <td> <a href="https://developers.notion.com/page/notion-platform-roadmap">Notion Platform Roadmap</a></td>
         </tr>
@@ -123,22 +123,24 @@ from notion import properties as prop
 original_synced_block = notion.BlockFactory.new_synced_block(homepage)
 
 # Adding content to the synced block
-notion.BlockFactory.paragraph(original_synced_block, [prop.RichText('This is a synced block.')])
-
+notion.BlockFactory.paragraph(
+    original_synced_block, [prop.RichText("This is a synced block.")]
+)
 # Referencing the synced block in a new page.
 notion.BlockFactory.reference_synced_block(new_page, original_synced_block.id)
 ```
 
-**_Example function: Appending blocks to a page as a reminder._**
+## Example Workflows
+
+**_Appending blocks to a page as a reminder._**
 
 ```py
-def in_block_reminder(page_id: str, message: str, user_name: str) -> None:
-    target_page = notion.Page(page_id)
+def in_block_reminder(page: notion.Page, message: str, user_name: str) -> None:
     mentionblock = notion.BlockFactory.paragraph(
-        target_page,
+        page,
         [
             prop.Mention.user(
-                notion.Workspace.retrieve_user(user_name=user_name),
+                notion.Workspace().retrieve_user(user_name=user_name),
                 annotations=prop.Annotations(
                     code=True, bold=True, color=prop.BlockColor.purple
                 ),
@@ -153,16 +155,52 @@ def in_block_reminder(page_id: str, message: str, user_name: str) -> None:
             prop.RichText(":"),
         ],
     )
+    # First method returned the newly created block that we append to here:
     notion.BlockFactory.paragraph(mentionblock, [prop.RichText(message)])
-    notion.BlockFactory.divider(target_page)
+    notion.BlockFactory.divider(page)
 ```
 
 ```py
->>> in_block_reminder(page_id="0b9eccfa890e4c3390175ee10c664a35", message="message here", user_name="Your Name")
+>>> my_page = notion.Page("0b9eccfa890e4c3390175ee10c664a35")
+>>> in_block_reminder(page=my_page, message="message here", user_name="Your Name")
 ```
 <p align="center">
     <img src="https://raw.githubusercontent.com/ayvi-0001/notion-api/main/images/example_function_reminder.png">
 </p>
+
+**_Cloud Function on GCP: Create daily pages & set related property values._**
+
+```py
+import os
+from datetime import datetime
+
+import functions_framework
+import notion
+
+# Set NOTION_TOKEN and database ID's as env variables.
+
+@functions_framework.http
+def main(request) -> str:
+    # Setup databases.
+    DATABASE_A1 = notion.Database(os.environ["DATABASE_A1_ID"])
+    DATABASE_B1 = notion.Database(os.environ["DATABASE_B1_ID"])
+    DATABASE_B2 = notion.Database(os.environ["DATABASE_B2_ID"])
+
+    date = str(datetime.today().astimezone(DATABASE_A.tz).date())
+
+    # Create a page in main database.
+    page_A1 = notion.Page.create(DATABASE_A1, page_title=date)
+
+    # Create a page in a 2nd database and relate it to main.
+    page_B1 = notion.Page.create(DATABASE_B1, page_title=date)
+    page_A1.set_related("related-B1", [page_B1.id])
+
+    # Create a page in a 3rd database and relate it to the 2nd.
+    page_B2 = notion.Page.create(DATABASE_B2, page_title=date)
+    page_B1.set_related("related-B2", [page_B2.id])
+
+    return "Done"
+```
 
 ---
 <br>
