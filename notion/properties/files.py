@@ -50,7 +50,7 @@ class FilesPropertyValue(PagePropertyValue, NotionObject):
     def __init__(
         self,
         property_name: str,
-        array_of_files: list[Union[InternalFile, ExternalFile]],
+        array_of_files: Sequence[Union[InternalFile, ExternalFile]],
     ) -> None:
         """
         When updating a file property, the value is overwritten by the array of files passed.
@@ -76,7 +76,8 @@ class Icon(NotionObject):
 
     def __init__(self, file_url: str, /) -> None:
         """
-        Internal object for setting the icon of a page. Internal file type Icons currently not supported.
+        Internal object for setting the icon of a page.
+        Internal file type Icons currently not supported.
         """
         super().__init__()
         self.set("icon", ExternalFile(file_url))
@@ -92,8 +93,9 @@ class ExternalFile(NotionObject):
         *,
         caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
     ) -> None:
-        """The Notion API supports adding, retrieving, and updating links to external files.
-        The name of the file. For "external" file objects, the name is the same as the file's host URL.
+        """
+        The Notion API supports adding, retrieving, and updating links to external files.
+        For "external" file objects, the name is the same as the file's host URL.
 
         https://developers.notion.com/reference/file-object#external-files
         """

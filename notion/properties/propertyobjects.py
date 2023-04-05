@@ -40,7 +40,6 @@ from __future__ import annotations
 import abc
 from typing import Optional, Sequence, Union
 
-from notion.exceptions.errors import NotionInvalidJson
 from notion.properties.build import NotionObject
 from notion.properties.options import FunctionFormat, NumberFormats, PropertyColor
 
@@ -121,15 +120,12 @@ class _SingleProperty(NotionObject):
 
 
 class RelationPropertyObject(PropertyObject, NotionObject):
-    __slots__: Sequence[str] = ("name", "_related_to")
+    __slots__: Sequence[str] = ["name"]
 
     def __init__(
         self,
         property_name: str,
-        /,
-        *,
-        database_id: str,
-        synced_property_name: Optional[str] = None,
+        relation_type: Optional[Union[_DualProperty, _SingleProperty]] = None,
     ) -> None:
         """
         Use classmethods:
@@ -139,17 +135,12 @@ class RelationPropertyObject(PropertyObject, NotionObject):
         https://developers.notion.com/reference/property-object#relation
         """
         super().__init__(property_name=property_name)
-        self.relation_type: Union[_DualProperty, _SingleProperty]
-
-        try:
-            self.set("type", "relation")
-            self.set("relation", self.relation_type)
-        except AttributeError:
-            raise NotionInvalidJson("Use classmethods.")
+        self.set("type", "relation")
+        self.set("relation", relation_type)
 
     @classmethod
     def dual(
-        cls, property_name: str, database_id: str, synced_property_name: str, /
+        cls, property_name: str, database_id: str, synced_property_name: str
     ) -> RelationPropertyObject:
         """
         :param database_id: (required) The database that the relation property refers to.\
@@ -157,21 +148,15 @@ class RelationPropertyObject(PropertyObject, NotionObject):
         :param synced_property_name: (required) The name of the corresponding property that is\
                                       updated in the related database when this property is changed.
         """
-        cls.relation_type = _DualProperty(database_id, synced_property_name)
-        return cls(
-            property_name,
-            database_id=database_id,
-            synced_property_name=synced_property_name,
-        )
+        return cls(property_name, _DualProperty(database_id, synced_property_name))
 
     @classmethod
-    def single(cls, property_name: str, database_id: str, /) -> RelationPropertyObject:
+    def single(cls, property_name: str, database_id: str) -> RelationPropertyObject:
         """
         :param database_id: (required) The database that the relation property refers to.\
                              The corresponding linked page values must belong to the database in order to be valid.
         """
-        cls.relation_type = _SingleProperty(database_id)
-        return cls(property_name, database_id=database_id)
+        return cls(property_name, _SingleProperty(database_id))
 
 
 class Option(NotionObject):
@@ -194,7 +179,7 @@ class Option(NotionObject):
 class MultiSelectPropertyObject(PropertyObject, NotionObject):
     __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
+    def __init__(self, property_name: str, /, options: list[Option]) -> None:
         """https://developers.notion.com/reference/property-object#multi-select"""
         super().__init__(property_name=property_name)
         self.set("type", "multi_select")
@@ -204,7 +189,7 @@ class MultiSelectPropertyObject(PropertyObject, NotionObject):
 class SelectPropertyObject(PropertyObject, NotionObject):
     __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, /, *, options: list[Option]) -> None:
+    def __init__(self, property_name: str, /, options: list[Option]) -> None:
         """https://developers.notion.com/reference/property-object#select"""
         super().__init__(property_name=property_name)
         self.set("type", "select")
@@ -217,26 +202,22 @@ class NumberPropertyObject(PropertyObject, NotionObject):
     def __init__(
         self,
         property_name: str,
-        format: Optional[Union[NumberFormats, str]] = None,
         /,
+        format: Optional[Union[NumberFormats, str]] = NumberFormats.number.value,
     ) -> None:
         """https://developers.notion.com/reference/property-object#number"""
-
         super().__init__(property_name=property_name)
         self.set("type", "number")
-        if not format:
-            self.nest("number", "format", NumberFormats.number)
-        else:
-            self.nest("number", "format", format)
+        self.nest("number", "format", format)
 
 
 class FormulaPropertyObject(PropertyObject, NotionObject):
     __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, expression: str, /) -> None:
+    def __init__(self, property_name: str, /, expression: str) -> None:
         """
         :param expression: (required) The formula that is used to compute the values for this property.\
-            Refer to the Notion help center for information about formula syntax.
+                            Refer to the Notion help center for information about formula syntax.
             
         https://developers.notion.com/reference/property-object#formula
         """

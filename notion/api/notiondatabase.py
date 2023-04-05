@@ -192,7 +192,7 @@ class Database(_TokenBlockMixin):
         self._update(payload=TitlePropertyValue([RichText(__new_title)]))
 
     @property
-    def inline(self) -> bool:
+    def is_inline(self) -> bool:
         """
         Has the value true if the database appears in the page as an inline block.
         Otherwise has the value false if the database appears as a child page.
@@ -201,8 +201,8 @@ class Database(_TokenBlockMixin):
         """
         return cast(bool, (self.retrieve["is_inline"]))
 
-    @inline.setter
-    def inline(self, __inline: bool) -> None:
+    @is_inline.setter
+    def is_inline(self, __inline: bool) -> None:
         self._patch(
             self._database_endpoint(self.id),
             payload=default_json.dumps({"is_inline": __inline}),
@@ -311,13 +311,15 @@ class Database(_TokenBlockMixin):
         return self._post(url, payload=payload)
 
     def dual_relation_column(
-        self, property_name: str, database_id: str, synced_property_name: str
+        self, property_name: str, /, database_id: str, synced_property_name: str
     ) -> None:
         """
         :param database_id: (required) The database that the relation property refers to.\
                              The corresponding linked page values must belong to the database in order to be valid.
         :param synced_property_name: (required) The name of the corresponding property that is\
                                       updated in the related database when this property is changed.
+        
+        https://developers.notion.com/reference/property-object#relation
         """
         relation_property = RelationPropertyObject.dual(
             property_name, database_id, synced_property_name
@@ -337,7 +339,13 @@ class Database(_TokenBlockMixin):
 
         self.logger.debug(f"Created/Updated dual_relation property `{property_name}`.")
 
-    def single_relation_column(self, property_name: str, database_id: str) -> None:
+    def single_relation_column(self, property_name: str, /, database_id: str) -> None:
+        """
+        :param database_id: (required) The database that the relation property refers to.\
+                             The corresponding linked page values must belong to the database in order to be valid.
+        
+        https://developers.notion.com/reference/property-object#relation
+        """
         self._update(
             Properties(RelationPropertyObject.single(property_name, database_id))
         )
@@ -346,6 +354,7 @@ class Database(_TokenBlockMixin):
     def rollup_column(
         self,
         property_name: str,
+        /,
         relation_property_name: str,
         rollup_property_name: str,
         function: Union[FunctionFormat, str],
@@ -353,8 +362,10 @@ class Database(_TokenBlockMixin):
         """
         :param property_name: name for the new rollup column
         :param relation_property_name: name of relation column to other database
-        :param rollup_property_name: name of column in other database to calculate
-        :param function: `notion.properties.options.FunctionFormat` or refer to api reference.
+        :param rollup_property_name: name of property in related database to use for calculation.
+        :param function: notion.properties.options.FunctionFormat or string.
+
+        https://developers.notion.com/reference/property-object#rollup
         """
         rollup_property = RollupPropertyObject(
             property_name,
@@ -365,7 +376,7 @@ class Database(_TokenBlockMixin):
         self._update((Properties(rollup_property)))
         self.logger.debug(f"Created/Updated rollup property `{property_name}`.")
 
-    def select_column(self, property_name: str, /, *, options: list[Option]) -> None:
+    def select_column(self, property_name: str, /, options: list[Option]) -> None:
         """
         If `property_name` is a select column that already exists,
         then the available options will be overwritten with the new list passed to this method.
@@ -375,11 +386,13 @@ class Database(_TokenBlockMixin):
         then `notion.exceptions.errors.NotionValidationError` will raise.
 
         You can pass an empty list to `options` to clear the available options, and re-add them with custom colors.
+
+        https://developers.notion.com/reference/property-object#select
         """
         self._update(Properties(SelectPropertyObject(property_name, options=options)))
         self.logger.debug(f"Created/Updated select property `{property_name}`.")
 
-    def multiselect_column(self, property_name: str, /, *, options: list[Option]) -> None:
+    def multiselect_column(self, property_name: str, /, options: list[Option]) -> None:
         """
         If `property_name` is a multi-select column that already exists,
         then the available options will be overwritten with the new list passed to this method.
@@ -389,6 +402,8 @@ class Database(_TokenBlockMixin):
         then `notion.exceptions.errors.NotionValidationError` will raise.
 
         You can pass an empty list to `options` to clear the available options, and re-add them with custom colors.
+
+        https://developers.notion.com/reference/property-object#multi-select
         """
         self._update(
             Properties(MultiSelectPropertyObject(property_name, options=options))
@@ -398,59 +413,79 @@ class Database(_TokenBlockMixin):
     def number_column(
         self,
         property_name: str,
-        format: Optional[Union[NumberFormats, str]] = NumberFormats.number,
+        /,
+        format: Optional[Union[NumberFormats, str]] = NumberFormats.number.value,
     ) -> None:
+        """https://developers.notion.com/reference/property-object#number"""
         self._update(Properties(NumberPropertyObject(property_name, format)))
         self.logger.debug(f"Created/Updated number property `{property_name}`.")
 
-    def checkbox_column(self, property_name: str) -> None:
+    def checkbox_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#checkbox"""
         self._update(Properties(CheckboxPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated checkbox property `{property_name}`.")
 
-    def date_column(self, property_name: str) -> None:
+    def date_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#date"""
         self._update(Properties(DatePropertyObject(property_name)))
         self.logger.debug(f"Created/Updated date property `{property_name}`.")
 
-    def text_column(self, property_name: str) -> None:
+    def text_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#rich-text"""
         self._update(Properties(RichTextPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated text property `{property_name}`.")
 
-    def formula_column(self, property_name: str, /, *, expression: str) -> None:
+    def formula_column(self, property_name: str, /, expression: str) -> None:
+        """
+        :param expression: (required) The formula that is used to compute the values for this property.\
+                            Refer to the Notion help center for information about formula syntax.
+            
+        https://developers.notion.com/reference/property-object#formula
+        """
         self._update(Properties(FormulaPropertyObject(property_name, expression)))
         self.logger.debug(f"Created/Updated formula property `{property_name}`.")
 
-    def created_time_column(self, property_name: str) -> None:
+    def created_time_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#created-time"""
         self._update(Properties(CreatedTimePropertyObject(property_name)))
         self.logger.debug(f"Created/Updated created_time property `{property_name}`.")
 
-    def created_by_column(self, property_name: str) -> None:
+    def created_by_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#created-by"""
         self._update(Properties(CreatedByPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated created_by property `{property_name}`.")
 
-    def last_edited_time_column(self, property_name: str) -> None:
+    def last_edited_time_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#last-edited-time"""
         self._update(Properties(LastEditedTimePropertyObject(property_name)))
         self.logger.debug(f"Created/Updated last_edited property `{property_name}`.")
 
-    def last_edited_by_column(self, property_name: str) -> None:
+    def last_edited_by_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#last-edited-by"""
         self._update(Properties(LastEditedByPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated last_edited_by property `{property_name}`.")
 
-    def files_column(self, property_name: str) -> None:
+    def files_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#files"""
         self._update(Properties(FilesPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated files property `{property_name}`.")
 
-    def email_column(self, property_name: str) -> None:
+    def email_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#email"""
         self._update(Properties(EmailPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated email property `{property_name}`.")
 
-    def url_column(self, property_name: str) -> None:
+    def url_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#url"""
         self._update(Properties(URLPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated url property `{property_name}`.")
 
-    def phone_number_column(self, property_name: str) -> None:
+    def phone_number_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#phone-number"""
         self._update(Properties(PhoneNumberPropertyObject(property_name)))
         self.logger.debug(f"Created/Updated phone_number property `{property_name}`.")
 
-    def people_column(self, property_name: str) -> None:
+    def people_column(self, property_name: str, /) -> None:
+        """https://developers.notion.com/reference/property-object#people"""
         self._update(Properties(PeoplePropertyObject(property_name)))
         self.logger.debug(f"Created/Updated people property `{property_name}`.")
