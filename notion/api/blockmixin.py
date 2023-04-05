@@ -48,9 +48,8 @@ class _TokenBlockMixin(_NotionClient):
         /,
         *,
         token: Optional[str] = None,
-        notion_version: Optional[str] = None,
     ) -> None:
-        super().__init__(token=token, notion_version=notion_version)
+        super().__init__(token=token)
 
         self.tz: BaseTzInfo = get_localzone()
         self.id: str = id.replace("-", "")
@@ -66,19 +65,19 @@ class _TokenBlockMixin(_NotionClient):
 
     @property
     def type(self) -> str:
-        return str(self._block["type"])
+        return cast(str, self._block["type"])
 
     @property
     def object(self) -> str:
-        return str(self._block["object"])
+        return cast(str, (self._block["object"]))
 
     @property
     def has_children(self) -> bool:
-        return bool(self._block["has_children"])
+        return cast(bool, self._block["has_children"])
 
     @property
     def is_archived(self) -> bool:
-        return bool(self._block["archived"])
+        return cast(bool, self._block["archived"])
 
     @property
     def parent_type(self) -> str:

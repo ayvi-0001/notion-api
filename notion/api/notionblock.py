@@ -41,11 +41,15 @@ class Block(_TokenBlockMixin):
     The nested content is called children, and children are blocks, too.
 
     ---
+    ### Versioning:
+    To use a previous version of the API, set the envrionment variable `NOTION_VERSION`.
+    For more info see: https://developers.notion.com/reference/versioning
+
+    ---
     :param id: (required) `block_id` of object in Notion.
-    :param token: (required) Bearer token provided when you create an integration.\
-                   set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
-                   see https://developers.notion.com/reference/authentication.
-    :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
+    :param token: Bearer token provided when you create an integration.\
+                  Set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
+                  See https://developers.notion.com/reference/authentication.
 
     https://developers.notion.com/reference/block
     """
@@ -56,13 +60,8 @@ class Block(_TokenBlockMixin):
         /,
         *,
         token: Optional[str] = None,
-        notion_version: Optional[str] = None,
     ) -> None:
-        super().__init__(id, token=token, notion_version=notion_version)
-        if token:
-            self.token = token
-
-        self.notion_version: Optional[str] = notion_version
+        super().__init__(id, token=token)
         self.logger = _NLOG.getChild(self.__repr__())
 
     @cached_property

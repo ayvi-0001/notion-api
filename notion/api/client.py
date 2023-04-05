@@ -38,7 +38,7 @@ except ModuleNotFoundError:
 
 import requests
 
-from notion.api._about import *
+from notion.api._about import __base_url__, __content_type__
 from notion.exceptions import NotionUnauthorized, validate_response
 
 __all__: Sequence[str] = ["_NotionClient"]
@@ -52,7 +52,9 @@ class _NotionClient:
     """Base Class to inherit: token, headers, requests, and endpoints."""
 
     def __init__(
-        self, *, token: Optional[str] = None, notion_version: Optional[str] = None
+        self,
+        *,
+        token: Optional[str] = None,
     ) -> None:
         if token:
             self.token = token
@@ -68,6 +70,13 @@ class _NotionClient:
                     )
                 )
 
+        try:
+            __notion_version__ = os.environ["NOTION_VERSION"]
+        except KeyError:
+            from notion.api._about import __notion_version__
+
+        self.notion_version = __notion_version__
+
         __auth__ = f"Bearer {self.token}"
 
         self.headers: dict[str, str] = {
@@ -76,9 +85,6 @@ class _NotionClient:
             "Content-type": __content_type__,
             "Notion-Version": __notion_version__,
         }
-
-        if notion_version:
-            self.headers["Notion-Version"] = notion_version
 
     @staticmethod
     def _block_endpoint(

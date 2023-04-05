@@ -22,7 +22,7 @@
 
 from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 
-from notion.api._about import __base_url__, __notion_version__
+from notion.api._about import __base_url__
 from notion.api.client import _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
@@ -37,16 +37,15 @@ __all__: Sequence[str] = ["Workspace"]
 
 class Workspace(_NotionClient):
     """
-    notion.api.notionworkspace.Workspace uses static methods and doesn't require an instance,
-    but currently requires the token be set as an environment variable.
+    Workspace class is to provide general methods that are not specific to a single object.
+    Post/retrieve comments, retrieve users/bots, and search for pages/databases.
     """
 
     def __init__(
         self,
         token: Optional[str] = None,
-        notion_version: Optional[str] = None,
     ) -> None:
-        super().__init__(token=token, notion_version=notion_version)
+        super().__init__(token=token)
 
     def __repr__(self) -> str:
         return f"notion.{self.__class__.__name__}()"
@@ -232,11 +231,10 @@ class Workspace(_NotionClient):
 
             if not comment_thread:
                 raise ValueError(
-                    "%s %s %s"
+                    "%s %s"
                     % (
                         "Did not find a comment thread in this block.",
-                        f"Current API version ({__notion_version__}) currently does not",
-                        "support starting new comment threads on a block.",
+                        f"Starting new comment threads on a block not supported.",
                     )
                 )
             # Regardless of which discussion_id in a comment thread is used,

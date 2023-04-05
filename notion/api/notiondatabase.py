@@ -100,11 +100,15 @@ class Database(_TokenBlockMixin):
     column type - the previous settings (number format, formula expression, etc..) will reapply.
 
     ---
+    ### Versioning:
+    To use a previous version of the API, set the envrionment variable `NOTION_VERSION`.
+    For more info see: https://developers.notion.com/reference/versioning
+
+    ---
     :param id: (required) `database_id` of object in Notion.
-    :param token: (required) Bearer token provided when you create an integration.\
-                   set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
-                   see https://developers.notion.com/reference/authentication.
-    :param notion_version: (optional) API version. see https://developers.notion.com/reference/versioning
+    :param token: Bearer token provided when you create an integration.\
+                  Set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
+                  See https://developers.notion.com/reference/authentication.
 
     https://developers.notion.com/reference/database
     """
@@ -114,13 +118,10 @@ class Database(_TokenBlockMixin):
         id: str,
         /,
         token: Optional[str] = None,
-        notion_version: Optional[str] = None,
     ) -> Database:
-        target_block = Block(id, token=token, notion_version=notion_version)
+        target_block = Block(id, token=token)
         if target_block.type != "child_database":
-            raise NotionInvalidRequest(
-                f"{target_block.__repr__()} does not reference a Database."
-            )
+            raise ValueError(f"{target_block.__repr__()} does not reference a Database.")
         return super().__new__(cls)
 
     def __init__(
@@ -129,13 +130,8 @@ class Database(_TokenBlockMixin):
         /,
         *,
         token: Optional[str] = None,
-        notion_version: Optional[str] = None,
     ) -> None:
-        super().__init__(id, token=token, notion_version=notion_version)
-        if token:
-            self.token = token
-
-        self.notion_version: Optional[str] = notion_version
+        super().__init__(id, token=token)
         self.logger = _NLOG.getChild(self.__repr__())
 
     @classmethod
