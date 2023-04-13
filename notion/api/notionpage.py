@@ -30,10 +30,15 @@ from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
 from notion.api.notionblock import Block
 from notion.api.notiondatabase import Database
-from notion.exceptions.errors import NotionInvalidJson
 from notion.properties.build import build_payload
 from notion.properties.common import Parent, UserObject, _NotionUUID
-from notion.properties.files import ExternalFile, FilesPropertyValue, InternalFile
+from notion.properties.files import (
+    Cover,
+    ExternalFile,
+    FilesPropertyValue,
+    Icon,
+    InternalFile,
+)
 from notion.properties.propertyobjects import Option
 from notion.properties.propertyvalues import (
     CheckboxPropertyValue,
@@ -99,7 +104,12 @@ class Page(_TokenBlockMixin):
 
     @classmethod
     def create(
-        cls, parent_instance: Union[Page, Database, Block], page_title: str
+        cls,
+        parent_instance: Union[Page, Database, Block],
+        page_title: str,
+        *,
+        cover_url: Optional[str] = None,
+        icon_url: Optional[str] = None,
     ) -> Page:
         """
         Creates a blank page.
@@ -107,10 +117,10 @@ class Page(_TokenBlockMixin):
         Add content to page by appending block children with notion.api.blocktypefactory.BlockFactory.
 
         ---
-        :param parent_instance: (required) eithr a Page or Database instance.
-        :param page_title: (required)
-        :param icon_url: (optional) #not yet implemented
-        :param cover: (optional) #not yet implemented
+        :param parent_instance: (required) Either a Page or Database instance.
+        :param page_title: (required) Title of page.
+        :param cover_url: (optional) Url of image to use as cover.
+        :param icon_url: (optional) Url of image to use as icon.
 
         https://developers.notion.com/reference/post-page
         """
@@ -131,12 +141,18 @@ class Page(_TokenBlockMixin):
         cls_.logger.debug(
             f"Page created in {parent_instance.__repr__()}. Url: {new_page['url']}"
         )
+
+        if icon_url:
+            cls_.icon = icon_url
+        if cover_url:
+            cls_.cover = cover_url
+
         return cls_
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         if property_name in self.properties:
             return cast(MutableMapping[str, Any], self.properties[property_name])
-        raise NotionInvalidJson(f"{property_name} not found in page property values.")
+        raise KeyError(f"{property_name} not found in page property values.")
 
     @cached_property
     def _retrieve(self) -> MutableMapping[str, Any]:
@@ -148,6 +164,7 @@ class Page(_TokenBlockMixin):
 
     @property
     def title(self) -> str:
+        """:return: (str) title of page"""
         try:
             if ("workspace" or "page_id") in self.parent_type:
                 return cast(str, self.properties["title"]["title"][0]["plain_text"])
@@ -161,21 +178,38 @@ class Page(_TokenBlockMixin):
 
     @title.setter
     def title(self, __new_title: str) -> None:
-        self._patch_properties(
-            payload=Properties(TitlePropertyValue([RichText(__new_title)]))
-        )
+        self._patch_properties(Properties(TitlePropertyValue([RichText(__new_title)])))
+
+    @property
+    def icon(self) -> str:
+        """:return: (str) url of icon"""
+        icon = self._retrieve["icon"]["external"]["url"]
+        return cast(str, icon)
+
+    @icon.setter
+    def icon(self, icon_url: str) -> None:
+        """
+        >>> page.icon = "https://www.notion.so/icons/code_gray.svg"
+        """
+        self._patch_properties(Icon(icon_url))
+
+    @property
+    def cover(self) -> str:
+        """:return: (str) url of cover"""
+        cover = self._retrieve["cover"]["external"]["url"]
+        return cast(str, cover)
+
+    @cover.setter
+    def cover(self, cover_url: str) -> None:
+        """
+        >>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
+        """
+        self._patch_properties(Cover(cover_url))
 
     @property
     def url(self) -> str:
+        """:return: (str) url of page"""
         return cast(str, self._retrieve["url"])
-
-    @property
-    def icon(self) -> MutableMapping[str, Any]:
-        return cast(MutableMapping[str, Any], self._retrieve["icon"])
-
-    @property
-    def cover(self) -> MutableMapping[str, Any]:
-        return cast(MutableMapping[str, Any], self._retrieve["cover"])
 
     @property
     def delete_self(self) -> None:
@@ -220,8 +254,8 @@ class Page(_TokenBlockMixin):
     def _retrieve_property_id(self, property_name: str) -> str:
         """Internal function to retrieve the id of a property."""
         if property_name in self.properties:
-            return str(self.properties[property_name]["id"])
-        raise NotionInvalidJson("Property name not found in parent schema.")
+            return cast(str, self.properties[property_name]["id"])
+        raise ValueError("Property name not found in parent schema.")
 
     def retrieve_property_item(
         self,
@@ -233,17 +267,14 @@ class Page(_TokenBlockMixin):
             - a value.
             - a paginated list of property item values.
 
-        :param property_name: (required) property name in Notion *case-sensitive\
-                               this endpoint only works with property_id's, internal function will retrieve this.
+        :param property_name: (required) property name in Notion *case-sensitive.\
+                               This endpoint only works with property_id's, internal function will retrieve this.
 
         https://developers.notion.com/reference/retrieve-a-page-property
         """
+        property_id = self._retrieve_property_id(property_name)
         return self._get(
-            self._pages_endpoint(
-                self.id,
-                properties=True,
-                property_id=self._retrieve_property_id(property_name),
-            )
+            self._pages_endpoint(self.id, properties=True, property_id=property_id)
         )
 
     def _patch_properties(
@@ -287,15 +318,12 @@ class Page(_TokenBlockMixin):
 
     def set_select(self, property_name: str, /, select_option: str) -> None:
         """
-        :param select_option: (required) if the option already exists, then it is\
-                               case sensitive. if the option does not exist, it will be created.
+        :param select_option: (required) If the option already exists, then it is case sensitive.\
+                               If the option does not exist, it will be created.
         
         https://developers.notion.com/reference/page-property-values#select
         """
-        parent_db = Database(
-            self.parent_id,
-            token=self.token,
-        )
+        parent_db = Database(self.parent_id, token=self.token)
 
         current_options = parent_db[property_name]["select"]["options"]
         names = {o.get("name"): o.get("color") for o in current_options}
@@ -311,18 +339,14 @@ class Page(_TokenBlockMixin):
         self, property_name: str, /, multi_select_options: list[str]
     ) -> None:
         """
-        :param multi_select_options: (required) list of strings for each select option.\
-                                      if the option already exists, then it is case sensitive.\
-                                      if the option does not exist, it will be created.
+        :param multi_select_options: (required) List of strings for each select option.\
+                                      If the option already exists, then it is case sensitive.\
+                                      If the option does not exist, it will be created.
 
         https://developers.notion.com/reference/page-property-values#multi-select
         """
         selected_options: list[Option] = []
-
-        parent_db = Database(
-            self.parent_id,
-            token=self.token,
-        )
+        parent_db = Database(self.parent_id, token=self.token)
 
         current_options = parent_db[property_name]["multi_select"]["options"]
         names = {o.get("name"): o.get("color") for o in current_options}
@@ -346,10 +370,7 @@ class Page(_TokenBlockMixin):
 
         https://developers.notion.com/reference/page-property-values#status
         """
-        parent_db = Database(
-            self.parent_id,
-            token=self.token,
-        )
+        parent_db = Database(self.parent_id, token=self.token)
 
         current_options = parent_db[property_name]["status"]["options"]
         names = {o.get("name"): o.get("color") for o in current_options}
@@ -370,22 +391,26 @@ class Page(_TokenBlockMixin):
     ) -> None:
         """
         :param start: (required) A date, with an optional time.\
-                       If the "date" value is a range, then start represents the start of the range.
-        :param end: (optional) A string representing the end of a date range.\
-                     If the value is null, then the date value is not a range.
+                       If value is a string, it must be ISO 8601 format.\
+                       If value is datetime.datetime, it will be converted to self.tz, in isoformat.
+        :param end: (optional) A date, with an optional time.\
+                     If value is provided, then date property becomes a range, with start and end values.\
+                     If value is not provided, then the date value is not a range.
+                     If value is a string, it must be ISO 8601 format.\
+                     If value is datetime.datetime, it will be converted to self.tz, in isoformat.
 
         https://developers.notion.com/reference/page-property-values#date
         """
         if isinstance(start, datetime):
-            start = start.astimezone(self.tz)
+            start = start.astimezone(self.tz).isoformat()
         if end and isinstance(end, datetime):
-            end = end.astimezone(self.tz)
+            end = end.astimezone(self.tz).isoformat()
 
         self._patch_properties(
             Properties(DatePropertyValue(property_name, start=start, end=end))
         )
 
-    def set_text(self, property_name: str, /, new_text: Union[str, Any]) -> None:
+    def set_text(self, property_name: str, /, new_text: str) -> None:
         """https://developers.notion.com/reference/page-property-values#rich-text"""
         self._patch_properties(
             Properties(RichTextPropertyValue(property_name, [RichText(new_text)]))
@@ -429,11 +454,10 @@ class Page(_TokenBlockMixin):
         
         https://developers.notion.com/reference/page-property-values#relation
         """
-        list_ids: list[_NotionUUID] = []
-        for id in related_ids:
-            list_ids.append(_NotionUUID(id))
-
-        self._patch_properties(Properties(RelationPropertyValue(property_name, list_ids)))
+        list_related_ids = [_NotionUUID(id) for id in related_ids]
+        self._patch_properties(
+            Properties(RelationPropertyValue(property_name, list_related_ids))
+        )
 
     def set_checkbox(self, property_name: str, /, value: bool) -> None:
         """https://developers.notion.com/reference/page-property-values#checkbox"""

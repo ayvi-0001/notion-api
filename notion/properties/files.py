@@ -38,6 +38,7 @@ from notion.properties.richtext import Equation, Mention, RichText
 
 __all__: Sequence[str] = (
     "Icon",
+    "Cover",
     "ExternalFile",
     "InternalFile",
     "FilesPropertyValue",
@@ -81,6 +82,18 @@ class Icon(NotionObject):
         """
         super().__init__()
         self.set("icon", ExternalFile(file_url))
+
+
+class Cover(NotionObject):
+    __slots__: Sequence[str] = ()
+
+    def __init__(self, file_url: str, /) -> None:
+        """
+        Internal object for setting the cover of a page.
+        Internal file type covers currently not supported.
+        """
+        super().__init__()
+        self.set("cover", ExternalFile(file_url))
 
 
 class ExternalFile(NotionObject):

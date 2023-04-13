@@ -42,9 +42,13 @@ from typing import Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
 from notion.properties.options import FunctionFormat, NumberFormats, PropertyColor
+from notion.properties.richtext import RichText
 
 __all__: Sequence[str] = (
+    "DatabaseDescription",
+    "TitlePropertyObject",
     "RelationPropertyObject",
+    "Option",
     "MultiSelectPropertyObject",
     "SelectPropertyObject",
     "NumberPropertyObject",
@@ -60,16 +64,22 @@ __all__: Sequence[str] = (
     "DatePropertyObject",
     "EmailPropertyObject",
     "FilesPropertyObject",
-    "TitlePropertyObject",
     "URLPropertyObject",
     "RollupPropertyObject",
-    "Option",
 )
 
 
 class PropertyObject(metaclass=abc.ABCMeta):
     def __init__(self, property_name: str) -> None:
         self.name = property_name
+
+
+class DatabaseDescription(NotionObject):
+    __slots__: Sequence[str] = ()
+
+    def __init__(self, description: Sequence[RichText]) -> None:
+        super().__init__()
+        self.set("description", description)
 
 
 class TitlePropertyObject(PropertyObject, NotionObject):
@@ -354,7 +364,9 @@ class RollupPropertyObject(PropertyObject, NotionObject):
         property_name: str,
         relation_property_name: str,
         rollup_property_name: str,
-        function: Union[FunctionFormat, str],
+        function: Optional[
+            Union[FunctionFormat, str]
+        ] = FunctionFormat.show_original.value,
         /,
     ) -> None:
         """https://developers.notion.com/reference/property-object#rollup"""
