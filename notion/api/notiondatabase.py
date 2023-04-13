@@ -118,7 +118,7 @@ class Database(_TokenBlockMixin):
         # with a uuid that is not a database and catch the error sooner.
         target_block = Block(id, token=token)
         if target_block.type != "child_database":
-            raise ValueError(f"{target_block.__repr__()} does not reference a Database.")
+            raise TypeError(f"{target_block.__repr__()} does not reference a Database.")
         return super().__new__(cls)
 
     def __init__(
@@ -278,20 +278,16 @@ class Database(_TokenBlockMixin):
     @property
     def delete_self(self) -> None:
         if self.is_archived:
-            self.logger.debug("delete_self did nothing. Database is already archived.")
-            return None
+            return
 
         self._delete(self._block_endpoint(self.id))
-        self.logger.debug("Deleted self.")
 
     @property
     def restore_self(self) -> None:
         if not self.is_archived:
-            self.logger.debug("restore_self did nothing. Database is not archived.")
             return None
 
         self._patch(self._database_endpoint(self.id), payload=(b'{"archived": false}'))
-        self.logger.debug("Restored self.")
 
     def _update(
         self,
@@ -313,7 +309,6 @@ class Database(_TokenBlockMixin):
         https://developers.notion.com/reference/update-property-schema-object#removing-a-property
         """
         self._update({"properties": {name_or_id: None}})
-        self.logger.debug(f"Deleted property `{name_or_id}`")
 
     def rename_property(self, old_name: str, new_name: str) -> None:
         """
@@ -347,7 +342,7 @@ class Database(_TokenBlockMixin):
 
         https://developers.notion.com/reference/post-database-query
         """
-        payload = NotionObject()
+        payload: NotionObject = NotionObject()
         url = self._database_endpoint(self.id, query=True)
 
         if filter_property_values:

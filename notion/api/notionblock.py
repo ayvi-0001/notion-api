@@ -109,7 +109,7 @@ class Block(_TokenBlockMixin):
         return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
 
     @property
-    def delete_self(self) -> Union[MutableMapping[str, Any], None]:
+    def delete_self(self) -> None:
         """
         Sets a Block object, including page blocks, to archived: true
         using the ID specified. Note: in the Notion UI application,
@@ -117,20 +117,15 @@ class Block(_TokenBlockMixin):
         accessed and restored. To restore the block with the API,
         use the Update a block or Update page respectively.
 
-        :returns: Mapping of the deleted block object.
-
         https://developers.notion.com/reference/delete-a-block
         """
         if self.is_archived:
-            self.logger.debug("delete_self did nothing. Block is already archived.")
             return None
 
-        block = self._delete(self._block_endpoint(self.id))
-        self.logger.debug("Deleted Self.")
-        return block
+        self._delete(self._block_endpoint(self.id))
 
     @property
-    def restore_self(self) -> Union[MutableMapping[str, Any], None]:
+    def restore_self(self) -> None:
         """
         Sets "archived" key to false. Parent page must still exist in Notion's trash.
         :returns: If block is archived, a Mapping of the restored block object, else None.
@@ -138,20 +133,14 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/update-a-block
         """
         if not self.is_archived:
-            self.logger.debug("restore_self did nothing. Block is not archived.")
             return None
 
-        block = self._patch(
-            self._block_endpoint(self.id), payload=(b'{"archived": false}')
-        )
-        self.logger.debug("Restored Self.")
-        return block
+        self._patch(self._block_endpoint(self.id), payload=(b'{"archived": false}'))
 
     def delete_child(
         self, children_id: Optional[list[str]] = None, *, all: Optional[bool] = False
     ) -> None:
         if not self.has_children:
-            self.logger.debug("delete_child did nothing. Block has no children.")
             return
 
         if all:
@@ -160,13 +149,11 @@ class Block(_TokenBlockMixin):
             ]
             for id in children:
                 self._delete(self._block_endpoint(id))
-            self.logger.debug(f"Deleted all child blocks.")
             return
 
         if children_id:
             for id in children_id:
                 self._delete(self._block_endpoint(id))
-                self.logger.debug(f"Deleted child block `{id}`.")
 
     def update(
         self,

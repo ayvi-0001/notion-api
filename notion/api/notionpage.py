@@ -214,20 +214,16 @@ class Page(_TokenBlockMixin):
     @property
     def delete_self(self) -> None:
         if self.is_archived:
-            self.logger.debug("delete_self did nothing. Page is already archived.")
-            return None
+            return
 
         self._delete(self._block_endpoint(self.id))
-        self.logger.debug("Deleted self.")
 
     @property
     def restore_self(self) -> None:
         if not self.is_archived:
-            self.logger.debug("restore_self did nothing. Page is not archived.")
-            return None
+            return
 
         self._patch(self._pages_endpoint(self.id), payload=(b'{"archived": false}'))
-        self.logger.debug("Restored self.")
 
     def retrieve(
         self, *, filter_properties: Optional[list[str]] = None
@@ -253,9 +249,7 @@ class Page(_TokenBlockMixin):
 
     def _retrieve_property_id(self, property_name: str) -> str:
         """Internal function to retrieve the id of a property."""
-        if property_name in self.properties:
-            return cast(str, self.properties[property_name]["id"])
-        raise ValueError("Property name not found in parent schema.")
+        return cast(str, self.properties[property_name]["id"])
 
     def retrieve_property_item(
         self,
