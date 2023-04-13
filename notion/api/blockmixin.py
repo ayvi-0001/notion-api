@@ -22,15 +22,19 @@
 
 from __future__ import annotations
 
+import os
 from datetime import datetime, tzinfo
 from functools import cached_property
 from typing import Any, MutableMapping, Optional, Sequence, Union, cast
 
-from pytz import BaseTzInfo, timezone
-from tzlocal import get_localzone
+from pytz import timezone
+from tzlocal import get_localzone_name
 
 from notion.api._about import *
 from notion.api.client import _NotionClient
+
+LOCAL_TIMEZONE = get_localzone_name()
+
 
 __all__: Sequence[str] = ["_TokenBlockMixin"]
 
@@ -51,14 +55,36 @@ class _TokenBlockMixin(_NotionClient):
     ) -> None:
         super().__init__(token=token)
 
-        self.tz: BaseTzInfo = get_localzone()
         self.id: str = id.replace("-", "")
+
+        try:
+            self.tz = timezone(os.environ["TZ"])
+        except KeyError:
+            self.tz = timezone(LOCAL_TIMEZONE)
+
+    def __repr__(self) -> str:
+        id = getattr(self, "id", "")
+        # This is to avoid certain errors occuring
+        # before the object is fully initialized
+        return f"notion.{self.__class__.__name__}('{id}')"
+
+    def set_tz(self, tz: Union[tzinfo, str]) -> None:
+        """
+        :param tz: (required) Set the instance timezone. Takes either str or pytz.timezone\
+                    Use `pytz.all_timezones()` to retrieve list of tz options.\
+                    Class will first check for environment variable `TZ`.\
+                    If not found, class default checks the system-configured timezone.
+        """
+        if isinstance(tz, tzinfo):
+            self.__setattr__("tz", tz)
+        elif isinstance(tz, str):
+            self.__setattr__("tz", timezone(tz))
 
     @cached_property
     def _block(self) -> MutableMapping[str, Any]:
         """
-        Same result as retrieve() for `notion.api.notionblock.Block`.
-        If used with `notion.api.notionpage.Page` or `notion.api.notiondatabase.Database`,
+        Same result as retrieve() for notion.api.notionblock.Block.
+        If used with notion.api.notionpage.Page or notion.api.notiondatabase.Database,
         retrieves the page or database object from the blocks endpoint.
         """
         return self._get(self._block_endpoint(self.id))
@@ -92,27 +118,17 @@ class _TokenBlockMixin(_NotionClient):
         if _parent_id is True:  # parent is workspace
             workspace = self._get("%s%s" % (__base_url__, "users/me"))
             # return workspace name
-            return "workspace: %s" % workspace["bot"]["workspace_name"]
+            return "workspace-%s" % workspace["bot"]["workspace_name"]
         else:
             return cast(str, _parent_id.replace("-", ""))
 
-    def set_tz(self, tz: Union[tzinfo, str]) -> None:
-        """
-        :param timezone: (required) set default timezone.
-            class default matches the Windows-configured timezone
-            Use `pytz.all_timezones` to retrieve list of tz options.
-            Pass either str or `pytz.timezone(...)`
-        """
-        if isinstance(tz, tzinfo):
-            self.__setattr__("tz", tz)
-        elif isinstance(tz, str):
-            self.__setattr__("tz", timezone(tz))
-
     @property
-    def last_edited(self) -> datetime:
+    def last_edited_time(self) -> datetime:
         """
-        Notion returns datetime ISO 8601, UTC.
-        Class default matches the Windows-configured timezone.
+        Returns date and time when this page/block/database was created.
+        Converted from ISO 8601, UTC to instance timezone.
+        Class will first check for environment variable `TZ`.
+        If not found, class default checks the system-configured timezone.
         Change default timezone with method `set_tz(...)`
         """
         dt = datetime.fromisoformat(self._block["last_edited_time"])
@@ -121,12 +137,23 @@ class _TokenBlockMixin(_NotionClient):
     @property
     def created_time(self) -> datetime:
         """
-        Notion returns datetime ISO 8601, UTC.
-        Class default matches the Windows-configured timezone.
+        Returns date and time when this page/block/database was created.
+        Converted from ISO 8601, UTC to instance timezone.
+        Class will first check for environment variable `TZ`.
+        If not found, class default checks the system-configured timezone.
         Change default timezone with method `set_tz(...)`
         """
         dt = datetime.fromisoformat(self._block["created_time"])
         return dt.astimezone(tz=self.tz)
 
-    def __repr__(self) -> str:
-        return f"notion.{self.__class__.__name__}('{getattr(self, 'id', '')}')"
+    @property
+    def last_edited_by(self) -> str:
+        user_id = self._block["last_edited_by"]["id"]
+        user = self._get("%s%s" % (__base_url__, "users/%s" % user_id))
+        return cast(str, user)
+
+    @property
+    def created_by(self) -> str:
+        user_id = self._block["created_by"]["id"]
+        user = self._get("%s%s" % (__base_url__, "users/%s" % user_id))
+        return cast(str, user)
