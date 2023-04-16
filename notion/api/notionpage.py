@@ -155,12 +155,8 @@ class Page(_TokenBlockMixin):
         raise KeyError(f"{property_name} not found in page property values.")
 
     @cached_property
-    def _retrieve(self) -> MutableMapping[str, Any]:
-        return self.retrieve(filter_properties=None)
-
-    @cached_property
     def properties(self) -> MutableMapping[str, Any]:
-        return cast(MutableMapping[str, Any], self._retrieve["properties"])
+        return cast(MutableMapping[str, Any], self.retrieve()["properties"])
 
     @property
     def title(self) -> str:
@@ -183,7 +179,7 @@ class Page(_TokenBlockMixin):
     @property
     def icon(self) -> str:
         """:return: (str) url of icon"""
-        icon = self._retrieve["icon"]["external"]["url"]
+        icon = self.properties["icon"]["external"]["url"]
         return cast(str, icon)
 
     @icon.setter
@@ -196,7 +192,7 @@ class Page(_TokenBlockMixin):
     @property
     def cover(self) -> str:
         """:return: (str) url of cover"""
-        cover = self._retrieve["cover"]["external"]["url"]
+        cover = self.properties["cover"]["external"]["url"]
         return cast(str, cover)
 
     @cover.setter
@@ -209,7 +205,7 @@ class Page(_TokenBlockMixin):
     @property
     def url(self) -> str:
         """:return: (str) url of page"""
-        return cast(str, self._retrieve["url"])
+        return cast(str, self.properties["url"])
 
     @property
     def delete_self(self) -> None:
@@ -231,10 +227,8 @@ class Page(_TokenBlockMixin):
         """ 
         Retrieves a Page object using the ID specified.
 
-        :param filter_properties: (optional) A list of page property value IDs associated with the page.\
-                                   Use this param to limit the response to a specific page property value or values.\
-                                   To retrieve multiple properties, specify each page property ID.\
-                                   E.g. ?filter_properties=iAk8&filter_properties=b7dh.
+        :param filter_properties: (optional) A list of page property value names associated with the page.\
+                                   Use this param to limit the response to a specific page property value(s).\
 
         https://developers.notion.com/reference/retrieve-a-page
         """
@@ -261,8 +255,9 @@ class Page(_TokenBlockMixin):
             - a value.
             - a paginated list of property item values.
 
-        :param property_name: (required) property name in Notion *case-sensitive.\
-                               This endpoint only works with property_id's, internal function will retrieve this.
+        :param property_name: (required) property name in Notion *case-sensitive.
+
+        https://developers.notion.com/reference/property-item-object
 
         https://developers.notion.com/reference/retrieve-a-page-property
         """
@@ -404,10 +399,10 @@ class Page(_TokenBlockMixin):
             Properties(DatePropertyValue(property_name, start=start, end=end))
         )
 
-    def set_text(self, property_name: str, /, new_text: str) -> None:
+    def set_text(self, property_name: str, /, text: str) -> None:
         """https://developers.notion.com/reference/page-property-values#rich-text"""
         self._patch_properties(
-            Properties(RichTextPropertyValue(property_name, [RichText(new_text)]))
+            Properties(RichTextPropertyValue(property_name, [RichText(text)]))
         )
 
     def set_files(

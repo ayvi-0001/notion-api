@@ -199,7 +199,7 @@ class Database(_TokenBlockMixin):
         """
         return self._get(self._database_endpoint(self.id))
 
-    @cached_property
+    @property
     def _property_schema(self) -> MutableMapping[str, Any]:
         return cast(MutableMapping[str, Any], self.retrieve["properties"])
 
