@@ -42,7 +42,7 @@ from notion.exceptions.errors import NotionValidationError
 from notion.properties.build import NotionObject, build_payload
 from notion.properties.common import Parent
 from notion.properties.files import Cover, Icon
-from notion.properties.options import FunctionFormat, NumberFormats
+from notion.properties.options import FunctionFormat, NumberFormat
 from notion.properties.propertyobjects import (
     CheckboxPropertyObject,
     CreatedByPropertyObject,
@@ -182,8 +182,8 @@ class Database(_TokenBlockMixin):
         return cls_
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
-        if property_name in self._property_schema:
-            return cast(MutableMapping[str, Any], self._property_schema[property_name])
+        if property_name in self.property_schema:
+            return cast(MutableMapping[str, Any], self.property_schema[property_name])
         raise KeyError(f"{property_name} not found in page property values.")
 
     def __delitem__(self, property_name_or_id: str) -> None:
@@ -200,7 +200,7 @@ class Database(_TokenBlockMixin):
         return self._get(self._database_endpoint(self.id))
 
     @property
-    def _property_schema(self) -> MutableMapping[str, Any]:
+    def property_schema(self) -> MutableMapping[str, Any]:
         return cast(MutableMapping[str, Any], self.retrieve["properties"])
 
     @property
@@ -348,7 +348,7 @@ class Database(_TokenBlockMixin):
         if filter_property_values:
             url += "?"
             for name in filter_property_values:
-                name_id = self._property_schema[name].get("id")
+                name_id = self[name].get("id")
                 url += f"filter_properties={name_id}&"
 
         if filter:
@@ -361,6 +361,40 @@ class Database(_TokenBlockMixin):
             payload |= {"start_cursor": start_cursor}
 
         return self._post(url, payload=payload)
+
+    def query_pages(
+        self,
+        *,
+        filter: Optional[Union[CompoundFilter, PropertyFilter, TimestampFilter]] = None,
+        sort: Optional[SortFilter] = None,
+        filter_property_values: Optional[list[str]] = None,
+        page_size: Optional[int] = 100,
+        start_cursor: Optional[str] = None,
+    ) -> list[Page]:
+        """
+        :return: list of notion.Page objects
+
+        :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
+        :param sort: (optional) notion.query.sort.SortFilter
+        :param page_size: (optional) The number of items from the full list desired in the response.\
+                           Default: 100 page_size Maximum: 100.
+        :param start_cursor: (optional) When supplied, returns a page of results starting after the cursor provided.\
+                              If not supplied, this endpoint will return the first page of results.
+        :param filter_property_values: (optional) Return only the selected properties.
+
+        https://developers.notion.com/reference/post-database-query
+        """
+        query = self.query(
+            filter=filter,
+            sort=sort,
+            filter_property_values=filter_property_values,
+            page_size=page_size,
+            start_cursor=start_cursor,
+        )
+
+        from notion.api.notionpage import Page
+
+        return [Page(_object["id"]) for _object in query.get("results", [])]
 
     def dual_relation_column(
         self, property_name: str, /, database_id: str, synced_property_name: str
@@ -487,7 +521,7 @@ class Database(_TokenBlockMixin):
         self,
         property_name: str,
         /,
-        format: Optional[Union[NumberFormats, str]] = NumberFormats.number.value,
+        format: Optional[Union[NumberFormat, str]] = NumberFormat.number.value,
     ) -> None:
         """Creates a `Number` property.
 
