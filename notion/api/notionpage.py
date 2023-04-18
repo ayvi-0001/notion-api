@@ -24,7 +24,16 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterator,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
@@ -57,6 +66,7 @@ from notion.properties.propertyvalues import (
     URLPropertyValue,
 )
 from notion.properties.richtext import RichText
+from notion.propertyitems.base import PropertyItem
 
 if TYPE_CHECKING:
     from datetime import timedelta
@@ -149,6 +159,24 @@ class Page(_TokenBlockMixin):
 
         return cls_
 
+    def __getattr__(self, attr: str) -> PropertyItem:
+        def lower_alnum(s: str) -> str:
+            return "".join([c if c.isalnum() else "_" for c in s]).lower()
+
+        for property in self:
+            if lower_alnum(attr) == lower_alnum(property):
+                return PropertyItem(
+                    map=self.retrieve_property_item(property), source_page=self.id
+                )
+
+        raise AttributeError(f"{attr} not found in page property values.")
+
+    def __contains__(self, property_name: str) -> bool:
+        return property_name in self.properties
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.properties)
+
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         if property_name in self.properties:
             return cast(MutableMapping[str, Any], self.properties[property_name])
@@ -184,9 +212,7 @@ class Page(_TokenBlockMixin):
 
     @icon.setter
     def icon(self, icon_url: str) -> None:
-        """
-        >>> page.icon = "https://www.notion.so/icons/code_gray.svg"
-        """
+        """>>> page.icon = "https://www.notion.so/icons/code_gray.svg" """
         self._patch_properties(Icon(icon_url))
 
     @property
@@ -197,9 +223,7 @@ class Page(_TokenBlockMixin):
 
     @cover.setter
     def cover(self, cover_url: str) -> None:
-        """
-        >>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
-        """
+        """>>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg" """
         self._patch_properties(Cover(cover_url))
 
     @property
@@ -235,7 +259,7 @@ class Page(_TokenBlockMixin):
         if filter_properties:
             _pages_endpoint_filtered_prop = f"{self._pages_endpoint(self.id)}?"
             for name in filter_properties:
-                name_id = self.properties[name]["id"]
+                name_id = self[name]["id"]
                 _pages_endpoint_filtered_prop += f"filter_properties={name_id}&"
             return self._get(_pages_endpoint_filtered_prop)
 
@@ -243,7 +267,7 @@ class Page(_TokenBlockMixin):
 
     def _retrieve_property_id(self, property_name: str) -> str:
         """Internal function to retrieve the id of a property."""
-        return cast(str, self.properties[property_name]["id"])
+        return cast(str, self[property_name]["id"])
 
     def retrieve_property_item(
         self,
