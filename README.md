@@ -23,10 +23,14 @@
 
 __Disclaimer: This is an _unofficial_ package and has no affiliation with Notion.so__  
 
+A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion. This project is still a work in progress, and features will continue to change. Below are a few examples of the current functionality. 
+
+<br>
+
 <div border="0" align="center">
     <table>
         <tr>
-            <td align="center"><b>A few useful links:</b></td>
+            <td align="center"><b>Links: Notion API Updates</b></td>
         </tr>
             <td> <a href="https://developers.notion.com/reference/intro">API Reference</a></td><tr>
         </td>
@@ -37,34 +41,31 @@ __Disclaimer: This is an _unofficial_ package and has no affiliation with Notion
     </table>
 </div>
 
-<br>
+---
 
-
-A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.  
-
-This project is still a work in progress, and features will continue to change. Below are a few examples of the current functionality. 
-
-# Install
+## Install
 ```
 pip install -U notion-api
 ```
 
-# Usage
+## Usage
 ```py
 import dotenv
 
 import notion
 
-dotenv.load_dotenv()  # client will check for env variable 'NOTION_TOKEN'.
+# client will check env variables for 'NOTION_TOKEN'
+dotenv.load_dotenv()  
 
 homepage = notion.Page('773b08ff38b44521b44b115827e850f2')
 parent_db = notion.Database(homepage.parent_id)
 
-# or assign through `token` parameter.
-homepage = notion.Page('773b08ff38b44521b44b115827e850f2', token="secret_n2m52d1***")
+# will also look for env var `TZ` to set the timezone for all notion objects. If not found, will default to local timezone.
+```
 
+`__getitem__` searchs for page property values when indexing a Page, and for property objects when indexing a Database.
 
-# __get_item__ searchs for page property values if indexing a Page..
+```py
 homepage['dependencies']
 # {
 #     "id": "WYYq",
@@ -77,7 +78,6 @@ homepage['dependencies']
 #     "has_more": false
 # }
 
-# ..and searchs for property objects if indexing a Database.
 parent_db['dependencies']
 # {
 #     "id": "WYYq",
@@ -92,30 +92,52 @@ parent_db['dependencies']
 #         }
 #     }
 # }
-
-homepage.last_edited.date() # out: 01/15/2023
-homepage.title = "New Page Title"
 ```
 
----
+**_See usage of retrieving values from a page in examples/retrieving-property-items.md_**  
+
+Below is a brief example if we were wanting to get the page id from the above property `dependencies` in `homepage`.
+
+```py
+from notion import propertyitems
+
+related_id: list[str] = propertyitems.relation(homepage.dependencies)
+```
+```py
+>>> ["7bcbc8e6-e237-434b-bd0d-6b56e044200b"]
+```
+
+Both Page's and Database's have setters for title/icon/cover.
+
+```py
+homepage.title = "new page"
+homepage.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
+homepage.icon = "https://www.notion.so/icons/alien-pixel_purple.svg"
+```
+
+<p align="center"> <img src="examples/images/new_page.png"> </p>
+
 <br>
 
 ## Creating Pages/Databases/Blocks
 
-The current version of the Notion api does not allow pages to be created to the parent `workspace`.
+The current version of the Notion api does not allow pages to be created to the parent `workspace`.  
 Create objects by passing an existing Page/Database instance as an arg to the `create` classmethods.
 
 ```py
 new_database = notion.Database.create(
-    homepage, database_title="A new database", name_column="name"
-) 
-# name column refers to the column containing pages/page titles. 
-# Defaults to "Name" if None (all strings in Notion API are case-sensitive).
+    parent_instance=testpage,
+    database_title="Title",
+    name_column="page", # This is the column containing page names. Defaults to "Name".
+    is_inline=True,
+    description="Example Database.",
+)
 
 new_page = notion.Page.create(new_database, page_title="A new database row")
 ```
 
-Blocks can be created with `notion.api.blocktypefactory.BlockFactory` by appending to an exisiting Block or Page. The new block is always returned as a `notion.api.notionblock.Block` instance.
+Blocks can be created with `notion.api.blocktypefactory.BlockFactory` by appending to an exisiting Block or Page.  
+The new block is always returned as an instance of `notion.api.notionblock.Block`.
 ```py
 from notion import properties as prop
 
@@ -130,9 +152,9 @@ notion.BlockFactory.paragraph(
 notion.BlockFactory.reference_synced_block(new_page, original_synced_block.id)
 ```
 
-## Example Workflows
+<br>
 
-**_Appending blocks to a page as a reminder._**
+### Example Workflow: **_Appending blocks to a page as a reminder._**
 
 ```py
 def in_block_reminder(page: notion.Page, message: str, user_name: str) -> None:
@@ -165,47 +187,12 @@ def in_block_reminder(page: notion.Page, message: str, user_name: str) -> None:
 >>> in_block_reminder(page=my_page, message="message here", user_name="Your Name")
 ```
 <p align="center">
-    <img src="https://raw.githubusercontent.com/ayvi-0001/notion-api/main/images/example_function_reminder.png">
+    <img src="examples/images/example_function_reminder.png">
 </p>
 
-**_Cloud Function on GCP: Create daily pages & set related property values._**
-
-```py
-import os
-from datetime import datetime
-
-import functions_framework
-import notion
-
-# Set NOTION_TOKEN and database ID's as env variables.
-
-@functions_framework.http
-def main(request) -> str:
-    # Setup databases.
-    DATABASE_A1 = notion.Database(os.environ["DATABASE_A1_ID"])
-    DATABASE_B1 = notion.Database(os.environ["DATABASE_B1_ID"])
-    DATABASE_B2 = notion.Database(os.environ["DATABASE_B2_ID"])
-
-    date = str(datetime.today().astimezone(DATABASE_A.tz).date())
-
-    # Create a page in main database.
-    page_A1 = notion.Page.create(DATABASE_A1, page_title=date)
-
-    # Create a page in a 2nd database and relate it to main.
-    page_B1 = notion.Page.create(DATABASE_B1, page_title=date)
-    page_A1.set_related("related-B1", [page_B1.id])
-
-    # Create a page in a 3rd database and relate it to the 2nd.
-    page_B2 = notion.Page.create(DATABASE_B2, page_title=date)
-    page_B1.set_related("related-B2", [page_B2.id])
-
-    return "Done"
-```
-
----
 <br>
 
-## Add, Set, & Delete - Page property values / Database property objects
+## Add, Set, & Delete: Page property values | Database property objects
 
 The first argument for all database column methods is the name of the property,  
 If it does not exist, then a new property object is created.  
@@ -234,7 +221,6 @@ new_database.multiselect_column(
 new_page.set_multiselect("options", ["option-a", "option-b"])
 ```
 
----
 <br>
 
 ## Database Queries
@@ -274,14 +260,17 @@ query_result = new_database.query(
     filter_property_values=["name", "options"],
 )
 ```
----
+
+A database also has the `query_pages()` method. It takes the same parameters, but for each page object in the `results` array, it retrieves the id(s), and instead returns a list of `notion.Page`.
+
 <br>
 
 ## Exceptions & Validating Responses
 
-```py
-# Errors in Notion requests return an object with the keys: 'object', 'status', 'code', and 'message'
+Errors in Notion requests return an object with the keys: 'object', 'status', 'code', and 'message'.
+Exceptions are raised by matching the error code and returning the message. For example:
 
+```py
 homepage._patch_properties(payload={'an_incorrect_key':'value'})
 # Example error object for line above..
 # {
@@ -302,21 +291,28 @@ notion.exceptions.errors.NotionValidationError: body failed validation: body.an_
 Error 400: The request body does not match the schema for the expected parameters.
 ```
 
-A common error to look out for is `notion.exceptions.errors.NotionObjectNotFound`  
+Possible errors are:
+ - `NotionInvalidJson`
+ - `NotionInvalidRequestUrl`
+ - `NotionInvalidRequest`
+ - `NotionValidationError`
+ - `NotionMissingVersion`
+ - `NotionUnauthorized`
+ - `NotionRestrictedResource`
+ - `NotionObjectNotFound`
+ - `NotionConflictError`
+ - `NotionRateLimited`
+ - `NotionInternalServerError`
+ - `NotionServiceUnavailable`
+ - `NotionDatabaseConnectionUnavailable`
 
-This error is often raised because your bot has not been added as a connection to the page.  
+A common error to look out for is `NotionObjectNotFound`. This error is often raised because your bot has not been added as a connection to the page. 
 
 <p align="center">
-    <img src="https://raw.githubusercontent.com/ayvi-0001/notion-api/main/images/directory_add_connections.png">  
+    <img src="examples/images/directory_add_connections.png">  
 </p>
 
-By default, a bot will have access to the children of any Parent object it has access too.
-
-Certain errors are returned with a long list of possible causes for failing validation,
-In these cases, the error is often the outlier in the list - for example:
-
-<p align="center">
-    <img src="https://raw.githubusercontent.com/ayvi-0001/notion-api/main/images/append_child_block_error.png"> 
-</p>
+By default, a bot will have access to the children of any Parent object it has access too. Be sure to double check this connection when moving pages.  
+If you're working on a page that your token has access to via its parent page/database, but you never explicitly granted access to the child page -  and you later move that child page out, then it will lose access.
 
 ---
