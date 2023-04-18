@@ -23,21 +23,16 @@
 ### Properties:
 >>> from notion import properties as prop
 
+### PropertyItems:
+>>> from notion import propertyitems
+
 ### Queries:
 >>> from notion import query
-query objects:
- - SortFilter[PropertyValueSort | EntryTimestampSort]
- - CompoundFilter[CompoundFilter | PropertyFilter | TimestampFilter]
- - PropertyFilter
- - TimestampFilter
 """
 from typing import Sequence
 
-import notion.properties as properties
-import notion.query as query
 from notion.api import Block, BlockFactory, Database, Page, Workspace
 from notion.api._pkgv import inspect_pkg_version
-from notion.properties.build import build_payload
 
 __all__: Sequence[str] = (
     "Page",
@@ -45,8 +40,5 @@ __all__: Sequence[str] = (
     "Block",
     "Workspace",
     "BlockFactory",
-    "build_payload",
-    "properties",
-    "query",
     "inspect_pkg_version",
 )

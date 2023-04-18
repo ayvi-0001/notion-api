@@ -27,7 +27,7 @@ __all__: Sequence[str] = (
     "CodeBlockLang",
     "BlockColor",
     "FunctionFormat",
-    "NumberFormats",
+    "NumberFormat",
     "PropertyColor",
 )
 
@@ -134,7 +134,7 @@ class FunctionFormat(str, Enum):
     unique = "unique"
 
 
-class NumberFormats(str, Enum):
+class NumberFormat(str, Enum):
     number = "number"
     number_with_commas = "number_with_commas"
     percent = "percent"

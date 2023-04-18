@@ -49,7 +49,7 @@ https://developers.notion.com/reference/page-property-values
 """
 from __future__ import annotations
 
-import abc
+from abc import ABCMeta
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional, Sequence, Union
 
@@ -81,7 +81,7 @@ __all__: Sequence[str] = (
 )
 
 
-class PagePropertyValue(metaclass=abc.ABCMeta):
+class PagePropertyValue(metaclass=ABCMeta):
     def __init__(self, property_name: str) -> None:
         self.name = property_name
 

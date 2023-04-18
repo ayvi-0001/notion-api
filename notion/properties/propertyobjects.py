@@ -37,11 +37,11 @@ https://developers.notion.com/reference/property-object
 """
 from __future__ import annotations
 
-import abc
+from abc import ABCMeta
 from typing import Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
-from notion.properties.options import FunctionFormat, NumberFormats, PropertyColor
+from notion.properties.options import FunctionFormat, NumberFormat, PropertyColor
 from notion.properties.richtext import RichText
 
 __all__: Sequence[str] = (
@@ -69,7 +69,7 @@ __all__: Sequence[str] = (
 )
 
 
-class PropertyObject(metaclass=abc.ABCMeta):
+class PropertyObject(metaclass=ABCMeta):
     def __init__(self, property_name: str) -> None:
         self.name = property_name
 
@@ -213,7 +213,7 @@ class NumberPropertyObject(PropertyObject, NotionObject):
         self,
         property_name: str,
         /,
-        format: Optional[Union[NumberFormats, str]] = NumberFormats.number.value,
+        format: Optional[Union[NumberFormat, str]] = NumberFormat.number.value,
     ) -> None:
         """https://developers.notion.com/reference/property-object#number"""
         super().__init__(property_name=property_name)
