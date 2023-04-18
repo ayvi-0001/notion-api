@@ -26,7 +26,6 @@ from notion.api._about import __base_url__
 from notion.api.client import _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
-from notion.exceptions.errors import NotionInvalidRequestUrl, NotionObjectNotFound
 from notion.properties.build import NotionObject, build_payload
 from notion.properties.common import Parent, UserObject
 from notion.properties.richtext import Mention, RichText
@@ -90,18 +89,18 @@ class Workspace(_NotionClient):
         return self._get(self._workspace_endpoint(users=True, me=True))
 
     def list_all_users(
-        self, *, page_size: Optional[int] = None, cursor: Optional[str] = None
+        self, *, page_size: Optional[int] = None, next_cursor: Optional[str] = None
     ) -> MutableMapping[str, Any]:
         """
         Returns a paginated list of Users for the workspace.
         https://developers.notion.com/reference/get-users
         """
-        if any([page_size, cursor]):
-            payload: dict[str, Any] = {}
+        if any([page_size, next_cursor]):
+            payload: NotionObject = NotionObject()
             if page_size:
-                payload |= {"page_size": page_size}
-            if cursor:
-                payload |= {"next_cursor": cursor}
+                payload.set("page_size", page_size)
+            if next_cursor:
+                payload.set("next_cursor", next_cursor)
 
             return self._get(self._workspace_endpoint(users=True), payload=payload)
 
@@ -142,7 +141,7 @@ class Workspace(_NotionClient):
                 email=user["person"]["email"] if user["person"]["email"] else None,
             )
         except KeyError:
-            raise NotionObjectNotFound(
+            raise ValueError(
                 "%s. %s"
                 % (
                     f"{self.__repr__()}: Could not find user with name: {user_name}",
@@ -171,11 +170,10 @@ class Workspace(_NotionClient):
         else:
             block_id = thread
 
-        return self._get(
-            self._comments_endpoint(
-                block_id=block_id, page_size=page_size, start_cursor=start_cursor
-            )
+        comments_endpoint = self._comments_endpoint(
+            block_id=block_id, page_size=page_size, start_cursor=start_cursor
         )
+        return self._get(comments_endpoint)
 
     def comment(
         self,
@@ -247,7 +245,7 @@ class Workspace(_NotionClient):
             payload = build_payload({"discussion_id": discussion_id}, comment_object)
             return self._post(self._comments_endpoint(), payload=payload)
 
-        raise NotionInvalidRequestUrl(
+        raise ValueError(
             "Either a parent page/block, or a discussion_id is required (not both)"
         )
 
@@ -312,7 +310,7 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/post-search
         """
-        payload = NotionObject()
+        payload: NotionObject = NotionObject()
         payload.set("page_size", page_size)
         if query:
             payload.set("query", query)
