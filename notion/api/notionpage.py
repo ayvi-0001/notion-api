@@ -178,7 +178,7 @@ class Page(_TokenBlockMixin):
         return iter(self.properties)
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
-        if property_name in self.properties:
+        if property_name in self:
             return cast(MutableMapping[str, Any], self.properties[property_name])
         raise KeyError(f"{property_name} not found in page property values.")
 
@@ -188,7 +188,12 @@ class Page(_TokenBlockMixin):
 
     @property
     def title(self) -> str:
-        """:return: (str) title of page"""
+        """
+        :return: (str) title of page. Empty string if no title is set.
+
+        title setter:
+            >>> page.title = "New Title"
+        """
         try:
             if ("workspace" or "page_id") in self.parent_type:
                 return cast(str, self.properties["title"]["title"][0]["plain_text"])
@@ -201,35 +206,47 @@ class Page(_TokenBlockMixin):
             return ""  # title is empty
 
     @title.setter
-    def title(self, __new_title: str) -> None:
-        self._patch_properties(Properties(TitlePropertyValue([RichText(__new_title)])))
+    def title(self, new_title: str) -> None:
+        self._patch_properties(Properties(TitlePropertyValue([RichText(new_title)])))
 
     @property
-    def icon(self) -> str:
-        """:return: (str) url of icon"""
-        icon = self.properties["icon"]["external"]["url"]
-        return cast(str, icon)
+    def icon(self) -> Union[str, None]:
+        """
+        :return: (str) url of icon. None if no icon is set.
+
+        icon setter:
+            >>> page.icon = "https://www.notion.so/icons/code_gray.svg"
+        """
+        icon = self.retrieve()["icon"]
+        if icon:
+            return cast(str, icon["external"]["url"])
+        return None
 
     @icon.setter
     def icon(self, icon_url: str) -> None:
-        """>>> page.icon = "https://www.notion.so/icons/code_gray.svg" """
         self._patch_properties(Icon(icon_url))
 
     @property
-    def cover(self) -> str:
-        """:return: (str) url of cover"""
-        cover = self.properties["cover"]["external"]["url"]
-        return cast(str, cover)
+    def cover(self) -> Union[str, None]:
+        """
+        :return: (str) url of cover. None if no cover is set.
+
+        cover setter:
+            >>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
+        """
+        cover = self.retrieve()["cover"]
+        if cover:
+            return cast(str, cover["external"]["url"])
+        return None
 
     @cover.setter
     def cover(self, cover_url: str) -> None:
-        """>>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg" """
         self._patch_properties(Cover(cover_url))
 
     @property
     def url(self) -> str:
         """:return: (str) url of page"""
-        return cast(str, self.properties["url"])
+        return cast(str, self.retrieve()["url"])
 
     @property
     def delete_self(self) -> None:

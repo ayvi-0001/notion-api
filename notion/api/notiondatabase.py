@@ -233,7 +233,12 @@ class Database(_TokenBlockMixin):
 
     @property
     def description(self) -> str:
-        """:return: (str) description of database"""
+        """
+        :return: (str) description of database. Empty string if no description is set.
+
+        description.setter:
+            >>> database.description = "This is a description of the database."
+        """
         try:
             description = self.retrieve["description"][0]["text"]["content"]
             return cast(str, description)
@@ -245,29 +250,37 @@ class Database(_TokenBlockMixin):
         self._update(DatabaseDescription([RichText(description)]))
 
     @property
-    def icon(self) -> str:
-        """:return: (str) url of icon"""
-        icon = self.retrieve["icon"]["external"]["url"]
-        return cast(str, icon)
+    def icon(self) -> Union[str, None]:
+        """
+        :return: (str) url of icon. None if no icon is set.
+
+        icon.setter:
+            >>> database.icon = "https://www.notion.so/icons/code_gray.svg"
+        """
+        icon = self.retrieve["icon"]
+        if icon:
+            return cast(str, icon["external"]["url"])
+        return None
 
     @icon.setter
     def icon(self, icon_url: str) -> None:
-        """
-        >>> database.icon = "https://www.notion.so/icons/code_gray.svg"
-        """
         self._update(Icon(icon_url))
 
     @property
-    def cover(self) -> str:
-        """:return: (str) url of cover"""
-        cover = self.retrieve["cover"]["external"]["url"]
-        return cast(str, cover)
+    def cover(self) -> Union[str, None]:
+        """
+        :return: (str) url of cover. None if no cover is set.
+
+        cover.setter:
+            >>> database.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
+        """
+        cover = self.retrieve["cover"]
+        if cover:
+            return cast(str, cover["external"]["url"])
+        return None
 
     @cover.setter
     def cover(self, cover_url: str) -> None:
-        """
-        >>> database.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
-        """
         self._update(Cover(cover_url))
 
     @property
