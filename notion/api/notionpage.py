@@ -24,16 +24,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from functools import cached_property
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterator,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, Union, cast
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
@@ -163,7 +154,7 @@ class Page(_TokenBlockMixin):
         def lower_alnum(s: str) -> str:
             return "".join([c if c.isalnum() else "_" for c in s]).lower()
 
-        for property in self:
+        for property in self.properties:
             if lower_alnum(attr) == lower_alnum(property):
                 return PropertyItem(
                     map=self.retrieve_property_item(property), source_page=self.id
@@ -171,14 +162,8 @@ class Page(_TokenBlockMixin):
 
         raise AttributeError(f"{attr} not found in page property values.")
 
-    def __contains__(self, property_name: str) -> bool:
-        return property_name in self.properties
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.properties)
-
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
-        if property_name in self:
+        if property_name in self.properties:
             return cast(MutableMapping[str, Any], self.properties[property_name])
         raise KeyError(f"{property_name} not found in page property values.")
 
