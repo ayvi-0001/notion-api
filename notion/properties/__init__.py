@@ -20,11 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from notion.properties.blocktypes import *
-from notion.properties.build import *
-from notion.properties.common import *
-from notion.properties.files import *
-from notion.properties.options import *
-from notion.properties.propertyobjects import *
-from notion.properties.propertyvalues import *
-from notion.properties.richtext import *
+from typing import Sequence
+
+from notion.properties.files import ExternalFile, InternalFile
+from notion.properties.options import (
+    BlockColor,
+    CodeBlockLang,
+    FunctionFormat,
+    NumberFormat,
+    PropertyColor,
+)
+from notion.properties.propertyobjects import Option
+from notion.properties.richtext import Annotations, Equation, Mention, RichText
+
+__all__: Sequence[str] = (
+    "RichText",
+    "Annotations",
+    "Mention",
+    "Equation",
+    "Option",
+    "BlockColor",
+    "PropertyColor",
+    "CodeBlockLang",
+    "FunctionFormat",
+    "NumberFormat",
+    "ExternalFile",
+    "InternalFile",
+)

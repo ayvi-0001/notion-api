@@ -20,15 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Sequence, Union
+from typing import Any, Collection, MutableMapping, Optional, Sequence, Union
 
 from notion.properties.build import NotionObject
 from notion.properties.common import _NotionURL
 from notion.properties.files import ExternalFile
 from notion.properties.options import BlockColor, CodeBlockLang
-from notion.properties.richtext import Equation, Mention, RichText
-
-# See docs in `notion.api.blockwrite.BlockFactory` for more info on block types.
+from notion.properties.richtext import Mention, RichText
 
 __all__: Sequence[str] = (
     "BlockChildren",
@@ -53,6 +51,11 @@ __all__: Sequence[str] = (
     "Heading2BlockType",
     "Heading3BlockType",
     "LinkToPageBlockType",
+    "VideoBlockType",
+    "ImageBlockType",
+    "ColumnListBlockType",
+    "TableBlockType",
+    "TableRowBlockType",
 )
 
 
@@ -61,7 +64,9 @@ class BlockChildren(NotionObject):
 
     def __init__(
         self,
-        block_type_objects_array: Optional[list[NotionObject]] = None,
+        block_type_objects_array: Optional[
+            Sequence[NotionObject | MutableMapping[str, Any]]
+        ] = None,
     ) -> None:
         """https://developers.notion.com/reference/block"""
         super().__init__()
@@ -101,7 +106,7 @@ class ParagraphBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -124,7 +129,7 @@ class CalloutBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         icon: Optional[str] = None,
@@ -147,7 +152,7 @@ class QuoteBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -167,7 +172,7 @@ class BulletedListItemBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -187,7 +192,7 @@ class NumberedListItemBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -207,7 +212,7 @@ class ToDoBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         checked: Optional[bool] = False,
@@ -229,7 +234,7 @@ class ToggleBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -249,16 +254,19 @@ class CodeBlocktype(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Optional[Sequence[RichText | Mention]] = None,
         /,
         *,
         language: Optional[Union[CodeBlockLang, str]] = None,
-        caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
+        caption: Optional[Sequence[RichText | Mention | str]] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#code"""
         super().__init__()
         if not language:
             language = CodeBlockLang.plain_text.value
+
+        if not rich_text:
+            rich_text = [RichText("")]
 
         self.set("type", "code")
         self.nest("code", "rich_text", rich_text)
@@ -284,7 +292,7 @@ class BookmarkBlocktype(NotionObject):
         bookmark_url: str,
         /,
         *,
-        caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
+        caption: Optional[Sequence[RichText | Mention]] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#bookmark"""
         super().__init__()
@@ -321,7 +329,7 @@ class Heading1BlockType(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -343,7 +351,7 @@ class Heading2BlockType(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -365,7 +373,7 @@ class Heading3BlockType(NotionObject):
 
     def __init__(
         self,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
         /,
         *,
         block_color: Optional[Union[BlockColor, str]] = None,
@@ -411,3 +419,55 @@ class DividerBlock(NotionObject):
         super().__init__()
         self.set("type", "divider")
         self.set("divider", {})
+
+
+class VideoBlockType(NotionObject):
+    __slots__: Sequence[str] = ()
+
+    def __init__(self, url: str) -> None:
+        """https://developers.notion.com/reference/block#video"""
+        super().__init__()
+        self.set("type", "video")
+        self.set("video", ExternalFile(url))
+
+
+class ImageBlockType(NotionObject):
+    __slots__: Sequence[str] = ()
+
+    def __init__(self, url: str) -> None:
+        """https://developers.notion.com/reference/block#image"""
+        super().__init__()
+        self.set("type", "image")
+        self.set("image", ExternalFile(url))
+
+
+class TableBlockType(NotionObject):
+    __slots__: Sequence[str] = ()
+
+    def __init__(
+        self,
+        table_width: int | None = None,
+        has_column_header: bool | None = None,
+        has_row_header: bool | None = None,
+        children: Sequence[NotionObject | MutableMapping[str, Any]] | None = None,
+    ) -> None:
+        """https://developers.notion.com/reference/block#table"""
+        super().__init__()
+        self.set("type", "table")
+        self.nest("table", "table_width", table_width)
+        self.nest("table", "has_column_header", has_column_header)
+        self.nest("table", "has_row_header", has_row_header)
+        self.nest("table", "children", children)
+
+
+class TableRowBlockType(NotionObject):
+    __slots__: Sequence[str] = ()
+
+    def __init__(
+        self,
+        cells: Sequence[list[dict[str, Collection[str]]]] | None = None,
+    ) -> None:
+        """https://developers.notion.com/reference/block#table-rows"""
+        super().__init__()
+        self.set("type", "table_row")
+        self.nest("table_row", "cells", cells)
