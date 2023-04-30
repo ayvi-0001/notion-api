@@ -19,26 +19,52 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-""" 
-### Properties:
->>> from notion import properties as prop
 
-### PropertyItems:
+""" 
+#### Main Objects:
+>>> notion.Page | notion.Database | notion.Block | notion.Workspace
+
+#### PropertyItems:
 >>> from notion import propertyitems
 
-### Queries:
+#### Queries:
 >>> from notion import query
+
+#### Properties:
+>>> from notion import properties as prop
+
+#### Block Extensions:
+>>> notion.CodeBlock | notion.ToDoBlock | notion.EquationBlock | notion.ParagraphBlock
+
+---
+
+Uncomment `check_for_pkg_update` method to enable auto-update check.
+
 """
 from typing import Sequence
 
-from notion.api import Block, BlockFactory, Database, Page, Workspace
-from notion.api._pkgv import inspect_pkg_version
+from notion.api import Block, Database, Page, Workspace
+from notion.api._pkgv import check_for_pkg_update
+from notion.api.block_ext import (
+    CodeBlock,
+    EquationBlock,
+    RichTextBlock,
+    TableBlock,
+    ToDoBlock,
+)
+
+# check_for_pkg_update()
+
 
 __all__: Sequence[str] = (
     "Page",
     "Database",
     "Block",
     "Workspace",
-    "BlockFactory",
-    "inspect_pkg_version",
+    "CodeBlock",
+    "EquationBlock",
+    "ToDoBlock",
+    "RichTextBlock",
+    "TableBlock",
+    "check_for_pkg_update",
 )
