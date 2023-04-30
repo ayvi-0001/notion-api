@@ -23,7 +23,10 @@
 
 __Disclaimer: This is an _unofficial_ package and has no affiliation with Notion.so__  
 
-A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion. This project is still a work in progress, and features will continue to change. Below are a few examples of the current functionality. 
+A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.  
+README contains examples of the main functionality, including: creating Pages/Databases/Blocks, adding/removing/editing properties, retrieving property values, and database queries.  
+Some more in-depth walkthroughs can be be found in `examples/`    
+This package is not complete - new features will continue to be added, and current features may change.
 
 <br>
 
@@ -127,38 +130,70 @@ Create objects by passing an existing Page/Database instance as an arg to the `c
 ```py
 new_database = notion.Database.create(
     parent_instance=testpage,
-    database_title="Title",
+    database_title="Example Database",
     name_column="page", # This is the column containing page names. Defaults to "Name".
-    is_inline=True,
-    description="Example Database.",
+    is_inline=True, # can also toggle inline with setters.
+    description="Database description can go here.",
 )
 
 new_page = notion.Page.create(new_database, page_title="A new database row")
 ```
 
-Blocks can be created with `notion.api.blocktypefactory.BlockFactory` by appending to an exisiting Block or Page.  
-The new block is always returned as an instance of `notion.api.notionblock.Block`.
+Blocks are also created using the classmethods of `Block`. They all require a parent instance of either `Page` or `Block` to append the new block too.
+The newly created block is returned as an instance of `Block`, which can be used as the parent instance to a nested block. 
 ```py
 from notion import properties as prop
 
-# `new_synced_block` refers to the original synced block in the Notion UI.
-original_synced_block = notion.BlockFactory.new_synced_block(homepage)
+# `original_synced_block` refers to the original synced block in the Notion UI.
+original_synced_block = notion.Block.original_synced_block(homepage)
 
 # Adding content to the synced block
-notion.BlockFactory.paragraph(
-    original_synced_block, [prop.RichText("This is a synced block.")]
-)
+notion.Block.paragraph(original_synced_block, [prop.RichText("This is a synced block.")])
+
 # Referencing the synced block in a new page.
-notion.BlockFactory.reference_synced_block(new_page, original_synced_block.id)
+notion.Block.duplicate_synced_block(new_page, original_synced_block.id)
 ```
 
 <br>
 
-### Example Workflow: **_Appending blocks to a page as a reminder._**
+There are few extensions to the `Block` class that have specific functions unique to their block-type.  
+Below is an example using `CodeBlock`. The others are `TableBlock`, `EquationBlock`, `RichTextBlock`, and `ToDoBlock`. You can see usage for them in `examples/block_extensions.md`.
 
 ```py
-def in_block_reminder(page: notion.Page, message: str, user_name: str) -> None:
-    mentionblock = notion.BlockFactory.paragraph(
+code_block = notion.CodeBlock("84c5721d8a954667902a757f0033f9e0")
+
+class_diagram = r"""
+%%{init: { 'logLevel': 'debug', 'theme': 'default' , 'themeVariables': { 'darkMode':'true', 'git0': '#ff0000', 'git1': '#00ff00', 'git2': '#0000ff', 'git3': '#ff00ff', 'git4': '#00ffff', 'git5': '#ffff00', 'git6': '#ff00ff', 'git7': '#00ffff' } } }%%
+gitGraph
+       commit
+       branch develop
+       commit tag:"v1.0.0"
+       commit
+       checkout main
+       commit type: HIGHLIGHT
+       commit
+       merge develop
+       commit
+       branch featureA
+       commit
+"""
+
+code_block.language = prop.CodeBlockLang.mermaid
+code_block.code = class_diagram
+code_block.caption = "Example from https://mermaid.js.org/syntax/classDiagram.html#syntax"
+```
+
+<p align="center">
+    <img src="examples/images/code_commit_diagram.png">
+</p>
+
+<br>
+
+**_Example Function: Using `notion.Workspace()` to retrieve a user, and appending blocks in a page to mention user/date._**
+
+```py
+def inline_mention(page: notion.Page, message: str, user_name: str) -> None:
+    mentionblock = notion.Block.paragraph(
         page,
         [
             prop.Mention.user(
@@ -169,22 +204,26 @@ def in_block_reminder(page: notion.Page, message: str, user_name: str) -> None:
             ),
             prop.RichText(" - "),
             prop.Mention.date(
-                datetime.now().astimezone(target_page.tz).isoformat(),
+                datetime.now().astimezone(page.tz).isoformat(),
                 annotations=prop.Annotations(
-                    code=True, bold=True, color=prop.BlockColor.purple_background
+                    code=True,
+                    bold=True,
+                    italic=True,
+                    underline=True,
+                    color=prop.BlockColor.gray,
                 ),
             ),
             prop.RichText(":"),
         ],
     )
     # First method returned the newly created block that we append to here:
-    notion.BlockFactory.paragraph(mentionblock, [prop.RichText(message)])
-    notion.BlockFactory.divider(page)
+    notion.Block.paragraph(mentionblock, [prop.RichText(message)])
+    notion.Block.divider(page)
 ```
 
 ```py
->>> my_page = notion.Page("0b9eccfa890e4c3390175ee10c664a35")
->>> in_block_reminder(page=my_page, message="message here", user_name="Your Name")
+>>> homepage = notion.Page("0b9eccfa890e4c3390175ee10c664a35")
+>>> inline_mention(page=homepage, message="example", user_name="AYVI")
 ```
 <p align="center">
     <img src="examples/images/example_function_reminder.png">
@@ -194,11 +233,9 @@ def in_block_reminder(page: notion.Page, message: str, user_name: str) -> None:
 
 ## Add, Set, & Delete: Page property values | Database property objects
 
-The first argument for all database column methods is the name of the property,  
-If it does not exist, then a new property object is created.  
-If it already exists, then the method will overwrite it.
-
-If the name passed already exists, but it's a different column type than the method used - then the API will overwrite this and change the property object to the new column type.  
+The first argument for all database property methods is the name of the property,  
+If a property of that name does not exist, then a new property will be created. 
+If a property of that name already exists, but it's a different type than the method used - then the API will overwrite this and change the property object to the new type.  
 The original parameters will be saved if you decide to switch back (i.e. if you change a formula column to a select column, upon changing it back to a formula column, the original formula expression will still be there).   
 
 ```py
@@ -225,8 +262,11 @@ new_page.set_multiselect("options", ["option-a", "option-b"])
 
 ## Database Queries
 
-A single `notion.query.propfilter.PropertyFilter` is equivalent to filtering one property type in Notion.
-To build filters equivalent to Notion's 'advanced filters', use `notion.query.compound.CompoundFilter`.
+A single `notion.query.PropertyFilter` is equivalent to filtering one property type in Notion.
+To build filters equivalent to Notion's 'advanced filters', use `notion.query.CompoundFilter`.
+
+The database method `query()` will return the raw response from the API.  
+The method `query_pages()` will extract the page ID for each object in the array of results, and return a list of `notion.Page` objects.
 
 ```py
 from datetime import datetime
@@ -260,8 +300,6 @@ query_result = new_database.query(
     filter_property_values=["name", "options"],
 )
 ```
-
-A database also has the `query_pages()` method. It takes the same parameters, but for each page object in the `results` array, it retrieves the id(s), and instead returns a list of `notion.Page`.
 
 <br>
 
