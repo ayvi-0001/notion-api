@@ -100,7 +100,3 @@ show_column_numbers = true
 show_error_context = true
 allow_redefinition = true
 disable_error_code = "no-redef"
-
-[[tool.mypy.overrides]]
-module = ["notion.api.blocktypefactory"]
-disable_error_code = ["empty-body", "type-arg"]

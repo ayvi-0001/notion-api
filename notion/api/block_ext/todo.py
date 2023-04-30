@@ -20,16 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Sequence
+from typing import Optional, Sequence, cast
 
-from notion.api.notionblock import Block
-from notion.api.notiondatabase import Database
-from notion.api.notionpage import Page
-from notion.api.notionworkspace import Workspace
+from notion.api.block_ext.richtext import RichTextBlock
 
-__all__: Sequence[str] = (
-    "Workspace",
-    "Block",
-    "Page",
-    "Database",
-)
+__all__: Sequence[str] = ["ToDoBlock"]
+
+
+class ToDoBlock(RichTextBlock):
+    """ """
+
+    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
+        super().__init__(id, token=token)
+
+        if self.type != "to_do":
+            raise TypeError(
+                f"Block type must be 'to_do', not '{self.type}' for ToDoBlock."
+            )
+
+    @property
+    def checked(self) -> bool:
+        return cast(bool, self._block["to_do"]["checked"])
+
+    @checked.setter
+    def checked(self, value: bool) -> None:
+        checked = self._block["to_do"]
+        checked["checked"] = value
+        self._patch(self._block_endpoint(self.id), payload={self.type: checked})

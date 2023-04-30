@@ -20,16 +20,28 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Sequence
+from typing import Optional, Sequence, cast
 
-from notion.api.notionblock import Block
-from notion.api.notiondatabase import Database
-from notion.api.notionpage import Page
-from notion.api.notionworkspace import Workspace
+from notion.api.blockmixin import _TokenBlockMixin
 
-__all__: Sequence[str] = (
-    "Workspace",
-    "Block",
-    "Page",
-    "Database",
-)
+__all__: Sequence[str] = ["EquationBlock"]
+
+
+class EquationBlock(_TokenBlockMixin):
+    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
+        super().__init__(id, token=token)
+
+        if self.type != "equation":
+            raise TypeError(
+                f"Block type must be 'equation', not '{self.type}' for EquationBlock."
+            )
+
+    @property
+    def expression(self) -> str:
+        return cast(str, self._block["equation"]["expression"])
+
+    @expression.setter
+    def expression(self, value: str) -> None:
+        equation = self._block["equation"]
+        equation["expression"] = value
+        self._patch(self._block_endpoint(self.id), payload={self.type: equation})
