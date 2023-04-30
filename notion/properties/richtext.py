@@ -212,7 +212,7 @@ class Annotations(NotionObject):
         self,
         bold: Optional[bool] = None,
         italic: Optional[bool] = None,
-        strike: Optional[bool] = None,
+        strikethrough: Optional[bool] = None,
         underline: Optional[bool] = None,
         code: Optional[bool] = None,
         color: Union[Optional[BlockColor], str] = None,
@@ -222,11 +222,7 @@ class Annotations(NotionObject):
 
         self.set("bold", bold) if bold else None
         self.set("italic", italic) if italic else None
-        self.set("strike", strike) if strike else None
+        self.set("strikethrough", strikethrough) if strikethrough else None
         self.set("underline", underline) if underline else None
         self.set("code", code) if code else None
-
         self.set("color", color) if color else None
-
-        if not any([[bold, italic, strike, underline, code, color]]):
-            pass

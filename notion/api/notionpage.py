@@ -115,7 +115,7 @@ class Page(_TokenBlockMixin):
         """
         Creates a blank page.
         Use Page methods to add values to properties described in parent database schema.
-        Add content to page by appending block children with notion.api.blocktypefactory.BlockFactory.
+        Add content to page by appending block children with `notion.Block`.
 
         ---
         :param parent_instance: (required) Either a Page or Database instance.
@@ -324,11 +324,7 @@ class Page(_TokenBlockMixin):
         )
 
     def _append(self, payload: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-        """
-        Used internally by notion.api.blocktypefactory.BlockFactory.
-
-        https://developers.notion.com/reference/patch-block-children
-        """
+        """https://developers.notion.com/reference/patch-block-children"""
         return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
 
     def set_select(self, property_name: str, /, select_option: str) -> None:

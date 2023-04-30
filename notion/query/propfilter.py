@@ -160,8 +160,6 @@ class PropertyFilter(NotionObject):
         /,
     ) -> PropertyFilter:
         """
-        When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`
-
         :param filter_value: - When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`\
                              - If value is datetime, it will be converted to ISO 8601 format.
 

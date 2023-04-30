@@ -115,42 +115,15 @@ class RichTextPropertyValue(PagePropertyValue, NotionObject):
         self,
         property_name: str,
         /,
-        rich_text: Sequence[Union[RichText, Mention, Equation]],
+        rich_text: Sequence[RichText | Mention],
     ) -> None:
-        r"""
+        """
         The purpose of the rich text property value is to provide the key `rich_text`,
         whereas the object `notion.properties.RichText` has the key `text`.
 
-        ---
         :param rich_text: (required) An array of rich text objects.
-        Using `shift+enter` for multi-line text blocks results in a separate `text` key with a newline escape.
-        ```json
-        },  // ... first text line above
-        {
-            "type": "text",
-            "text": {
-                "content": "\nthis is the second line of a block"
-            }
-        }
-        ```
-        ---
-        If you hyperlink only part of a string in Notion,
-        the string will be split and return as separate keys in the rich text object.
-        Hyperlinking text to an internal Notion link will populate link/href
-        with the UUID's following notion.so/{workspace name}/...
-        ```json
-        {
-            "type": "text",
-            "text": {
-                "content": "hyperlink in text to notion link\n",
-                "link": {
-                    "url": "/3a2ec1e9308b4fd5a5749a5ee5aeeff9?v=f19121cb8e6f4329aba62edef93c39dc&p=bc5d3abdf3a942e0b6a7d8a5c94b5dc9&pm=s"
-                }          // database id // database view id // database page id
-        },
-        ```
 
         The RichText Object: https://developers.notion.com/reference/rich-text
-
         The RichText Property Value: https://developers.notion.com/reference/page-property-values#rich-text
         """
         super().__init__(property_name=property_name)

@@ -19,12 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-""" 
-A page with a workspace parent is a top-level page within a Notion workspace. 
-https://developers.notion.com/reference/parent-object#workspace-parent
-
-Cannot create pages/databases at the top-level via the API.
-"""
 from __future__ import annotations
 
 from typing import Any, Optional, Sequence
@@ -53,6 +47,10 @@ class Parent(NotionObject):
          - Pages can be parented by other pages, databases, blocks, or by the whole workspace.
          - Blocks can be parented by pages, databases, or blocks.
          - Databases can be parented by pages, blocks, or by the whole workspace.
+
+        A page with a workspace parent is a top-level page within a Notion workspace.
+        https://developers.notion.com/reference/parent-object#workspace-parent
+        Cannot create pages/databases at the top-level via the API.
 
         https://developers.notion.com/reference/parent-object
         """
@@ -118,7 +116,7 @@ class UserObject(NotionObject):
         To update the integration to get access to the user,
         update the integration capabilities on the integration settings page.
 
-        All parameters are display-only and cannot be updated in Notion.
+        All parameters are display-only and cannot be updated.
 
         https://developers.notion.com/reference/user
         """

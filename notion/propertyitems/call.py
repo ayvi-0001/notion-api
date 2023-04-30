@@ -225,8 +225,8 @@ def number_rollup(property: T_PropertyItem) -> float:
 
     if property.map["property_item"]["rollup"]["type"] == "number":
         return cast(float, property.map["property_item"]["rollup"]["number"])
-    else:
-        raise TypeError("rollup type is not number.")
+
+    raise TypeError("rollup type is not number.")
 
 
 def date_rollup(property: T_PropertyItem) -> datetime | tuple[datetime, datetime]:

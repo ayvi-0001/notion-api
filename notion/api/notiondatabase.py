@@ -380,7 +380,6 @@ class Database(_TokenBlockMixin):
         *,
         filter: Optional[Union[CompoundFilter, PropertyFilter, TimestampFilter]] = None,
         sort: Optional[SortFilter] = None,
-        filter_property_values: Optional[list[str]] = None,
         page_size: Optional[int] = 100,
         start_cursor: Optional[str] = None,
     ) -> list[Page]:
@@ -393,14 +392,12 @@ class Database(_TokenBlockMixin):
                            Default: 100 page_size Maximum: 100.
         :param start_cursor: (optional) When supplied, returns a page of results starting after the cursor provided.\
                               If not supplied, this endpoint will return the first page of results.
-        :param filter_property_values: (optional) Return only the selected properties.
 
         https://developers.notion.com/reference/post-database-query
         """
         query = self.query(
             filter=filter,
             sort=sort,
-            filter_property_values=filter_property_values,
             page_size=page_size,
             start_cursor=start_cursor,
         )
@@ -609,7 +606,7 @@ class Database(_TokenBlockMixin):
         self._update(Properties(FilesPropertyObject(property_name)))
 
     def email_column(self, property_name: str, /) -> None:
-        """Creates a `Email` property.
+        """Creates an `Email` property.
 
         https://developers.notion.com/reference/property-object#email
         """

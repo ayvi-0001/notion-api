@@ -104,7 +104,7 @@ class ExternalFile(NotionObject):
         url: str,
         /,
         *,
-        caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
+        caption: Optional[Sequence[RichText | Mention]] = None,
     ) -> None:
         """
         The Notion API supports adding, retrieving, and updating links to external files.
@@ -126,7 +126,7 @@ class InternalFile(NotionObject):
         name: str,
         url: str,
         *,
-        caption: Optional[Sequence[Union[RichText, Mention, Equation]]] = None,
+        caption: Optional[Sequence[RichText | Mention]] = None,
     ) -> None:
         """
         Internal files are any files hosted on Notion

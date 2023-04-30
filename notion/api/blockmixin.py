@@ -86,6 +86,8 @@ class _TokenBlockMixin(_NotionClient):
         Same result as retrieve() for notion.api.notionblock.Block.
         If used with notion.api.notionpage.Page or notion.api.notiondatabase.Database,
         retrieves the page or database object from the blocks endpoint.
+
+        https://developers.notion.com/reference/block#block-type-objects
         """
         return self._get(self._block_endpoint(self.id))
 
