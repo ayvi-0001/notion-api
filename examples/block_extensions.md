@@ -1,11 +1,12 @@
 
 ```py
 import notion
+from notion import properties as prop
 ```
 
 ## `EquationBlock`
 
-<p align="center"><img src="images/block_equation1.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/block_equation1.png?raw=true"></p>
 
 ```py
 example_block = notion.EquationBlock("4dcbfce3aa1f4beb9b685cf729994dda")
@@ -20,7 +21,7 @@ expression = r"""
 example_block.expression = expression
 ```
 
-<p align="center"><img src="images/block_equation2.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/block_equation2.png?raw=true"></p>
 
 ---
 
@@ -28,7 +29,7 @@ example_block.expression = expression
 
 To retrieve the block id of a table, highlight the entire table, type `Alt` + `Shift` + `L`, to copy to clipboard.
 
-<p align="center"><img src="images/get_table_id.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/get_table_id.png?raw=true"></p>
 
 or, create a new table:
 
@@ -54,7 +55,7 @@ table.append_row()
 table.append_row(["0", "1", "2", "3", "4", "5"])
 ```
 
-<p align="center"><img src="images/add_table_rows.png"></p>
+<p align="center"><img src="https://raw.githubusercontent.com/ayvi-0001/notion-api/main/examples/images/add_table_rows.png"></p>
 
 The list of values must match the table width, or `NotionValidationError` will raise:
 
@@ -85,7 +86,7 @@ table.edit_cell(1, 0, value="Index 1")
 table.edit_cell(2, 0, value="Index 2")
 ```
 
-<p align="center"><img src="images/edit_table_cells.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/edit_table_cells.png?raw=true"></p>
 
 
 or overwrite an entire row.
@@ -95,7 +96,7 @@ table.overwrite_row(0, ["a", "b", "c", "d", "e", "f"])
 table.overwrite_row(1, ["", "", "", "Here", "", ""])
 ```
 
-<p align="center"><img src="images/overwrite_table_row.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/overwrite_table_row.png?raw=true"></p>
 
 ```py
 print(table.get_cell(1, 3))
@@ -126,7 +127,7 @@ Clear a cell's content by editing it and passing an empty string, or use `delete
 table.delete_row(0)
 ```
 
-<p align="center"><img src="images/delete_table_row.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/delete_table_row.png?raw=true"></p>
 
 ---
 
@@ -145,7 +146,7 @@ This block doesn't use a setter, but uses the method `set_text(...)` with a list
 This is so the text can be segmented, allowing for annotations on specific words.  
 Example:
 
-<p align="center"><img src="images/todo_block.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/todo_block.png?raw=true"></p>
 
 
 ```py
@@ -161,7 +162,7 @@ textblock.set_text(
 )
 ```
 
-<p align="center"><img src="images/edited_text_block.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/edited_text_block.png?raw=true"></p>
 
 
 ## `ToDoBlock`
@@ -176,6 +177,6 @@ todoblock.checked = True
 ```
 
 
-<p align="center"><img src="images/edited_todo_block.png"></p>
+<p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/edited_todo_block.png?raw=true"></p>
 
 ---

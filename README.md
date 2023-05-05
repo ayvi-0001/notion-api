@@ -25,7 +25,7 @@ __Disclaimer: This is an _unofficial_ package and has no affiliation with Notion
 
 A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.  
 README contains examples of the main functionality, including: creating Pages/Databases/Blocks, adding/removing/editing properties, retrieving property values, and database queries.  
-Some more in-depth walkthroughs can be be found in `examples/`    
+Some more in-depth walkthroughs can be be found in [`examples/`](https://github.com/ayvi-0001/notion-api/tree/main/examples)    
 This package is not complete - new features will continue to be added, and current features may change.
 
 <br>
@@ -97,7 +97,7 @@ parent_db['dependencies']
 # }
 ```
 
-**_See usage of retrieving values from a page in examples/retrieving-property-items.md_**  
+**_See usage of retrieving values from a page in [examples/retrieving-property-items.md](https://github.com/ayvi-0001/notion-api/blob/main/examples/retrieving-property-items.md)_**  
 
 Below is a brief example if we were wanting to get the page id from the above property `dependencies` in `homepage`.
 
@@ -118,7 +118,7 @@ homepage.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
 homepage.icon = "https://www.notion.so/icons/alien-pixel_purple.svg"
 ```
 
-<p align="center"> <img src="examples/images/new_page.png"> </p>
+<p align="center"> <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/new_page.png?raw=true"> </p>
 
 <br>
 
@@ -157,12 +157,12 @@ notion.Block.duplicate_synced_block(new_page, original_synced_block.id)
 <br>
 
 There are few extensions to the `Block` class that have specific functions unique to their block-type.  
-Below is an example using `CodeBlock`. The others are `TableBlock`, `EquationBlock`, `RichTextBlock`, and `ToDoBlock`. You can see usage for them in `examples/block_extensions.md`.
+Below is an example using `CodeBlock`. The others are `TableBlock`, `EquationBlock`, `RichTextBlock`, and `ToDoBlock`. You can see usage for them in [`examples/block_extensions.md`](https://github.com/ayvi-0001/notion-api/blob/main/examples/block_extensions.md).
 
 ```py
 code_block = notion.CodeBlock("84c5721d8a954667902a757f0033f9e0")
 
-class_diagram = r"""
+git_graph = r"""
 %%{init: { 'logLevel': 'debug', 'theme': 'default' , 'themeVariables': { 'darkMode':'true', 'git0': '#ff0000', 'git1': '#00ff00', 'git2': '#0000ff', 'git3': '#ff00ff', 'git4': '#00ffff', 'git5': '#ffff00', 'git6': '#ff00ff', 'git7': '#00ffff' } } }%%
 gitGraph
        commit
@@ -179,12 +179,12 @@ gitGraph
 """
 
 code_block.language = prop.CodeBlockLang.mermaid
-code_block.code = class_diagram
-code_block.caption = "Example from https://mermaid.js.org/syntax/classDiagram.html#syntax"
+code_block.code = git_graph
+code_block.caption = "Example from https://mermaid.js.org/syntax/gitgraph.html"
 ```
 
 <p align="center">
-    <img src="examples/images/code_commit_diagram.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/code_commit_diagram.png?raw=true">
 </p>
 
 <br>
@@ -226,7 +226,7 @@ def inline_mention(page: notion.Page, message: str, user_name: str) -> None:
 >>> inline_mention(page=homepage, message="example", user_name="AYVI")
 ```
 <p align="center">
-    <img src="examples/images/example_function_reminder.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/example_function_reminder.png?raw=true">
 </p>
 
 <br>
@@ -347,7 +347,7 @@ Possible errors are:
 A common error to look out for is `NotionObjectNotFound`. This error is often raised because your bot has not been added as a connection to the page. 
 
 <p align="center">
-    <img src="examples/images/directory_add_connections.png">  
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/directory_add_connections.png?raw=true">  
 </p>
 
 By default, a bot will have access to the children of any Parent object it has access too. Be sure to double check this connection when moving pages.  

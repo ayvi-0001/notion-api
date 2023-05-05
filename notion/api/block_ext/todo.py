@@ -28,8 +28,6 @@ __all__: Sequence[str] = ["ToDoBlock"]
 
 
 class ToDoBlock(RichTextBlock):
-    """ """
-
     def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(id, token=token)
 

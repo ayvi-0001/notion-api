@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Any, MutableMapping, Optional, Sequence, Union, cast
+from typing import Any, MutableMapping, Optional, Sequence, cast
 
 from notion.api._about import __base_url__
 from notion.api.client import _NotionClient
@@ -29,15 +29,24 @@ from notion.api.notionpage import Page
 from notion.properties.build import NotionObject, build_payload
 from notion.properties.common import Parent, UserObject
 from notion.properties.richtext import Mention, RichText
-from notion.query.sort import EntryTimestampSort, SortFilter
+from notion.query.sort import EntryTimestampSort
 
 __all__: Sequence[str] = ["Workspace"]
 
 
 class Workspace(_NotionClient):
-    """
-    Workspace class is to provide general methods that are not specific to a single object.
-    Post/retrieve comments, retrieve users/bots, and search for pages/databases.
+    """The Workspace class is for general methods that are not specific to a single page/database/block object.
+
+    This covers the endpoints:
+        - [Users](https://developers.notion.com/reference/get-users)
+            - list all users
+            - retrieve a user
+            - retrieve your token bot's user
+        - [Search](https://developers.notion.com/reference/post-search)
+            - search workspace by title, page/database objects
+        - [Comments](https://developers.notion.com/reference/create-a-comment)
+            - create a comment
+            - retrieve comments
     """
 
     def __init__(
@@ -80,8 +89,7 @@ class Workspace(_NotionClient):
         )
 
     def retrieve_token_bot(self) -> MutableMapping[str, Any]:
-        """
-        Retrieves the bot User associated with the API token provided in the authorization header.
+        """Retrieves the bot User associated with the API token provided in the authorization header.
         The bot will have an owner field with information about the person who authorized the integration.
 
         https://developers.notion.com/reference/get-self
@@ -91,12 +99,11 @@ class Workspace(_NotionClient):
     def list_all_users(
         self, *, page_size: Optional[int] = None, next_cursor: Optional[str] = None
     ) -> MutableMapping[str, Any]:
-        """
-        Returns a paginated list of Users for the workspace.
+        """Returns a paginated list of Users for the workspace.
         https://developers.notion.com/reference/get-users
         """
         if any([page_size, next_cursor]):
-            payload: NotionObject = NotionObject()
+            payload = NotionObject()
             if page_size:
                 payload.set("page_size", page_size)
             if next_cursor:
@@ -109,8 +116,7 @@ class Workspace(_NotionClient):
     def retrieve_user(
         self, *, user_name: Optional[str] = None, user_id: Optional[str] = None
     ) -> UserObject:
-        """
-        Retrieves a User using either the user name or ID specified.
+        """Retrieves a User using either the user name or ID specified.
 
         :param user_name: (1 of user_name or user_id required) User name in Notion.
         :param user_id: (1 of user_name or user_id required) Identifier for a Notion user
@@ -142,26 +148,26 @@ class Workspace(_NotionClient):
             )
         except KeyError:
             raise ValueError(
-                "%s. %s"
-                % (
-                    f"{self.__repr__()}: Could not find user with name: {user_name}",
-                    f"Only members and guests in the integration's workspace are visible.",
-                )
+                f"{self.__repr__()}: Could not find user with name: {user_name}. ",
+                "Only members and guests in the integration's workspace are visible.",
             )
 
     def retrieve_comments(
         self,
+        /,
+        thread: Page | Block | str,
         *,
-        thread: Union[Page, Block, str],
         page_size: Optional[int] = None,
         start_cursor: Optional[str] = None,
     ) -> MutableMapping[str, Any]:
-        """
-        When retrieving comments, one or more Comment objects will be returned in the form of an array,
+        """ When retrieving comments, one or more Comment objects will be returned in the form of an array,
         sorted in ascending chronological order.
 
-        Retrieving comments from a page parent will return all comments on the page, but not
-        comments from any blocks inside the page.
+        Retrieving comments from a page parent will return all comments on the page, 
+        but not comments from any blocks inside the page.
+
+        :param thread: (required) Either a `notion.Page`/`notion.Block` object, or the string of\
+                        a page/block/discussion_thread ID.
 
         https://developers.notion.com/reference/retrieve-a-comment
         """
@@ -177,20 +183,27 @@ class Workspace(_NotionClient):
 
     def comment(
         self,
+        /,
+        comment: Sequence[RichText | Mention],
         *,
-        page: Optional[Union[Page, Block, str]] = None,
-        block: Optional[Union[Block, str]] = None,
+        page: Optional[Page | Block | str] = None,
+        block: Optional[Block | str] = None,
         discussion_id: Optional[str] = None,
-        comment: Sequence[Union[RichText, Mention]],
-    ) -> Union[MutableMapping[str, Any], None]:
-        """
+    ) -> MutableMapping[str, Any] | None:
+        """ Creates a comment in a page or existing discussion thread.
         There are two locations you can add a new comment to:
          - A page
          - An existing discussion thread
+        
+        If the intention is to add a new comment to a page, a parent object must be provided. 
+        Alternatively, if a new comment is being added to an existing discussion thread, the discussion_id string must be provided. 
+        **Exactly one** of these parameters must be provided.
+        
         Currently the API does not support starting a new comment thread on a block inside a page.
         Comments added will always appear as the newest comment in the thread.
-
+        
         ---
+        :param comment: (required) list containing Richtext/Mention objects.
         :param page: (1 of page/block/discussion_id required)\
                       either a string representing the id of a page, or a Page instance.\
                       - passing a string id of child block inside a page will raise NotionObjectNotFound\
@@ -201,14 +214,13 @@ class Workspace(_NotionClient):
                         and comment in that thread if found.
         :param discussion_id: (1 of page/block/discussion_id required)\
                                a string representing the discussion_id of a comment object.
-        :param comment: (required) either a Richtext/Mention object.
 
         https://developers.notion.com/reference/create-a-comment
         """
         if len([k for k, v in locals().items() if v is not None]) > 3:
             raise ValueError("Only one of page/block/discussion_id can be provided.")
 
-        comment_object: NotionObject = NotionObject()
+        comment_object = NotionObject()
         comment_object.set("rich_text", comment)
 
         if page:
@@ -229,11 +241,8 @@ class Workspace(_NotionClient):
 
             if not comment_thread:
                 raise ValueError(
-                    "%s %s"
-                    % (
-                        "Did not find a comment thread in this block.",
-                        f"Starting new comment threads on a block not supported.",
-                    )
+                    "Did not find a comment thread in this block. ",
+                    "Starting new comment threads on a block not supported.",
                 )
             # Regardless of which discussion_id in a comment thread is used,
             # The next comment will always appear last, so we only get the first discussion_id.
@@ -260,52 +269,21 @@ class Workspace(_NotionClient):
         sort_ascending: Optional[bool] = None,
     ) -> MutableMapping[str, Any]:
         """
-        ### Searches all original pages, databases, and child pages/databases that are shared with the integration.
-        It will not return linked databases, since these duplicate their source databases.
-        The response may contain fewer than page_size of results.
-        See Pagination in api docs for details about how to use a cursor to iterate through the list.
+        Searches all parent or child pages and databases that have been shared with an integration.
+        Returns all pages or databases, excluding duplicated linked databases, that have titles that include the query param.
+        If no query param is provided, then the response contains all pages or databases that have been shared with the integration.
+        The results adhere to any limitations related to an integration's capabilities.
+        To limit the request to search only pages or to search only databases, use the filter param.
 
-        ---------------
-        ### Limitations of search
-        The search endpoint works best when it's being used to query for pages and databases by name.
-        It is not optimized for the following use cases:
-         - Exhaustively enumerating through all the documents a bot has access to in a workspace.
-           Search is not guaranteed to return everything, and the index may change as your integration
-           is iterating through pages and databases resulting in unstable results.
-         - Searching or filtering within a particular database.
-           This use case is much better served by finding the database ID and using the Query a database endpoint.
-         - Immediate and complete results. Search indexing is not immediate.
-           If an integration performs a search quickly after a page is shared with the integration
-           (such as immediately after a user performs OAuth), the response may not contain the page.
-         - When an integration needs to present a user interface that depends on search results,
-           we recommend including a Refresh button to retry the search.
-           This will allow users to determine if the expected result is present or not, and give them a means to try again.
+        For more information on the limitations/optimizations of search,
+        see [Search optimizations and limitations](https://developers.notion.com/reference/post-search).
 
-        ---------------
-        ### Optimizations and recommended ways to use search
-         - Search tends to work best when the request is as specific as possible.
-         - Where possible, we recommend filtering by object (such as page or database) and providing a text query to help narrow down results.
-         - If search is very slow, specifying a smaller page_size can help. (The default page_size is 100.)
-         - Our implementation of the search endpoint includes an optimization where any pages or databases that are
-           directly shared with a bot (rather than shared via an ancestor) are guaranteed to be returned.
-         - If your use case requires pages or databases to immediately be available in search without an indexing delay,
-           we recommend that you share relevant pages/databases with your integration directly.
-
-        ---------------
-        #### Search Filter Object
-        Limitation: Currently the only filter allowed is object which will filter by type of object
-        (either page or database)
-
-        ---------------
-        #### Parameters
-        :param page_size: (optional) The number of items from the full list desired in the response. Maximum/Default: 100
-        :param query: (optional) When supplied, limits which pages are returned by comparing the query to the page title.\
-                       If the query parameter is not provided, the response will contain all pages (and child pages) in the results.
-        :param filter_pages: (optional) sets the `value` key in the Search Filter object to `page`
-        :param filter_databases:(optional)  sets the `value` key in the Search Filter object to `database`
-        :param sort_ascending: (optional) Limitation: Currently only a single sort is allowed and\
-                                is limited to last_edited_time. The default sort is by last_edited_time descending.\
-                                If sort_ascending is set to `True`, the default sort will be overridden.
+        ---
+        :param page_size: (optional) The number of items from the full list to include in the response. Maximum: 100. Default: 100.
+        :param query: (optional) The text that the API compares page and database titles against.
+        :param filter_pages: (optional) If set to True, limits results to only `page` objects.
+        :param filter_databases:(optional) If set to True, limits results to only `database` objects.
+        :param sort_ascending: (optional) If sort is not provided, then default sort is last_edited_time descending.
         :param start_cursor: (optional) If supplied, will return a page of results starting after provided cursor.
 
         https://developers.notion.com/reference/post-search
@@ -323,6 +301,6 @@ class Workspace(_NotionClient):
         if start_cursor:
             payload.set("start_cursor", start_cursor)
         if sort_ascending:
-            payload |= SortFilter([EntryTimestampSort.last_edited_time_ascending()])
+            payload.set("sort", EntryTimestampSort.last_edited_time_ascending())
 
         return self._post(self._workspace_endpoint(search=True), payload=payload)

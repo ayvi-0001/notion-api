@@ -34,7 +34,7 @@
 >>> from notion import properties as prop
 
 #### Block Extensions:
->>> notion.CodeBlock | notion.ToDoBlock | notion.EquationBlock | notion.ParagraphBlock
+>>> notion.CodeBlock | notion.ToDoBlock | notion.EquationBlock | notion.RichTextBlock
 
 ---
 

@@ -15,7 +15,7 @@ Page properties can be retrieved 1 of 2 ways;
 Our home page has the rich text property type "Welcome Message" 
 
 <p align="center">
-    <img src="images/welcome-message.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/welcome-message.png?raw=true">
 </p>
 
 
@@ -151,7 +151,7 @@ If you prefer to handle the responses another way, the property value and proper
 We have 2 databases related to each other, `Database A` and `Database B`
 
 <p align="center">
-    <img src="images/related-page-ids.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/related-page-ids.png?raw=true">
 </p>
 
 
@@ -206,14 +206,14 @@ There are some limitations, for example `percent-per-group` and `count-per-group
 But say we wanted to calculate the percent per group for a status property. We can set up our database as follows:
 
 <p align="center">
-    <img src="images/status-view.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/status-view.png?raw=true">
 </p>
 
 We can add a formula to `Database B` that returns `true` if the status contains `In progress`.
 
 
 <p align="center">
-    <img src="images/status-formula.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/status-formula.png?raw=true">
 </p>
 
 
@@ -221,7 +221,7 @@ Then setup a rollup property aggregating the `if in-progress` property from the 
 
 
 <p align="center">
-    <img src="images/status-rollup.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/status-rollup.png?raw=true">
 </p>
 
 Since we are returning a percent, the rollup type is `number`, so we can use the `propertyitems.number_rollup()` function.
@@ -249,7 +249,7 @@ Date properties in Notion always include a `start` date. If the date is a range,
 For the example below, the `date-range` rollup is calculating the date range of the `start-date` property for the related pages in `Database B`.
 
 <p align="center">
-    <img src="images/date-view.png">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/date-view.png?raw=true">
 </p>
 
 The date property value in `start-date` for `sub-page-C` would look like this,
