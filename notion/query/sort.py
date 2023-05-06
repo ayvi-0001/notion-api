@@ -44,7 +44,7 @@ class SortFilter(NotionObject):
         https://developers.notion.com/reference/post-database-query-sort#sort-object
         """
         super().__init__()
-        self.set("sort", sort_object)
+        self.set("sorts", sort_object)
 
 
 class PropertyValueSort(NotionObject):
