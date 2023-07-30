@@ -22,7 +22,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Sequence, Union
+from typing import Any, Sequence
 
 from notion.properties.build import NotionObject
 from notion.query.conditions import *
@@ -77,7 +77,7 @@ class PropertyFilter(NotionObject):
         property_name: str,
         property_type: TextTypes,
         filter_condition: TextConditions,
-        filter_value: Union[str, bool],
+        filter_value: str | bool,
         /,
     ) -> PropertyFilter:
         """https://developers.notion.com/reference/post-database-query-filter#rich-text"""
@@ -103,8 +103,9 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: NumberConditions,
-        filter_value: Union[str, float, bool],
+        filter_value: str | int | float | bool,
         /,
+        *,
         property_type: str = "number",
     ) -> PropertyFilter:
         """https://developers.notion.com/reference/post-database-query-filter#number"""
@@ -116,7 +117,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: SelectConditions,
-        filter_value: Union[str, bool],
+        filter_value: str | bool,
         /,
         property_type: str = "select",
     ) -> PropertyFilter:
@@ -129,7 +130,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: MultiSelectConditions,
-        filter_value: Union[str, bool],
+        filter_value: str | bool,
         /,
         property_type: str = "multi_select",
     ) -> PropertyFilter:
@@ -142,7 +143,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: StatusConditions,
-        filter_value: Union[str, bool],
+        filter_value: str | bool,
         /,
         property_type: str = "status",
     ) -> PropertyFilter:
@@ -156,12 +157,12 @@ class PropertyFilter(NotionObject):
         property_name: str,
         property_type: DateTypes,
         filter_condition: DateConditions,
-        filter_value: Union[str, bool, dict[str, Any], datetime],
+        filter_value: str | bool | dict[str, Any] | datetime,
         /,
     ) -> PropertyFilter:
         """
-        :param filter_value: - When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`\
-                             - If value is datetime, it will be converted to ISO 8601 format.
+        :param filter_value: When selecting any DateCondition containing `past`, `this`, or `next`, set filter value to `{}`\
+                             If value is datetime, it will be converted to ISO 8601 format.
 
         https://developers.notion.com/reference/post-database-query-filter#date
         """
@@ -176,7 +177,7 @@ class PropertyFilter(NotionObject):
         property_name: str,
         property_type: PeopleTypes,
         filter_condition: PeopleConditions,
-        filter_value: Union[str, bool],
+        filter_value: str | bool,
         /,
     ) -> PropertyFilter:
         """https://developers.notion.com/reference/post-database-query-filter#people"""
@@ -192,9 +193,7 @@ class PropertyFilter(NotionObject):
         filter_value: bool = True,
         property_type: str = "files",
     ) -> PropertyFilter:
-        """
-        Only available `filter_value` is `true`.
-
+        """Only available `filter_value` is `true`.
         https://developers.notion.com/reference/post-database-query-filter#files-filter-condition
         """
 
@@ -205,7 +204,7 @@ class PropertyFilter(NotionObject):
         cls,
         property_name: str,
         filter_condition: RelationConditions,
-        filter_value: Union[str, bool],
+        filter_value: str | bool,
         /,
         property_type: str = "relation",
     ) -> PropertyFilter:

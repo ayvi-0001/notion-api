@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Sequence, Union, cast
+from typing import Any, MutableMapping, Optional, Sequence, cast
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.properties.options import BlockColor
@@ -67,8 +67,6 @@ class RichTextBlock(_TokenBlockMixin):
 
         try:
             if len(block["rich_text"]) > 1:
-                print("here")
-
                 text = []
                 for rc in block["rich_text"]:
                     text.append(rc["text"]["content"])
@@ -110,7 +108,7 @@ class RichTextBlock(_TokenBlockMixin):
         strikethrough: Optional[bool] = None,
         underline: Optional[bool] = None,
         code: Optional[bool] = None,
-        color: Union[Optional[BlockColor], str] = None,
+        color: Optional[BlockColor | str] = None,
     ) -> None:
         text = self._block[self.type]
         annotations = Annotations(

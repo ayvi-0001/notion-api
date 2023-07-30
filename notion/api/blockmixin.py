@@ -25,12 +25,12 @@ from __future__ import annotations
 import os
 from datetime import datetime, tzinfo
 from functools import cached_property
-from typing import Any, MutableMapping, Optional, Sequence, Union, cast
+from typing import Any, MutableMapping, Optional, Sequence, cast
 
 from pytz import timezone
 from tzlocal import get_localzone_name
 
-from notion.api._about import *
+from notion.api._about import __base_url__
 from notion.api.client import _NotionClient
 
 LOCAL_TIMEZONE = get_localzone_name()
@@ -46,13 +46,7 @@ class _TokenBlockMixin(_NotionClient):
     This class assigns common attributes among all three types.
     """
 
-    def __init__(
-        self,
-        id: str,
-        /,
-        *,
-        token: Optional[str] = None,
-    ) -> None:
+    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(token=token)
 
         self.id: str = id.replace("-", "")
@@ -63,12 +57,11 @@ class _TokenBlockMixin(_NotionClient):
             self.tz = timezone(LOCAL_TIMEZONE)
 
     def __repr__(self) -> str:
+        # This is to avoid certain errors occuring before the object is fully initialized
         id = getattr(self, "id", "")
-        # This is to avoid certain errors occuring
-        # before the object is fully initialized
         return f"notion.{self.__class__.__name__}('{id}')"
 
-    def set_tz(self, tz: Union[tzinfo, str]) -> None:
+    def set_tz(self, tz: tzinfo | str) -> None:
         """
         :param tz: (required) Set the instance timezone. Takes either str or pytz.timezone\
                     Use `pytz.all_timezones()` to retrieve list of tz options.\
@@ -84,7 +77,7 @@ class _TokenBlockMixin(_NotionClient):
     def _block(self) -> MutableMapping[str, Any]:
         """
         Same result as retrieve() for notion.api.notionblock.Block.
-        If used with notion.api.notionpage.Page or notion.api.notiondatabase.Database,
+        If used with notion.Page or `notion.Database`,
         retrieves the page or database object from the blocks endpoint.
 
         https://developers.notion.com/reference/block#block-type-objects
@@ -118,9 +111,9 @@ class _TokenBlockMixin(_NotionClient):
     def parent_id(self) -> str:
         _parent_id = self._block["parent"][self.parent_type]
         if _parent_id is True:  # parent is workspace
-            workspace = self._get("%s%s" % (__base_url__, "users/me"))
+            workspace = self._get(f"{__base_url__}users/me")
             # return workspace name
-            return "workspace-%s" % workspace["bot"]["workspace_name"]
+            return f"workspace:{workspace['bot']['workspace_name']}"
         else:
             return cast(str, _parent_id.replace("-", ""))
 
@@ -151,11 +144,11 @@ class _TokenBlockMixin(_NotionClient):
     @property
     def last_edited_by(self) -> str:
         user_id = self._block["last_edited_by"]["id"]
-        user = self._get("%s%s" % (__base_url__, "users/%s" % user_id))
+        user = self._get(f"{__base_url__}users/{user_id}")
         return cast(str, user)
 
     @property
     def created_by(self) -> str:
         user_id = self._block["created_by"]["id"]
-        user = self._get("%s%s" % (__base_url__, "users/%s" % user_id))
+        user = self._get(f"{__base_url__}users/{user_id}")
         return cast(str, user)

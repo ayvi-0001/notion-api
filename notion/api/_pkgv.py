@@ -4,29 +4,28 @@ from typing import Callable, Final, Pattern, Sequence, cast
 
 import requests
 
-from notion.api._about import *
+from notion.api._about import __package_json__, __package_url__, __version__
 from notion.api.client import _NLOG
 
 try:
     import orjson
 
-    default_json: ModuleType = orjson
+    _json: ModuleType = orjson
 except ModuleNotFoundError:
     import json
 
-    default_json: ModuleType = json
+    _json: ModuleType = json # type: ignore[no-redef]
 
 
 __all__: Sequence[str] = ["check_for_pkg_update"]
 
 
 get_version: Callable[[str], str] = lambda pkg: cast(
-    str, default_json.loads(requests.get(pkg).text)["info"]["version"]
+    str, _json.loads(requests.get(pkg).text)["info"]["version"]
 )
 
 
-def check_for_pkg_update() -> None:
-    """Check for package updates. Uncomment this function in `notion\__init__.py` to enable."""
+def check_for_pkg_update() -> bool | None:
     pkg_expr: Final[Pattern[str]] = re.compile(r"(\d).(\d)+.(\d)+", re.I)
 
     try:
@@ -45,6 +44,6 @@ def check_for_pkg_update() -> None:
                 % (".".join(map(str, pypi_version)), __package_url__)
             )
 
-        return None
+        return local_version < pypi_version
     except Exception:
         return None

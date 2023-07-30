@@ -19,10 +19,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 from __future__ import annotations
 
-from typing import Sequence, Union
+from typing import Sequence
+
+from typing_extensions import Self
 
 from notion.properties.build import NotionObject
 from notion.query.propfilter import PropertyFilter
@@ -35,33 +36,28 @@ class CompoundFilter(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self) -> None:
-        """NOTE: only up to two nesting levels deep.
+        """Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
+        NOTE: only up to two nesting levels deep.
 
         :method: _and() combine all filters in an `and` grouping.
         :method: _or() combine all filters in an `or` grouping.
-
-        Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
 
         https://developers.notion.com/reference/post-database-query-filter#compound-filter-object
         """
         super().__init__()
 
-    def _and(
-        self, *filters: Union[PropertyFilter, CompoundFilter, TimestampFilter]
-    ) -> CompoundFilter:
-        """
-        Example compound filter conditions
+    def _and(self, *filters: PropertyFilter | CompoundFilter | TimestampFilter) -> Self:
+        """Example compound filter conditions
         https://developers.notion.com/reference/post-database-query-filter#example-compound-filter-conditions
         """
-        self.nest("filter", "and", [f["filter"] if "filter" in f else f for f in filters])
+        filter_objects = [f["filter"] if "filter" in f else f for f in filters]
+        self.nest("filter", "and", filter_objects)
         return self
 
-    def _or(
-        self, *filters: Union[PropertyFilter, CompoundFilter, TimestampFilter]
-    ) -> CompoundFilter:
-        """
-        Example compound filter conditions
+    def _or(self, *filters: PropertyFilter | CompoundFilter | TimestampFilter) -> Self:
+        """Example compound filter conditions
         https://developers.notion.com/reference/post-database-query-filter#example-compound-filter-conditions
         """
-        self.nest("filter", "or", [f["filter"] if "filter" in f else f for f in filters])
+        filter_objects = [f["filter"] if "filter" in f else f for f in filters]
+        self.nest("filter", "or", filter_objects)
         return self

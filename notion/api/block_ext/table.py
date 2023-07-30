@@ -33,26 +33,21 @@ __all__: Sequence[str] = ("TableBlock", "CELLS_ARRAY")
 
 
 CELLS_ARRAY = Sequence[list[dict[str, Collection[str]]]]
-""" An array of cell contents in horizontal display order. Each cell is an array of rich text objects. """
+""" An array of cell contents in horizontal display order. 
+Each cell is an array of rich text objects. """
 
 
 class TableBlock(_TokenBlockMixin):
     """
     Note that the number of columns in a table can only be set when the table is first created.
     Calls to the Update block endpoint to update table_width fail.
-    See examples in repo `examples/block_extensions.md` for more details.
+    See examples in [examples/block_extensions.md](https://github.com/ayvi-0001/notion-api/blob/main/examples/block_extensions.md) for more details.
 
     Table:      https://developers.notion.com/reference/block#table
     Table Rows: https://developers.notion.com/reference/block#table-rows
     """
 
-    def __init__(
-        self,
-        id: str,
-        /,
-        *,
-        token: Optional[str] = None,
-    ) -> None:
+    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(id, token=token)
         self.logger = _NLOG.getChild(self.__repr__())
 
@@ -103,16 +98,14 @@ class TableBlock(_TokenBlockMixin):
             cells: CELLS_ARRAY = [[] for _ in range(self.table_width)]
             row = [TableRowBlockType(cells)]
             self._patch(
-                self._block_endpoint(self.id, children=True),
-                payload=BlockChildren(row),
+                self._block_endpoint(self.id, children=True), payload=BlockChildren(row)
             )
 
         else:
-            cells: CELLS_ARRAY = [[RichText(value)] for value in values_array]
+            cells: CELLS_ARRAY = [[RichText(value)] for value in values_array] #type: ignore[no-redef]
             row = [TableRowBlockType(cells)]
             self._patch(
-                self._block_endpoint(self.id, children=True),
-                payload=BlockChildren(row),
+                self._block_endpoint(self.id, children=True), payload=BlockChildren(row)
             )
 
     def overwrite_row(self, row_index: int, values_array: list[str]) -> None:

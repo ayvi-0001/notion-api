@@ -24,16 +24,7 @@ from __future__ import annotations
 
 from functools import cached_property
 from types import ModuleType
-from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, Union, cast
-
-try:
-    import orjson
-
-    default_json: ModuleType = orjson
-except ModuleNotFoundError:
-    import json
-
-    default_json: ModuleType = json
+from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, cast
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
@@ -76,6 +67,15 @@ from notion.query.timestamp import TimestampFilter
 if TYPE_CHECKING:
     from notion.api.notionpage import Page
 
+try:
+    import orjson
+
+    _json: ModuleType = orjson
+except ModuleNotFoundError:
+    import json 
+
+    _json: ModuleType = json # type: ignore[no-redef]
+
 __all__: Sequence[str] = ["Database"]
 
 
@@ -100,34 +100,22 @@ class Database(_TokenBlockMixin):
 
     ---
     :param id: (required) `database_id` of object in Notion.
-    :param token: Bearer token provided when you create an integration.\
+    :param token: (optional) Bearer token provided when you create an integration.\
                   Set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
                   See https://developers.notion.com/reference/authentication.
 
     https://developers.notion.com/reference/database
     """
 
-    def __new__(
-        cls,
-        id: str,
-        /,
-        token: Optional[str] = None,
-    ) -> Database:
-        # notion api will not throw an error if the uuid isn't a database until you make a call.
-        # this is to throw an error right away if trying to create a database instance
-        # with a uuid that is not a database and catch the error sooner.
+    def __new__(cls, id: str, /, token: Optional[str] = None) -> Database:
+        # notion api will not throw an error if the id is not a database until you make a call.
+        # this is to raise right away if the id is not a database and catch the error sooner.
         target_block = Block(id, token=token)
         if target_block.type != "child_database":
             raise TypeError(f"{target_block.__repr__()} does not reference a Database.")
         return super().__new__(cls)
 
-    def __init__(
-        self,
-        id: str,
-        /,
-        *,
-        token: Optional[str] = None,
-    ) -> None:
+    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(id, token=token)
         self.logger = _NLOG.getChild(self.__repr__())
 
@@ -163,23 +151,23 @@ class Database(_TokenBlockMixin):
             Properties(TitlePropertyObject(name_column if name_column else "Name")),
         )
 
-        new_db = cls._post(parent_instance, cls._database_endpoint(), payload=payload)
+        new_db_map = cls._post(parent_instance, cls._database_endpoint(), payload=payload)
 
-        cls_ = cls(new_db["id"])
-        cls_.logger.debug(
-            f"Database created in {parent_instance.__repr__()}. Url: {new_db['url']}"
+        database = cls(new_db_map["id"])
+        database.logger.debug(
+            f"Database created in {parent_instance.__repr__()}. Url: {new_db_map['url']}"
         )
 
         if is_inline:
-            cls_.is_inline = is_inline
+            database.is_inline = is_inline
         if description:
-            cls_.description = description
+            database.description = description
         if icon_url:
-            cls_.icon = icon_url
+            database.icon = icon_url
         if cover_url:
-            cls_.cover = cover_url
+            database.cover = cover_url
 
-        return cls_
+        return database
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         if property_name in self.property_schema:
@@ -227,8 +215,7 @@ class Database(_TokenBlockMixin):
     @is_inline.setter
     def is_inline(self, __inline: bool) -> None:
         self._patch(
-            self._database_endpoint(self.id),
-            payload=default_json.dumps({"is_inline": __inline}),
+            self._database_endpoint(self.id), payload=_json.dumps({"is_inline": __inline})
         )
 
     @property
@@ -237,7 +224,7 @@ class Database(_TokenBlockMixin):
         :return: (str) description of database. Empty string if no description is set.
 
         description.setter:
-            >>> database.description = "This is a description of the database."
+        >>> database.description = "This is a description of the database."
         """
         try:
             description = self.retrieve["description"][0]["text"]["content"]
@@ -250,12 +237,12 @@ class Database(_TokenBlockMixin):
         self._update(DatabaseDescription([RichText(description)]))
 
     @property
-    def icon(self) -> Union[str, None]:
+    def icon(self) -> str | None:
         """
         :return: (str) url of icon. None if no icon is set.
 
         icon.setter:
-            >>> database.icon = "https://www.notion.so/icons/code_gray.svg"
+        >>> database.icon = "https://www.notion.so/icons/code_gray.svg"
         """
         icon = self.retrieve["icon"]
         if icon:
@@ -267,12 +254,12 @@ class Database(_TokenBlockMixin):
         self._update(Icon(icon_url))
 
     @property
-    def cover(self) -> Union[str, None]:
+    def cover(self) -> str | None:
         """
         :return: (str) url of cover. None if no cover is set.
 
         cover.setter:
-            >>> database.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
+        >>> database.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
         """
         cover = self.retrieve["cover"]
         if cover:
@@ -302,12 +289,8 @@ class Database(_TokenBlockMixin):
 
         self._patch(self._database_endpoint(self.id), payload=(b'{"archived": false}'))
 
-    def _update(
-        self,
-        payload: MutableMapping[str, Any],
-    ) -> MutableMapping[str, Any]:
-        """
-        Updates an existing database as specified by the parameters.
+    def _update(self, payload: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+        """Updates an existing database as specified by the parameters.
 
         :param payload: (required) json payload for updated properties parameters.
 
@@ -316,23 +299,20 @@ class Database(_TokenBlockMixin):
         return self._patch(self._database_endpoint(self.id), payload=payload)
 
     def delete_property(self, name_or_id: str) -> None:
-        """
-        :param name_or_id: (required) name or id of property described in database schema
+        """https://developers.notion.com/reference/update-property-schema-object#removing-a-property
 
-        https://developers.notion.com/reference/update-property-schema-object#removing-a-property
+        :param name_or_id: (required) name or id of property described in database schema
         """
         self._update({"properties": {name_or_id: None}})
 
     def rename_property(self, old_name: str, new_name: str) -> None:
-        """
-        https://developers.notion.com/reference/update-property-schema-object#renaming-a-property
-        """
-        self._update(default_json.dumps({"properties": {old_name: {"name": new_name}}}))
+        """https://developers.notion.com/reference/update-property-schema-object#renaming-a-property"""
+        self._update(_json.dumps({"properties": {old_name: {"name": new_name}}}))
 
     def query(
         self,
         *,
-        filter: Optional[Union[CompoundFilter, PropertyFilter, TimestampFilter]] = None,
+        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
         sort: Optional[SortFilter] = None,
         filter_property_values: Optional[list[str]] = None,
         page_size: Optional[int] = 100,
@@ -378,7 +358,7 @@ class Database(_TokenBlockMixin):
     def query_pages(
         self,
         *,
-        filter: Optional[Union[CompoundFilter, PropertyFilter, TimestampFilter]] = None,
+        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
         sort: Optional[SortFilter] = None,
         page_size: Optional[int] = 100,
         start_cursor: Optional[str] = None,
@@ -409,7 +389,7 @@ class Database(_TokenBlockMixin):
     def dual_relation_column(
         self, property_name: str, /, database_id: str, synced_property_name: str
     ) -> None:
-        """ Creates a `Relation` property with `Separate Directions` toggled on.
+        """Creates or replaces a `Relation` property with `Separate Directions` toggled on.
 
         :param property_name: (required) Name to give to property.
         :param database_id: (required) The database that the relation property refers to.\
@@ -436,7 +416,7 @@ class Database(_TokenBlockMixin):
             pass
 
     def single_relation_column(self, property_name: str, /, database_id: str) -> None:
-        """ Creates a `Relation` property with `Separate Directions` toggled off.
+        """Creates or replaces a `Relation` property with `Separate Directions` toggled off.
 
         :param property_name: (required) Name to give to property.
         :param database_id: (required) The database id that this property will relate to.\
@@ -454,11 +434,9 @@ class Database(_TokenBlockMixin):
         /,
         relation_property_name: str,
         rollup_property_name: str,
-        function: Optional[
-            Union[FunctionFormat, str]
-        ] = FunctionFormat.show_original.value,
+        function: Optional[FunctionFormat | str] = FunctionFormat.show_original.value,
     ) -> None:
-        """ Creates a `Rollup` property.
+        """Creates or replaces a `Rollup` property.
         A rollup database property is rendered in the Notion UI as a column with 
         values that are rollups, specific properties that are pulled from a related database.
 
@@ -476,15 +454,12 @@ class Database(_TokenBlockMixin):
         https://developers.notion.com/reference/property-object#rollup
         """
         rollup_property = RollupPropertyObject(
-            property_name,
-            relation_property_name,
-            rollup_property_name,
-            function,
+            property_name, relation_property_name, rollup_property_name, function
         )
         self._update((Properties(rollup_property)))
 
-    def select_column(self, property_name: str, /, options: list[Option]) -> None:
-        """ Creates a `Select` property.
+    def select_column(self, property_name: str, /, options: Sequence[Option]) -> None:
+        """Creates or replaces a `Select` property.
 
         If `property_name` is a select column that already exists,
         then this method will overwrite the current options - UNLESS
@@ -504,8 +479,10 @@ class Database(_TokenBlockMixin):
         """
         self._update(Properties(SelectPropertyObject(property_name, options=options)))
 
-    def multiselect_column(self, property_name: str, /, options: list[Option]) -> None:
-        """ Creates a `Multi-select` property.
+    def multiselect_column(
+        self, property_name: str, /, options: Sequence[Option]
+    ) -> None:
+        """Creates or replaces a `Multi-select` property.
 
         If `property_name` is a multi_select column that already exists,
         then this method will overwrite the current options - UNLESS
@@ -531,37 +508,33 @@ class Database(_TokenBlockMixin):
         self,
         property_name: str,
         /,
-        format: Optional[Union[NumberFormat, str]] = NumberFormat.number.value,
+        format: Optional[NumberFormat | str] = NumberFormat.number.value,
     ) -> None:
-        """Creates a `Number` property.
-
+        """Creates or replaces a `Number` property.
         https://developers.notion.com/reference/property-object#number
         """
         self._update(Properties(NumberPropertyObject(property_name, format)))
 
     def checkbox_column(self, property_name: str, /) -> None:
-        """Creates a `Checkbox` property.
-
+        """Creates or replaces a `Checkbox` property.
         https://developers.notion.com/reference/property-object#checkbox
         """
         self._update(Properties(CheckboxPropertyObject(property_name)))
 
     def date_column(self, property_name: str, /) -> None:
-        """Creates a `Date` property.
-
+        """Creates or replaces a `Date` property.
         https://developers.notion.com/reference/property-object#date
         """
         self._update(Properties(DatePropertyObject(property_name)))
 
     def text_column(self, property_name: str, /) -> None:
-        """Creates a `Text` property.
-
+        """Creates or replaces a `Text` property.
         https://developers.notion.com/reference/property-object#rich-text
         """
         self._update(Properties(RichTextPropertyObject(property_name)))
 
     def formula_column(self, property_name: str, /, expression: str) -> None:
-        """ Creates a `Formula` property.
+        """Creates or replaces a `Formula` property.
 
         :param expression: (required) The formula that is used to compute the values for this property.\
                             Refer to https://www.notion.so/help/formulas for more information about formula syntax.
@@ -571,64 +544,55 @@ class Database(_TokenBlockMixin):
         self._update(Properties(FormulaPropertyObject(property_name, expression)))
 
     def created_time_column(self, property_name: str, /) -> None:
-        """Creates a `Created time` property.
-
+        """Creates or replaces a `Created time` property.
         https://developers.notion.com/reference/property-object#created-time
         """
         self._update(Properties(CreatedTimePropertyObject(property_name)))
 
     def created_by_column(self, property_name: str, /) -> None:
-        """Creates a `Created by` property.
-
+        """Creates or replaces a `Created by` property.
         https://developers.notion.com/reference/property-object#created-by
         """
         self._update(Properties(CreatedByPropertyObject(property_name)))
 
     def last_edited_time_column(self, property_name: str, /) -> None:
-        """Creates a `Last edited time` property.
-
+        """Creates or replaces a `Last edited time` property.
         https://developers.notion.com/reference/property-object#last-edited-time
         """
         self._update(Properties(LastEditedTimePropertyObject(property_name)))
 
     def last_edited_by_column(self, property_name: str, /) -> None:
-        """Creates a `Last edited by` property.
-
+        """Creates or replaces a `Last edited by` property.
         https://developers.notion.com/reference/property-object#last-edited-by
         """
         self._update(Properties(LastEditedByPropertyObject(property_name)))
 
     def files_column(self, property_name: str, /) -> None:
-        """Creates a `Files` property.
-
+        """Creates or replaces a `Files` property.
         https://developers.notion.com/reference/property-object#files
         """
         self._update(Properties(FilesPropertyObject(property_name)))
 
     def email_column(self, property_name: str, /) -> None:
         """Creates an `Email` property.
-
         https://developers.notion.com/reference/property-object#email
         """
         self._update(Properties(EmailPropertyObject(property_name)))
 
     def url_column(self, property_name: str, /) -> None:
-        """Creates a `URL` property.
-
+        """Creates or replaces a `URL` property.
         https://developers.notion.com/reference/property-object#url
         """
         self._update(Properties(URLPropertyObject(property_name)))
 
     def phone_number_column(self, property_name: str, /) -> None:
-        """Creates a `Phone` property.
-
+        """Creates or replaces a `Phone` property.
         https://developers.notion.com/reference/property-object#phone-number
         """
         self._update(Properties(PhoneNumberPropertyObject(property_name)))
 
     def person_column(self, property_name: str, /) -> None:
-        """Creates a `Person` property.
-
+        """Creates or replaces a `Person` property.
         https://developers.notion.com/reference/property-object#people
         """
         self._update(Properties(PeoplePropertyObject(property_name)))

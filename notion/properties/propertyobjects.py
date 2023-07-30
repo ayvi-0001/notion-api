@@ -38,7 +38,7 @@ https://developers.notion.com/reference/property-object
 from __future__ import annotations
 
 from abc import ABCMeta
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence
 
 from notion.properties.build import NotionObject
 from notion.properties.options import FunctionFormat, NumberFormat, PropertyColor
@@ -135,7 +135,7 @@ class RelationPropertyObject(PropertyObject, NotionObject):
     def __init__(
         self,
         property_name: str,
-        relation_type: Optional[Union[_DualProperty, _SingleProperty]] = None,
+        relation_type: Optional[_DualProperty | _SingleProperty] = None,
     ) -> None:
         """
         Use classmethods:
@@ -173,7 +173,7 @@ class Option(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(
-        self, option_name: str, color: Optional[Union[PropertyColor, str]] = None, /
+        self, option_name: str, color: Optional[PropertyColor | str] = None, /
     ) -> None:
         """
         :param name: (required) The name of the option as it appears in the Notion UI.\
@@ -189,7 +189,7 @@ class Option(NotionObject):
 class MultiSelectPropertyObject(PropertyObject, NotionObject):
     __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, /, options: list[Option]) -> None:
+    def __init__(self, property_name: str, /, options: Sequence[Option]) -> None:
         """https://developers.notion.com/reference/property-object#multi-select"""
         super().__init__(property_name=property_name)
         self.set("type", "multi_select")
@@ -199,7 +199,7 @@ class MultiSelectPropertyObject(PropertyObject, NotionObject):
 class SelectPropertyObject(PropertyObject, NotionObject):
     __slots__: Sequence[str] = ["name"]
 
-    def __init__(self, property_name: str, /, options: list[Option]) -> None:
+    def __init__(self, property_name: str, /, options: Sequence[Option]) -> None:
         """https://developers.notion.com/reference/property-object#select"""
         super().__init__(property_name=property_name)
         self.set("type", "select")
@@ -213,7 +213,7 @@ class NumberPropertyObject(PropertyObject, NotionObject):
         self,
         property_name: str,
         /,
-        format: Optional[Union[NumberFormat, str]] = NumberFormat.number.value,
+        format: Optional[NumberFormat | str] = NumberFormat.number.value,
     ) -> None:
         """https://developers.notion.com/reference/property-object#number"""
         super().__init__(property_name=property_name)
@@ -364,10 +364,7 @@ class RollupPropertyObject(PropertyObject, NotionObject):
         property_name: str,
         relation_property_name: str,
         rollup_property_name: str,
-        function: Optional[
-            Union[FunctionFormat, str]
-        ] = FunctionFormat.show_original.value,
-        /,
+        function: Optional[FunctionFormat | str] = FunctionFormat.show_original.value,
     ) -> None:
         """https://developers.notion.com/reference/property-object#rollup"""
         super().__init__(property_name=property_name)

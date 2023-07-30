@@ -36,10 +36,6 @@
 #### Block Extensions:
 >>> notion.CodeBlock | notion.ToDoBlock | notion.EquationBlock | notion.RichTextBlock
 
----
-
-Uncomment `check_for_pkg_update` method to enable auto-update check.
-
 """
 from typing import Sequence
 
@@ -52,9 +48,6 @@ from notion.api.block_ext import (
     TableBlock,
     ToDoBlock,
 )
-
-# check_for_pkg_update()
-
 
 __all__: Sequence[str] = (
     "Page",

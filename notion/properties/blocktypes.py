@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Any, Collection, MutableMapping, Optional, Sequence, Union
+from typing import Any, Collection, MutableMapping, Optional, Sequence
 
 from notion.properties.build import NotionObject
 from notion.properties.common import _NotionURL
@@ -109,7 +109,7 @@ class ParagraphBlocktype(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#paragraph"""
         super().__init__()
@@ -133,7 +133,7 @@ class CalloutBlocktype(NotionObject):
         /,
         *,
         icon: Optional[str] = None,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#callout"""
         super().__init__()
@@ -155,7 +155,7 @@ class QuoteBlocktype(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#quote"""
         super().__init__()
@@ -175,7 +175,7 @@ class BulletedListItemBlocktype(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#bulleted-list-item"""
         super().__init__()
@@ -195,7 +195,7 @@ class NumberedListItemBlocktype(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#numbered-list-item"""
         super().__init__()
@@ -216,7 +216,7 @@ class ToDoBlocktype(NotionObject):
         /,
         *,
         checked: Optional[bool] = False,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#to-do"""
         super().__init__()
@@ -237,7 +237,7 @@ class ToggleBlocktype(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#toggle-blocks"""
         super().__init__()
@@ -257,7 +257,7 @@ class CodeBlocktype(NotionObject):
         rich_text: Optional[Sequence[RichText | Mention]] = None,
         /,
         *,
-        language: Optional[Union[CodeBlockLang, str]] = None,
+        language: Optional[CodeBlockLang | str] = None,
         caption: Optional[Sequence[RichText | Mention | str]] = None,
     ) -> None:
         """https://developers.notion.com/reference/block#code"""
@@ -314,7 +314,7 @@ class EquationBlocktype(NotionObject):
 class TableOfContentsBlocktype(NotionObject):
     __slots__: Sequence[str] = ()
 
-    def __init__(self, block_color: Optional[Union[BlockColor, str]] = None) -> None:
+    def __init__(self, block_color: Optional[BlockColor | str] = None) -> None:
         """https://developers.notion.com/reference/block#table-of-contents"""
         super().__init__()
         if not block_color:
@@ -332,7 +332,7 @@ class Heading1BlockType(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
         is_toggleable: Optional[bool] = False,
     ) -> None:
         """https://developers.notion.com/reference/block#headings"""
@@ -354,7 +354,7 @@ class Heading2BlockType(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
         is_toggleable: Optional[bool] = False,
     ) -> None:
         """https://developers.notion.com/reference/block#headings"""
@@ -376,7 +376,7 @@ class Heading3BlockType(NotionObject):
         rich_text: Sequence[RichText | Mention],
         /,
         *,
-        block_color: Optional[Union[BlockColor, str]] = None,
+        block_color: Optional[BlockColor | str] = None,
         is_toggleable: Optional[bool] = False,
     ) -> None:
         """https://developers.notion.com/reference/block#headings"""
@@ -464,8 +464,7 @@ class TableRowBlockType(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(
-        self,
-        cells: Sequence[list[dict[str, Collection[str]]]] | None = None,
+        self, cells: Sequence[list[dict[str, Collection[str]]]] | None = None
     ) -> None:
         """https://developers.notion.com/reference/block#table-rows"""
         super().__init__()

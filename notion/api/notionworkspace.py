@@ -31,6 +31,7 @@ from notion.properties.common import Parent, UserObject
 from notion.properties.richtext import Mention, RichText
 from notion.query.sort import EntryTimestampSort
 
+
 __all__: Sequence[str] = ["Workspace"]
 
 
@@ -49,10 +50,7 @@ class Workspace(_NotionClient):
             - retrieve comments
     """
 
-    def __init__(
-        self,
-        token: Optional[str] = None,
-    ) -> None:
+    def __init__(self, token: Optional[str] = None) -> None:
         super().__init__(token=token)
 
     def __repr__(self) -> str:
@@ -66,12 +64,14 @@ class Workspace(_NotionClient):
         user_id: Optional[str] = None,
         me: Optional[bool] = None,
     ) -> str:
-        return "%s%s%s%s%s" % (
-            __base_url__,
-            "search" if search else "",
-            "users" if users else "",
-            f"/{user_id}" if user_id else "",
-            "/me" if me else "",
+        return "".join(
+            [
+                __base_url__,
+                "search" if search else "",
+                "users" if users else "",
+                f"/{user_id}" if user_id else "",
+                "/me" if me else "",
+            ]
         )
 
     @staticmethod
@@ -81,11 +81,14 @@ class Workspace(_NotionClient):
         page_size: Optional[int] = None,
         start_cursor: Optional[str] = None,
     ) -> str:
-        return "%scomments%s%s%s" % (
-            __base_url__,
-            f"?block_id={block_id}" if block_id else "",
-            f"&page_size={page_size}" if page_size else "",
-            f"&start_cursor={start_cursor}" if start_cursor else "",
+        return "".join(
+            [
+                __base_url__,
+                "comments",
+                f"?block_id={block_id}" if block_id else "",
+                f"&page_size={page_size}" if page_size else "",
+                f"&start_cursor={start_cursor}" if start_cursor else "",
+            ]
         )
 
     def retrieve_token_bot(self) -> MutableMapping[str, Any]:
@@ -148,8 +151,8 @@ class Workspace(_NotionClient):
             )
         except KeyError:
             raise ValueError(
-                f"{self.__repr__()}: Could not find user with name: {user_name}. ",
-                "Only members and guests in the integration's workspace are visible.",
+                f"{self.__repr__()}: Could not find user with name: {user_name}. "
+                "Only members and guests in the integration's workspace are visible."
             )
 
     def retrieve_comments(
@@ -158,20 +161,20 @@ class Workspace(_NotionClient):
         thread: Page | Block | str,
         *,
         page_size: Optional[int] = None,
-        start_cursor: Optional[str] = None,
+        start_cursor: Optional[str] = None
     ) -> MutableMapping[str, Any]:
-        """ When retrieving comments, one or more Comment objects will be returned in the form of an array,
+        """When retrieving comments, one or more Comment objects will be returned in the form of an array,
         sorted in ascending chronological order.
 
-        Retrieving comments from a page parent will return all comments on the page, 
+        Retrieving comments from a page parent will return all comments on the page,
         but not comments from any blocks inside the page.
 
-        :param thread: (required) Either a `notion.Page`/`notion.Block` object, or the string of\
-                        a page/block/discussion_thread ID.
+        :param thread: (required) Either a notion.Page or notion.Block object,
+                       or the string of a page/block/discussion_thread ID.
 
         https://developers.notion.com/reference/retrieve-a-comment
         """
-        if isinstance(thread, Page) or isinstance(thread, Block):
+        if isinstance(thread, Page | Block):
             block_id = thread.id
         else:
             block_id = thread
@@ -183,7 +186,6 @@ class Workspace(_NotionClient):
 
     def comment(
         self,
-        /,
         comment: Sequence[RichText | Mention],
         *,
         page: Optional[Page | Block | str] = None,
@@ -244,8 +246,8 @@ class Workspace(_NotionClient):
                     "Did not find a comment thread in this block. ",
                     "Starting new comment threads on a block not supported.",
                 )
-            # Regardless of which discussion_id in a comment thread is used,
-            # The next comment will always appear last, so we only get the first discussion_id.
+            # The next comment will always appear last regardless of which discussion_id
+            # in a comment thread is used,, so we only get the first discussion_id.
             thread_id = comment_thread[0]["discussion_id"]
             payload = build_payload({"discussion_id": thread_id}, comment_object)
             return self._post(self._comments_endpoint(), payload=payload)
@@ -254,17 +256,15 @@ class Workspace(_NotionClient):
             payload = build_payload({"discussion_id": discussion_id}, comment_object)
             return self._post(self._comments_endpoint(), payload=payload)
 
-        raise ValueError(
-            "Either a parent page/block, or a discussion_id is required (not both)"
-        )
+        raise ValueError("One of page/block/discussion_id must be provided.")
 
     def search(
         self,
+        query_string: Optional[str] = None,
         *,
-        page_size: Optional[int] = 100,
-        query: Optional[str] = None,
         filter_pages: Optional[bool] = False,
         filter_databases: Optional[bool] = False,
+        page_size: Optional[int] = 100,
         start_cursor: Optional[str] = None,
         sort_ascending: Optional[bool] = None,
     ) -> MutableMapping[str, Any]:
@@ -279,19 +279,20 @@ class Workspace(_NotionClient):
         see [Search optimizations and limitations](https://developers.notion.com/reference/post-search).
 
         ---
-        :param page_size: (optional) The number of items from the full list to include in the response. Maximum: 100. Default: 100.
-        :param query: (optional) The text that the API compares page and database titles against.
+        :param query_string: (optional) The text that the API compares page and database titles against.
         :param filter_pages: (optional) If set to True, limits results to only `page` objects.
         :param filter_databases:(optional) If set to True, limits results to only `database` objects.
+        :param page_size: (optional) The number of items from the full list to include in the response. Maximum: 100. Default: 100.
         :param sort_ascending: (optional) If sort is not provided, then default sort is last_edited_time descending.
         :param start_cursor: (optional) If supplied, will return a page of results starting after provided cursor.
 
         https://developers.notion.com/reference/post-search
         """
-        payload: NotionObject = NotionObject()
+        payload = NotionObject()
         payload.set("page_size", page_size)
-        if query:
-            payload.set("query", query)
+
+        if query_string:
+            payload.set("query", query_string)
         if filter_pages:
             payload.nest("filter", "property", "object")
             payload.nest("filter", "value", "page")

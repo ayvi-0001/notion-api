@@ -20,7 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Sequence, Union, cast
+from typing import Optional, Sequence, cast
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.properties.options import CodeBlockLang
@@ -42,7 +42,7 @@ class CodeBlock(_TokenBlockMixin):
         return cast(str, self._block["code"]["language"])
 
     @language.setter
-    def language(self, value: Union[CodeBlockLang, str]) -> None:
+    def language(self, value: CodeBlockLang | str) -> None:
         self._patch(
             self._block_endpoint(self.id), payload={self.type: {"language": value}}
         )

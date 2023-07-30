@@ -22,7 +22,7 @@
 
 from __future__ import annotations
 
-from typing import Any, MutableMapping, Optional, Sequence, Union
+from typing import Any, MutableMapping, Optional, Sequence
 
 from notion.properties.build import NotionObject
 from notion.query.conditions import DateConditions
@@ -36,7 +36,7 @@ class TimestampFilter(NotionObject):
     def __init__(
         self,
         filter_condition: DateConditions,
-        filter_value: Union[str, MutableMapping[str, Any]],
+        filter_value: str | MutableMapping[str, Any],
         type: Optional[str] = None,
     ) -> None:
         """
@@ -54,7 +54,7 @@ class TimestampFilter(NotionObject):
     def created_time(
         cls,
         filter_condition: DateConditions,
-        filter_value: Union[str, MutableMapping[str, Any]],
+        filter_value: str | MutableMapping[str, Any],
     ) -> TimestampFilter:
         """
         :param filter_condition: One of the available DateConditions. Must be a string (ISO 8601 date).\
@@ -73,7 +73,7 @@ class TimestampFilter(NotionObject):
     def last_edited_time(
         cls,
         filter_condition: DateConditions,
-        filter_value: Union[str, MutableMapping[str, Any]],
+        filter_value: str | MutableMapping[str, Any],
     ) -> TimestampFilter:
         """
         :param filter_condition: One of the available DateConditions. Must be a string (ISO 8601 date).\

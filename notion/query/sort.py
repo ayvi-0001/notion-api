@@ -21,7 +21,7 @@
 # SOFTWARE.
 from __future__ import annotations
 
-from typing import Sequence, Union
+from typing import Sequence
 
 from notion.properties.build import NotionObject
 
@@ -32,7 +32,7 @@ class SortFilter(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(
-        self, sort_object: Sequence[Union[PropertyValueSort, EntryTimestampSort]]
+        self, sort_object: Sequence[PropertyValueSort | EntryTimestampSort]
     ) -> None:
         """
         A database query can be sorted by a property and/or timestamp and in a given direction.
@@ -51,8 +51,7 @@ class PropertyValueSort(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(self, property_name: str, /, *, direction: str) -> None:
-        """
-        This sort orders the database query by a particular property.
+        """This sort orders the database query by a particular property.
 
         Use one of the following classmethods:
         - `ascending`
@@ -77,8 +76,7 @@ class EntryTimestampSort(NotionObject):
     __slots__: Sequence[str] = ("timestamp", "direction")
 
     def __init__(self, *, timestamp: str, direction: str) -> None:
-        """
-        This sort orders the database query by the timestamp associated with a database entry.
+        """This sort orders the database query by the timestamp associated with a database entry.
 
         Use one of the following classmethods:
         - `created_time_ascending`

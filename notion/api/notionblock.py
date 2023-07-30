@@ -19,14 +19,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-""" 
-A block object represents content within Notion. Blocks can be text, lists, media, and more. A page is a type of block, too.
-Some blocks have more content nested inside them. Some examples are indented paragraphs, lists, and toggles. 
-The nested content is called children, and children are blocks, too.
-
+"""
 Block types which support children are:
-    "paragraph", "bulleted_list_item", "numbered_list_item", "toggle", "to_do", "quote", "callout", 
-    "synced_block", "column", "child_page", "child_database", and "table". 
+    "paragraph", "bulleted_list_item", "numbered_list_item", "toggle", "to_do", "quote", "callout",
+    "synced_block", "column", "child_page", "child_database", and "table".
+    
     All heading blocks ("heading_1", "heading_2", and "heading_3") support children when the is_toggleable property is true.
 
 NOTE: The link_preview block will only be returned as part of a response. It cannot be created via the API.
@@ -78,7 +75,7 @@ from notion.properties.blocktypes import (
     VideoBlockType,
 )
 from notion.properties.options import BlockColor, CodeBlockLang
-from notion.properties.richtext import Equation, Mention, RichText
+from notion.properties.richtext import Mention, RichText
 
 if TYPE_CHECKING:
     from notion.api.notionpage import Page
@@ -94,7 +91,7 @@ class Block(_TokenBlockMixin):
     These are the individual 'nodes' in a page that you typically interact with in Notion.
     Some blocks have more content nested inside them.
     Some examples are indented paragraphs, lists, and toggles.
-    The nested content is called children, and children are blocks, too. 
+    The nested content is called children, and children are blocks, too.
 
     ---
     ### Versioning:
@@ -102,21 +99,15 @@ class Block(_TokenBlockMixin):
     For more info see: https://developers.notion.com/reference/versioning
 
     ---
-    :param id: (required) `block_id` of object in Notion.
-    :param token: Bearer token provided when you create an integration.\
+    :param id:    (required) `block_id` of object in Notion.
+    :param token: (optional) Bearer token provided when you create an integration.\
                   Set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
                   See https://developers.notion.com/reference/authentication.
 
     https://developers.notion.com/reference/block
     """
 
-    def __init__(
-        self,
-        id: str,
-        /,
-        *,
-        token: Optional[str] = None,
-    ) -> None:
+    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(id, token=token)
         self.logger = _NLOG.getChild(self.__repr__())
 
@@ -151,8 +142,7 @@ class Block(_TokenBlockMixin):
         )
 
     def _append(
-        self,
-        payload: MutableMapping[str, Any] | str | bytes | bytearray,
+        self, payload: MutableMapping[str, Any] | str | bytes | bytearray
     ) -> MutableMapping[str, Any]:
         """
         Creates/appends new children blocks to the parent block_id specified.
@@ -210,8 +200,7 @@ class Block(_TokenBlockMixin):
                 self._delete(self._block_endpoint(id))
 
     def update(
-        self,
-        payload: MutableMapping[str, Any] | str | bytes | bytearray,
+        self, payload: MutableMapping[str, Any] | str | bytes | bytearray
     ) -> MutableMapping[str, Any]:
         """
         Updates content for the specified block_id based on the block
@@ -233,13 +222,8 @@ class Block(_TokenBlockMixin):
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ BLOCK FACTORY METHODS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-    # Factory to write block types as a child of the target
-    # `notion.api.notionblock.Block` or `notion.api.notionpage.Page`.
-    # Returns an instance of `notion.api.notionblock.Block`.
-
     # Factory methods used to create a `Block` object.
-    # All methods require a parent instance of either
-    #   `notion.api.notionblock.Block` or `notion.api.notionpage.Page`
+    # All methods require a parent instance of either notion.Block or notion.Page
 
     # Most methods return a `Block` object, which can be used to continously nest blocks.
     # For blocks that allow children, Notion allows up to two levels of nesting in a single request.
@@ -300,7 +284,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([OriginalSyncedBlockType(children=[])])
         )
-        original_synced_block = cls(_result_id(block_mapping))
+        original_synced_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return original_synced_block
 
     @classmethod
@@ -319,7 +303,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([DuplicateSyncedBlockType(block_id)])
         )
-        duplicate_synced_block = cls(_result_id(block_mapping))
+        duplicate_synced_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return duplicate_synced_block
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ BLOCK EXTENSIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -344,7 +328,7 @@ class Block(_TokenBlockMixin):
                 [CodeBlocktype([RichText(code_text)], language=language, caption=caption)]
             ),
         )
-        code_block = CodeBlock(_result_id(block_mapping))
+        code_block = CodeBlock(cast(str, block_mapping["results"][0]["id"]))
         return code_block
 
     @staticmethod
@@ -379,15 +363,12 @@ class Block(_TokenBlockMixin):
             BlockChildren(
                 [
                     TableBlockType(
-                        table_width,
-                        has_column_header,
-                        has_row_header,
-                        children=rows,
+                        table_width, has_column_header, has_row_header, children=rows
                     )
                 ]
             )
         )
-        table_block = TableBlock(_result_id(block_mapping))
+        table_block = TableBlock(cast(str, block_mapping["results"][0]["id"]))
         return table_block
 
     @staticmethod
@@ -408,7 +389,7 @@ class Block(_TokenBlockMixin):
                 [ToDoBlocktype(rich_text, block_color=block_color, checked=checked)]
             ),
         )
-        to_do_block = ToDoBlock(_result_id(block_mapping))
+        to_do_block = ToDoBlock(cast(str, block_mapping["results"][0]["id"]))
         return to_do_block
 
     @staticmethod
@@ -422,7 +403,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([EquationBlocktype(expression)])
         )
-        equation_block = EquationBlock(_result_id(block_mapping))
+        equation_block = EquationBlock(cast(str, block_mapping["results"][0]["id"]))
         return equation_block
 
     # ~~~~~~~~~~~~~~ TEXT-EDITABLE BLOCKS (Can be used by `notion.RichTextBlock`) ~~~~~~~~~~~~~~ #
@@ -444,7 +425,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([ParagraphBlocktype(rich_text, block_color=block_color)]),
         )
-        paragraph_block = cls(_result_id(block_mapping))
+        paragraph_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return paragraph_block
 
     @classmethod
@@ -464,7 +445,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([QuoteBlocktype(rich_text, block_color=block_color)])
         )
-        quote_block = cls(_result_id(block_mapping))
+        quote_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return quote_block
 
     @classmethod
@@ -489,7 +470,7 @@ class Block(_TokenBlockMixin):
                 [CalloutBlocktype(rich_text, icon=icon, block_color=block_color)]
             ),
         )
-        callout_block = cls(_result_id(block_mapping))
+        callout_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return callout_block
 
     @classmethod
@@ -515,7 +496,7 @@ class Block(_TokenBlockMixin):
                 ]
             ),
         )
-        heading1_block = cls(_result_id(block_mapping))
+        heading1_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return heading1_block
 
     @classmethod
@@ -541,7 +522,7 @@ class Block(_TokenBlockMixin):
                 ]
             ),
         )
-        heading2_block = cls(_result_id(block_mapping))
+        heading2_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return heading2_block
 
     @classmethod
@@ -567,7 +548,7 @@ class Block(_TokenBlockMixin):
                 ]
             ),
         )
-        heading3_block = cls(_result_id(block_mapping))
+        heading3_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return heading3_block
 
     @classmethod
@@ -588,7 +569,7 @@ class Block(_TokenBlockMixin):
                 [BulletedListItemBlocktype(rich_text, block_color=block_color)]
             ),
         )
-        bulleted_list_block = cls(_result_id(block_mapping))
+        bulleted_list_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return bulleted_list_block
 
     @classmethod
@@ -609,7 +590,7 @@ class Block(_TokenBlockMixin):
                 [NumberedListItemBlocktype(rich_text, block_color=block_color)]
             ),
         )
-        numbered_list_block = cls(_result_id(block_mapping))
+        numbered_list_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return numbered_list_block
 
     @classmethod
@@ -629,7 +610,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([ToggleBlocktype(rich_text, block_color=block_color)])
         )
-        toggle_block = cls(_result_id(block_mapping))
+        toggle_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return toggle_block
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ EXTERNAL URL BLOCKS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -666,7 +647,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([EmbedBlocktype(embedded_url)])
         )
-        embed_url_block = cls(_result_id(block_mapping))
+        embed_url_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return embed_url_block
 
     @classmethod
@@ -678,7 +659,7 @@ class Block(_TokenBlockMixin):
         :returns: `notion.api.notionblock.Block`
         """
         block_mapping = parent_object._append(BlockChildren([VideoBlockType(url)]))
-        video_block = cls(_result_id(block_mapping))
+        video_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return video_block
 
     @classmethod
@@ -688,7 +669,7 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/block#image
         """
         block_mapping = parent_object._append(BlockChildren([ImageBlockType(url)]))
-        image_block = cls(_result_id(block_mapping))
+        image_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return image_block
 
     @classmethod
@@ -708,7 +689,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([BookmarkBlocktype(bookmark_url, caption=caption)])
         )
-        bookmark_block = cls(_result_id(block_mapping))
+        bookmark_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return bookmark_block
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MISC BLOCKS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
@@ -723,7 +704,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([LinkToPageBlockType(page_id)])
         )
-        link_to_page_block = cls(_result_id(block_mapping))
+        link_to_page_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return link_to_page_block
 
     @classmethod
@@ -743,7 +724,7 @@ class Block(_TokenBlockMixin):
         block_mapping = parent_object._append(
             BlockChildren([TableOfContentsBlocktype(block_color=block_color)])
         )
-        table_of_contents_block = cls(_result_id(block_mapping))
+        table_of_contents_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return table_of_contents_block
 
     @classmethod
@@ -752,7 +733,7 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/block#breadcrumb-blocks
         """
         block_mapping = parent_object._append(BlockChildren([BreadcrumbBlock()]))
-        breadcrumb_block = cls(_result_id(block_mapping))
+        breadcrumb_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return breadcrumb_block
 
     @classmethod
@@ -761,17 +742,14 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/block#divider-blocks
         """
         block_mapping = parent_object._append(BlockChildren([DividerBlock()]))
-        divider_block = cls(_result_id(block_mapping))
+        divider_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return divider_block
 
     @classmethod
     def newline(cls, parent_object: Page | Block) -> Block:
         """Creates a newline break."""
         block_mapping = parent_object._append(BlockChildren([NewLineBreak]))
-        newline_block = cls(_result_id(block_mapping))
+        newline_block = cls(cast(str, block_mapping["results"][0]["id"]))
         return newline_block
 
-    # Column blocks are not currently supported.
-
-def _result_id(block_mapping: MutableMapping[str, Any]) -> str:
-    return cast(str, block_mapping["results"][0]["id"])
+    # Column blocks are not currently supported by this library.

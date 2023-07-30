@@ -22,9 +22,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, Union, cast
+from typing import Any, MutableMapping, Optional, Sequence, cast
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
@@ -59,9 +59,6 @@ from notion.properties.propertyvalues import (
 from notion.properties.richtext import RichText
 from notion.propertyitems.base import PropertyItem
 
-if TYPE_CHECKING:
-    from datetime import timedelta
-
 __all__: Sequence[str] = ["Page"]
 
 
@@ -85,28 +82,22 @@ class Page(_TokenBlockMixin):
     For more info see: https://developers.notion.com/reference/versioning
 
     ---
-    :param id: (required) `page_id` of object in Notion.
-    :param token: Bearer token provided when you create an integration.\
+    :param id:    (required) `page_id` of object in Notion.
+    :param token: (optional) Bearer token provided when you create an integration.\
                   Set notion secret in environment variables as `NOTION_TOKEN`, or set variable here.\
                   See https://developers.notion.com/reference/authentication.
 
     https://developers.notion.com/reference/page
     """
 
-    def __init__(
-        self,
-        id: str,
-        /,
-        *,
-        token: Optional[str] = None,
-    ) -> None:
+    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(id, token=token)
         self.logger = _NLOG.getChild(self.__repr__())
 
     @classmethod
     def create(
         cls,
-        parent_instance: Union[Page, Database, Block],
+        parent_instance: Page | Database | Block,
         page_title: str,
         *,
         cover_url: Optional[str] = None,
@@ -136,19 +127,19 @@ class Page(_TokenBlockMixin):
                 Properties(TitlePropertyValue([RichText(page_title)])),
             )
 
-        new_page = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
+        new_page_map = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
 
-        cls_ = cls(new_page["id"])
-        cls_.logger.debug(
-            f"Page created in {parent_instance.__repr__()}. Url: {new_page['url']}"
+        page = cls(new_page_map["id"])
+        page.logger.debug(
+            f"Page created in {parent_instance.__repr__()}. Url: {new_page_map['url']}"
         )
 
         if icon_url:
-            cls_.icon = icon_url
+            page.icon = icon_url
         if cover_url:
-            cls_.cover = cover_url
+            page.cover = cover_url
 
-        return cls_
+        return page
 
     def __getattr__(self, attr: str) -> PropertyItem:
         def lower_alnum(s: str) -> str:
@@ -173,20 +164,19 @@ class Page(_TokenBlockMixin):
 
     @property
     def title(self) -> str:
-        """
-        :return: (str) title of page. Empty string if no title is set.
+        """:return: (str) title of page. Empty string if no title is set.
 
         title setter:
-            >>> page.title = "New Title"
+        >>> page.title = "New Title"
         """
         try:
             if ("workspace" or "page_id") in self.parent_type:
                 return cast(str, self.properties["title"]["title"][0]["plain_text"])
-
-            database_title_property = self.properties[
-                [k for k, v in self.properties.items() if "title" in v][0]
-            ]
-            return cast(str, database_title_property["title"][0]["plain_text"])
+            else:
+                database_title_property = self.properties[
+                    [k for k, v in self.properties.items() if "title" in v][0]
+                ]
+                return cast(str, database_title_property["title"][0]["plain_text"])
         except IndexError:
             return ""  # title is empty
 
@@ -195,12 +185,11 @@ class Page(_TokenBlockMixin):
         self._patch_properties(Properties(TitlePropertyValue([RichText(new_title)])))
 
     @property
-    def icon(self) -> Union[str, None]:
-        """
-        :return: (str) url of icon. None if no icon is set.
+    def icon(self) -> str | None:
+        """:return: (str) url of icon. None if no icon is set.
 
         icon setter:
-            >>> page.icon = "https://www.notion.so/icons/code_gray.svg"
+        >>> page.icon = "https://www.notion.so/icons/code_gray.svg"
         """
         icon = self.retrieve()["icon"]
         if icon:
@@ -212,12 +201,11 @@ class Page(_TokenBlockMixin):
         self._patch_properties(Icon(icon_url))
 
     @property
-    def cover(self) -> Union[str, None]:
-        """
-        :return: (str) url of cover. None if no cover is set.
+    def cover(self) -> str | None:
+        """:return: (str) url of cover. None if no cover is set.
 
         cover setter:
-            >>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
+        >>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
         """
         cover = self.retrieve()["cover"]
         if cover:
@@ -271,21 +259,16 @@ class Page(_TokenBlockMixin):
         """Internal function to retrieve the id of a property."""
         return cast(str, self[property_name]["id"])
 
-    def retrieve_property_item(
-        self,
-        property_name: str,
-    ) -> MutableMapping[str, Any]:
-        """
-        Retrieves a property_item object for a given page_id and property_id.
+    def retrieve_property_item(self, property_name: str) -> MutableMapping[str, Any]:
+        """Retrieves a property_item object for a given page_id and property_id.
         The object returned will either be:
             - a value.
             - a paginated list of property item values.
 
         :param property_name: (required) property name in Notion *case-sensitive.
 
-        https://developers.notion.com/reference/property-item-object
-
-        https://developers.notion.com/reference/retrieve-a-page-property
+        Property Item Object: https://developers.notion.com/reference/property-item-object \n
+        Retrieve a page property: https://developers.notion.com/reference/retrieve-a-page-property
         """
         property_id = self._retrieve_property_id(property_name)
         return self._get(
@@ -305,9 +288,7 @@ class Page(_TokenBlockMixin):
         return self._patch(self._pages_endpoint(self.id), payload=payload)
 
     def retrieve_page_content(
-        self,
-        start_cursor: Optional[str] = None,
-        page_size: Optional[int] = None,
+        self, start_cursor: Optional[str] = None, page_size: Optional[int] = None
     ) -> MutableMapping[str, Any]:
         """
         Returns only the first level of children for the specified block.
@@ -397,18 +378,20 @@ class Page(_TokenBlockMixin):
         self,
         property_name: str,
         /,
-        start: Union[str, datetime],
-        end: Optional[Union[str, datetime]] = None,
+        *,
+        start: str | datetime,
+        end: Optional[str | datetime] = None,
     ) -> None:
         """
         :param start: (required) A date, with an optional time.\
+                       If not time is set, then date will appear in Notion without a time.\
                        If value is a string, it must be ISO 8601 format.\
-                       If value is datetime.datetime, it will be converted to self.tz, in isoformat.
+                       If value is datetime, it will be converted to ISOformat astimezone(self.tz).
         :param end: (optional) A date, with an optional time.\
                      If value is provided, then date property becomes a range, with start and end values.\
                      If value is not provided, then the date value is not a range.
                      If value is a string, it must be ISO 8601 format.\
-                     If value is datetime.datetime, it will be converted to self.tz, in isoformat.
+                     If value is datetime, it will be converted to ISOformat astimezone(self.tz).
 
         https://developers.notion.com/reference/page-property-values#date
         """
@@ -428,10 +411,7 @@ class Page(_TokenBlockMixin):
         )
 
     def set_files(
-        self,
-        property_name: str,
-        /,
-        array_of_files: Sequence[Union[InternalFile, ExternalFile]],
+        self, property_name: str, /, array_of_files: Sequence[InternalFile | ExternalFile]
     ) -> None:
         """
         When updating a file property, the value is overwritten by the array of files passed.
@@ -441,7 +421,6 @@ class Page(_TokenBlockMixin):
         InternalFiles are a file object corresponding to a file that has been uploaded to Notion.
         ExternalFiles are a file object corresponding to an external file that has been linked to in Notion.
 
-        ---
         :param array_of_files: (required) An array of objects containing information about the files.\
                                 Either InternalFile(), ExternalFile() or a combination of both.
 
@@ -458,12 +437,11 @@ class Page(_TokenBlockMixin):
         )
 
     def set_related(self, property_name: str, /, related_ids: Sequence[str]) -> None:
-        """
+        """https://developers.notion.com/reference/page-property-values#relation
+
         :param related_ids: (required) An array of related page references.\
                              A page reference is an object with an id key and a string value (UUIDv4)\
                              corresponding to a page ID in another database.
-        
-        https://developers.notion.com/reference/page-property-values#relation
         """
         list_related_ids = [_NotionUUID(id) for id in related_ids]
         self._patch_properties(
@@ -475,7 +453,7 @@ class Page(_TokenBlockMixin):
         self._patch_properties(Properties(CheckboxPropertyValue(property_name, value)))
 
     def set_number(
-        self, property_name: str, /, new_number: Union[float, timedelta]
+        self, property_name: str, /, new_number: int | float | timedelta
     ) -> None:
         """https://developers.notion.com/reference/page-property-values#number"""
         self._patch_properties(Properties(NumberPropertyValue(property_name, new_number)))

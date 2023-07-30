@@ -35,11 +35,10 @@ notion.query.SortFilter takes a list of either *notion.query.PropertyValueSort |
 """
 from typing import Sequence
 
-from notion.query.compound import *
-from notion.query.conditions import *
-from notion.query.propfilter import *
-from notion.query.sort import *
-from notion.query.timestamp import *
+from notion.query.compound import CompoundFilter
+from notion.query.propfilter import PropertyFilter
+from notion.query.sort import EntryTimestampSort, PropertyValueSort, SortFilter
+from notion.query.timestamp import TimestampFilter
 
 __all__: Sequence[str] = (
     "SortFilter",

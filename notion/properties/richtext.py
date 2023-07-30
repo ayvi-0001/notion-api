@@ -22,7 +22,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence
 
 from notion.properties.build import NotionObject
 from notion.properties.common import UserObject, _NotionURL
@@ -44,7 +44,6 @@ class RichText(NotionObject):
         content: Optional[str] = None,
         /,
         annotations: Optional[Annotations] = None,
-        *,
         link: Optional[str] = None,
     ) -> None:
         """
@@ -82,10 +81,9 @@ class Mention(NotionObject):
 
     def __init__(
         self,
-        /,
         *,
         type: str,
-        mention_type_object: Union[UserObject, NotionObject],
+        mention_type_object: UserObject | NotionObject,
         annotations: Optional[Annotations] = None,
     ) -> None:
         """
@@ -109,11 +107,7 @@ class Mention(NotionObject):
 
     @classmethod
     def user(
-        cls,
-        user_object: UserObject,
-        /,
-        *,
-        annotations: Optional[Annotations] = None,
+        cls, user_object: UserObject, /, *, annotations: Optional[Annotations] = None
     ) -> Mention:
         """
         If your integration doesn't yet have access to the mentioned user,
@@ -126,11 +120,7 @@ class Mention(NotionObject):
         https://developers.notion.com/reference/rich-text#user-mention-type-object
         """
 
-        return cls(
-            type="user",
-            mention_type_object=user_object,
-            annotations=annotations,
-        )
+        return cls(type="user", mention_type_object=user_object, annotations=annotations)
 
     @classmethod
     def today(cls, *, annotations: Optional[Annotations] = None) -> Mention:
@@ -154,9 +144,7 @@ class Mention(NotionObject):
         database_mention.set("id", database_id)
 
         return cls(
-            type="database",
-            mention_type_object=database_mention,
-            annotations=annotations,
+            type="database", mention_type_object=database_mention, annotations=annotations
         )
 
     @classmethod
@@ -165,11 +153,7 @@ class Mention(NotionObject):
         page_mention = NotionObject()
         page_mention.set("id", page_id)
 
-        return cls(
-            type="page",
-            mention_type_object=page_mention,
-            annotations=annotations,
-        )
+        return cls(type="page", mention_type_object=page_mention, annotations=annotations)
 
     @classmethod
     def link_preview(
@@ -198,11 +182,7 @@ class Mention(NotionObject):
         date_mention.set("start", start)
         date_mention.set("end", end) if end else None
 
-        return cls(
-            type="date",
-            mention_type_object=date_mention,
-            annotations=annotations,
-        )
+        return cls(type="date", mention_type_object=date_mention, annotations=annotations)
 
 
 class Annotations(NotionObject):
@@ -215,7 +195,7 @@ class Annotations(NotionObject):
         strikethrough: Optional[bool] = None,
         underline: Optional[bool] = None,
         code: Optional[bool] = None,
-        color: Union[Optional[BlockColor], str] = None,
+        color: Optional[BlockColor | str] = None,
     ) -> None:
         """https://developers.notion.com/reference/rich-text#the-annotation-object"""
         super().__init__()

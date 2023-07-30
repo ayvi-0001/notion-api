@@ -29,12 +29,12 @@ A file with type `file` must contain a Notion hosted file url. Use type `externa
 """
 from __future__ import annotations
 
-from typing import Optional, Sequence, Union
+from typing import Optional, Sequence
 
 from notion.properties.build import NotionObject
 from notion.properties.common import _NotionURL
 from notion.properties.propertyvalues import PagePropertyValue
-from notion.properties.richtext import Equation, Mention, RichText
+from notion.properties.richtext import Mention, RichText
 
 __all__: Sequence[str] = (
     "Icon",
@@ -49,9 +49,7 @@ class FilesPropertyValue(PagePropertyValue, NotionObject):
     __slots__: Sequence[str] = ["name"]
 
     def __init__(
-        self,
-        property_name: str,
-        array_of_files: Sequence[Union[InternalFile, ExternalFile]],
+        self, property_name: str, array_of_files: Sequence[InternalFile | ExternalFile]
     ) -> None:
         """
         When updating a file property, the value is overwritten by the array of files passed.
@@ -100,11 +98,7 @@ class ExternalFile(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(
-        self,
-        url: str,
-        /,
-        *,
-        caption: Optional[Sequence[RichText | Mention]] = None,
+        self, url: str, /, *, caption: Optional[Sequence[RichText | Mention]] = None
     ) -> None:
         """
         The Notion API supports adding, retrieving, and updating links to external files.
@@ -130,7 +124,7 @@ class InternalFile(NotionObject):
     ) -> None:
         """
         Internal files are any files hosted on Notion
-        They begin with: https://s3.us-west-2.amazonaws.com/secure.notion-static.com/{block_id}/...
+        They begin with: https://s3.{region}.amazonaws.com/secure.notion-static.com/{block_id}/...
         You can retrieve links to Notion-hosted files via the Retrieve block children endpoint.
 
         https://developers.notion.com/reference/file-object#notion-hosted-files
