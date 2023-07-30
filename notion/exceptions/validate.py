@@ -20,75 +20,92 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Any, MutableMapping, Sequence, Union
+from typing import Any, MutableMapping, Sequence
 
-from notion.exceptions.errors import *
+from notion.exceptions.errors import (
+    NotionConflictError,
+    NotionDatabaseConnectionUnavailable,
+    NotionGatewayTimeout,
+    NotionInternalServerError,
+    NotionInvalidJson,
+    NotionInvalidGrant,
+    NotionInvalidRequest,
+    NotionInvalidRequestUrl,
+    NotionMissingVersion,
+    NotionObjectNotFound,
+    NotionRateLimited,
+    NotionRestrictedResource,
+    NotionServiceUnavailable,
+    NotionUnauthorized,
+    NotionValidationError,
+    _NotionErrors,
+)
 
 __all__: Sequence[str] = ["validate_response"]
 
 
-def validate_response(response: MutableMapping[str, Any]) -> Union[_NotionErrors, None]:
-    r"""
-    Example:
-    ```py
-    page = notion.Page("12345")
+def validate_response(response: MutableMapping[str, Any]) -> _NotionErrors | None:
+    r"""Example:
+    >>> page = notion.Page("12345")
 
-    # Object for invalid Notion requests:
-    # {
-    #   'object': 'error',
-    #   'status': 400,
-    #   'code': 'validation_error',
-    #   'message': 'path failed validation: path.page_id should be a valid uuid, instead was `"12345"`.'
-    # }
+    ```json
+    // Object for invalid Notion requests:
+    {
+      "object": "error",
+      "status": 400,
+      "code": "validation_error",
+      "message": "path failed validation: path.page_id should be a valid uuid, instead was `"12345"`."
+    }
     ```
-    ------
-    ```sh
+    ---
+    ```shell
     Traceback (most recent call last):
       File "c:\path\to\file\_.py", line 212, in <module>
         validate_response(response)
       File "c:\path\to\file\_.py", line 186, in validate_response
-        raise NotionValidationError(message)
+        raise NotionValidationError(response["message"])
     notion.exceptions.errors.NotionValidationError: path failed validation: path.page_id should be a valid uuid, instead was `"12345"`.
     Error 400:
     The request body does not match the schema for the expected parameters.
     ```
 
     More info on Errors and Request Limits:
-     - https://developers.notion.com/reference/errors
+     - https://developers.notion.com/reference/status-codes
      - https://developers.notion.com/reference/request-limits
     """
     if not "error" in response.values():
         return None
 
-    code = response["code"]
-    message = response["message"]
-
-    match code:
+    match response["code"]:
         case "invalid_json":
-            raise NotionInvalidJson(message)
+            raise NotionInvalidJson(response["message"])
         case "invalid_request_url":
-            raise NotionInvalidRequestUrl(message)
+            raise NotionInvalidRequestUrl(response["message"])
         case "invalid_request":
-            raise NotionInvalidRequest(message)
+            raise NotionInvalidRequest(response["message"])
         case "validation_error":
-            raise NotionValidationError(message)
+            raise NotionValidationError(response["message"])
         case "missing_version":
-            raise NotionMissingVersion(message)
+            raise NotionMissingVersion(response["message"])
         case "unauthorized":
-            raise NotionUnauthorized(message)
+            raise NotionUnauthorized(response["message"])
         case "restricted_resource":
-            raise NotionRestrictedResource(message)
+            raise NotionRestrictedResource(response["message"])
         case "object_not_found":
-            raise NotionObjectNotFound(message)
+            raise NotionObjectNotFound(response["message"])
         case "conflict_error":
-            raise NotionConflictError(message)
+            raise NotionConflictError(response["message"])
         case "rate_limited":
-            raise NotionRateLimited(message)
+            raise NotionRateLimited(response["message"])
         case "internal_server_error":
-            raise NotionInternalServerError(message)
+            raise NotionInternalServerError(response["message"])
         case "service_unavailable":
-            raise NotionServiceUnavailable(message)
+            raise NotionServiceUnavailable(response["message"])
         case "database_connection_unavailable":
-            raise NotionDatabaseConnectionUnavailable(message)
+            raise NotionDatabaseConnectionUnavailable(response["message"])
+        case "gateway_timeout":
+            raise NotionGatewayTimeout(response["message"])
+        case "invalid_grant":
+            raise NotionInvalidGrant(response["message"])
         case _:
             return None

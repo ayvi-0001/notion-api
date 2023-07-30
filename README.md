@@ -25,7 +25,7 @@ __Disclaimer: This is an _unofficial_ package and has no affiliation with Notion
 
 A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.  
 README contains examples of the main functionality, including: creating Pages/Databases/Blocks, adding/removing/editing properties, retrieving property values, and database queries.  
-Some more in-depth walkthroughs can be be found in [`examples/`](https://github.com/ayvi-0001/notion-api/tree/main/examples)    
+Some more in-depth walkthroughs can be be found in [`examples/`](https://github.com/ayvi-0001/notion-api/tree/main/examples).    
 This package is not complete - new features will continue to be added, and current features may change.
 
 <br>
@@ -39,10 +39,14 @@ This package is not complete - new features will continue to be added, and curre
         </td>
             <td><a href="https://developers.notion.com/page/changelog">Notion API Changelog </img></a></tr>
             <td> <a href="https://www.notion.so/releases">Notion.so Releases</a></td></tr>
-            <td> <a href="https://developers.notion.com/page/notion-platform-roadmap">Notion Platform Roadmap</a></td>
         </tr>
     </table>
 </div>
+
+<br>
+
+If you haven't already, you'll need to setup a [Notion Integration](https://www.notion.so/my-integrations) and share specific pages/databases with the integration to interact with the API.  
+Information on integration types and setup can be found [here](https://developers.notion.com/docs/getting-started).
 
 ---
 
@@ -57,13 +61,13 @@ import dotenv
 
 import notion
 
-# client will check env variables for 'NOTION_TOKEN'
+# client will check for env var 'NOTION_TOKEN'
 dotenv.load_dotenv()  
 
 homepage = notion.Page('773b08ff38b44521b44b115827e850f2')
 parent_db = notion.Database(homepage.parent_id)
 
-# will also look for env var `TZ` to set the timezone for all notion objects. If not found, will default to local timezone.
+# will also look for env var `TZ` to set the default timezone. If not found, will default to local timezone.
 ```
 
 `__getitem__` searchs for page property values when indexing a Page, and for property objects when indexing a Database.
@@ -214,7 +218,7 @@ def inline_mention(page: notion.Page, message: str, user_name: str) -> None:
                 ),
             ),
             prop.RichText(":"),
-        ],
+        ]
     )
     # First method returned the newly created block that we append to here:
     notion.Block.paragraph(mentionblock, [prop.RichText(message)])
@@ -282,7 +286,7 @@ query_filter = query.CompoundFilter()._and(
     query.PropertyFilter.date("date", "created_time", "before", TOMORROW.isoformat()),
     query.CompoundFilter()._or(
         query.PropertyFilter.text("name", "title", "contains", "your page title"),
-        query.PropertyFilter.text("name", "title", "contains", "your other page title"),
+        query.PropertyFilter.text("name", "title", "contains", "your other page title")
     ),
 )
 
