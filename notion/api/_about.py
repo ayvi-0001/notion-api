@@ -34,7 +34,7 @@ __all__: Sequence[str] = (
 __notion_version__: Final[str] = "2022-06-28"
 __content_type__: Final[str] = "application/json"
 __base_url__: Final[str] = "https://api.notion.com/v1/"
-__version__: Final[str] = "0.5.3"
+__version__: Final[str] = "0.5.5"
 __package_url__: Final[str] = "https://pypi.org/pypi/notion-api/"
 __package_json__: Final[str] = "https://pypi.org/pypi/notion-api/json"
 
@@ -44,9 +44,6 @@ __package_json__: Final[str] = "https://pypi.org/pypi/notion-api/json"
 
 # New changes to notion.so
 # https://www.notion.so/releases
-
-# Notion Platform Roadmap
-# https://developers.notion.com/page/notion-platform-roadmap
 
 # API Reference
 # https://developers.notion.com/reference/intro

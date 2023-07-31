@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# mypy: disable-error-code="no-redef"
+
 from __future__ import annotations
 
 from typing import Any, Collection, MutableMapping, Optional, Sequence
@@ -102,7 +104,7 @@ class TableBlock(_TokenBlockMixin):
             )
 
         else:
-            cells: CELLS_ARRAY = [[RichText(value)] for value in values_array] #type: ignore[no-redef]
+            cells: CELLS_ARRAY = [[RichText(value)] for value in values_array]
             row = [TableRowBlockType(cells)]
             self._patch(
                 self._block_endpoint(self.id, children=True), payload=BlockChildren(row)

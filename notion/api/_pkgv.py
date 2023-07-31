@@ -1,3 +1,5 @@
+# mypy: disable-error-code="no-redef"
+
 import re
 from types import ModuleType
 from typing import Callable, Final, Pattern, Sequence, cast
@@ -14,7 +16,7 @@ try:
 except ModuleNotFoundError:
     import json
 
-    _json: ModuleType = json # type: ignore[no-redef]
+    _json: ModuleType = json
 
 
 __all__: Sequence[str] = ["check_for_pkg_update"]
@@ -40,8 +42,7 @@ def check_for_pkg_update() -> bool | None:
 
         if local_version < pypi_version:
             _NLOG.info(
-                "Newer package version available: %s - %s"
-                % (".".join(map(str, pypi_version)), __package_url__)
+                f"New package version available: {'.'.join(map(str, pypi_version))} - {__package_url__}"
             )
 
         return local_version < pypi_version

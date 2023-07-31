@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# mypy: disable-error-code="no-redef"
+
 from __future__ import annotations
 
 import logging
@@ -34,7 +36,7 @@ try:
 except ModuleNotFoundError:
     import json
 
-    _json: ModuleType = json  # type: ignore[no-redef]
+    _json: ModuleType = json
 
 import requests
 

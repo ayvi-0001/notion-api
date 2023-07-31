@@ -26,10 +26,7 @@ from typing import Any, MutableMapping, Optional, Sequence, cast
 
 import pytz
 
-__all__: Sequence[str] = (
-    "PropertyItem",
-    "UserPropertyItem",
-)
+__all__: Sequence[str] = ("PropertyItem", "UserPropertyItem")
 
 
 class PropertyItem:
@@ -91,7 +88,7 @@ def _function_type(property: PropertyItem) -> str:
 
 
 def _retrieve_datetime(property: PropertyItem) -> datetime | tuple[datetime, datetime]:
-    if property._type == "rollup":
+    if property._type == "rollup" or property._type == "formula":
         date = property.item["date"]
         start = date["start"]
         end = date["end"]
