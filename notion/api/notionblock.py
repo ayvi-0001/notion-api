@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 """
+A block object represents a piece of content within Notion. 
+The API translates the headings, toggles, paragraphs, lists, media, and more that you can interact with in the Notion UI as different block type objects.
 Block types which support children are:
     "paragraph", "bulleted_list_item", "numbered_list_item", "toggle", "to_do", "quote", "callout",
     "synced_block", "column", "child_page", "child_database", and "table".
@@ -148,8 +150,6 @@ class Block(_TokenBlockMixin):
         Creates/appends new children blocks to the parent block_id specified.
         Returns a paginated list of newly created children block objects.
 
-        Used internally by notion.api.blocktypefactory.target.
-
         https://developers.notion.com/reference/patch-block-children
         """
         return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
@@ -222,22 +222,25 @@ class Block(_TokenBlockMixin):
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ BLOCK FACTORY METHODS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
-    # Factory methods used to create a `Block` object.
+    # Factory methods used to create and append new children blocks to the parent block_id specified.
+    # Blocks can be parented by other blocks, pages, or databases
     # All methods require a parent instance of either notion.Block or notion.Page
+    # By default, blocks are appended to the bottom of the parent block.
+    # To append a block in a specific place other than the bottom of the parent block,
+    # use the "after" parameter and set its value to the ID of the block that the new block should be appended after.
+    # Once a block is appended as a child, it can't be moved elsewhere via the API.
 
     # Most methods return a `Block` object, which can be used to continously nest blocks.
     # For blocks that allow children, Notion allows up to two levels of nesting in a single request.
     # Each method of `Block` is a separate request to the API and is not affected by this limitation.
 
-    # Some methods return a specialized `Block` object, these are:
+    # Some methods return a specialized `Block` object, these include:
     # Codeblock, EquationBlock, TodoBlock, TableBlock, and RichTextBlock.
     # RichTextBlock refers to any block that contains text that can be formatted.
     # These are:  "paragraph", "to_do", "toggle", "quote", "callout"
     #             "bulleted_list_item", "numbered_list_item",
     #             "headings", "toggle_headings"
-
-    # See examples in repo for specific functions for blocks above,
-    # or docstrings in source code at `notion.api.notionblock.Block`
+    # See examples in repo for specific functions for blocks above.
 
     # Example
     # ```py
@@ -261,7 +264,9 @@ class Block(_TokenBlockMixin):
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SYNCED BLOCK TYPES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
     @classmethod
-    def original_synced_block(cls, parent_object: Page | Block) -> Block:
+    def original_synced_block(
+        cls, parent_object: Page | Block, after: Optional[str] = None
+    ) -> Block:
         """Creates an empty synced block that can be appended to other blocks with `notion.Block.duplicate_synced_block(...)`.
 
         ### Original Synced Block
@@ -279,16 +284,17 @@ class Block(_TokenBlockMixin):
 
         https://developers.notion.com/reference/block#original-synced-block
 
-        :returns: A new `notion.api.notionblock.Block` object with the `block_id` of the original synced block.
+        :returns: A new `notion.api.Block` object with the `block_id` of the original synced block.
         """
         block_mapping = parent_object._append(
-            BlockChildren([OriginalSyncedBlockType(children=[])])
+            BlockChildren([OriginalSyncedBlockType(children=[])], after=after)
         )
-        original_synced_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return original_synced_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
-    def duplicate_synced_block(cls, parent_object: Page | Block, block_id: str) -> Block:
+    def duplicate_synced_block(
+        cls, parent_object: Page | Block, block_id: str, after: Optional[str] = None
+    ) -> Block:
         """### Reference Synced Block
         To sync the content of the original synced_block with another synced_block,
         the developer simply needs to refer to that synced_block using the synced_from property.
@@ -298,13 +304,12 @@ class Block(_TokenBlockMixin):
         https://developers.notion.com/reference/block#duplicate-synced-block
 
         :param block_id: (required) string (UUIDv4). Identifier of an original synced_block
-        :returns: A new `notion.api.notionblock.Block` object with the `block_id` of the duplicate synced block.
+        :returns: A new `notion.api.Block` object with the `block_id` of the duplicate synced block.
         """
         block_mapping = parent_object._append(
-            BlockChildren([DuplicateSyncedBlockType(block_id)])
+            BlockChildren([DuplicateSyncedBlockType(block_id)], after=after)
         )
-        duplicate_synced_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return duplicate_synced_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ BLOCK EXTENSIONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
     # ~~~~~~~~~~~ These return custom blocks with unique methods to their block type ~~~~~~~~~~~ #
@@ -313,10 +318,10 @@ class Block(_TokenBlockMixin):
     def code(
         parent_object: Page | Block,
         code_text: Optional[str] = None,
-        /,
         *,
         language: Optional[CodeBlockLang | str] = None,
         caption: Optional[Sequence[RichText | Mention | str]] = None,
+        after: Optional[str] = None,
     ) -> CodeBlock:
         """Creates a code block. https://developers.notion.com/reference/block#code-blocks
 
@@ -325,20 +330,24 @@ class Block(_TokenBlockMixin):
         """
         block_mapping = parent_object._append(
             BlockChildren(
-                [CodeBlocktype([RichText(code_text)], language=language, caption=caption)]
-            ),
+                [
+                    CodeBlocktype(
+                        [RichText(code_text)], language=language, caption=caption
+                    )
+                ],
+                after=after,
+            )
         )
-        code_block = CodeBlock(cast(str, block_mapping["results"][0]["id"]))
-        return code_block
+        return CodeBlock(cast(str, block_mapping["results"][0]["id"]))
 
     @staticmethod
     def table(
         parent_object: Page | Block,
-        /,
         *,
         table_width: int = 2,
         has_column_header: bool = False,
         has_row_header: bool = False,
+        after: Optional[str] = None,
     ) -> TableBlock:
         """
         Note that the number of columns in a table can only be set when the table is first created.
@@ -365,20 +374,20 @@ class Block(_TokenBlockMixin):
                     TableBlockType(
                         table_width, has_column_header, has_row_header, children=rows
                     )
-                ]
+                ],
+                after=after,
             )
         )
-        table_block = TableBlock(cast(str, block_mapping["results"][0]["id"]))
-        return table_block
+        return TableBlock(cast(str, block_mapping["results"][0]["id"]))
 
     @staticmethod
     def to_do(
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
         block_color: Optional[BlockColor | str] = None,
         checked: Optional[bool] = False,
+        after: Optional[str] = None,
     ) -> ToDoBlock:
         """Creates a to-do block. https://developers.notion.com/reference/block#to-do-blocks
 
@@ -386,25 +395,25 @@ class Block(_TokenBlockMixin):
         """
         block_mapping = parent_object._append(
             BlockChildren(
-                [ToDoBlocktype(rich_text, block_color=block_color, checked=checked)]
-            ),
+                [ToDoBlocktype(rich_text, block_color=block_color, checked=checked)],
+                after=after,
+            )
         )
-        to_do_block = ToDoBlock(cast(str, block_mapping["results"][0]["id"]))
-        return to_do_block
+        return ToDoBlock(cast(str, block_mapping["results"][0]["id"]))
 
     @staticmethod
-    def equation(parent_object: Page | Block, expression: str, /) -> EquationBlock:
+    def equation(
+        parent_object: Page | Block, expression: str, /, *, after: Optional[str] = None
+    ) -> EquationBlock:
         """Creates an equation block. https://developers.notion.com/reference/block#equation-blocks
 
         :param expression: (required) A KaTeX compatible string.
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-
         block_mapping = parent_object._append(
-            BlockChildren([EquationBlocktype(expression)])
+            BlockChildren([EquationBlocktype(expression)], after=after)
         )
-        equation_block = EquationBlock(cast(str, block_mapping["results"][0]["id"]))
-        return equation_block
+        return EquationBlock(cast(str, block_mapping["results"][0]["id"]))
 
     # ~~~~~~~~~~~~~~ TEXT-EDITABLE BLOCKS (Can be used by `notion.RichTextBlock`) ~~~~~~~~~~~~~~ #
 
@@ -413,79 +422,83 @@ class Block(_TokenBlockMixin):
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
+        after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a paragraph block. https://developers.notion.com/reference/block#paragraph-blocks
 
         :param rich_text: list of `notion.properties.RichText` objects.
-        :returns: `notion.api.notionblock.Block`
+        :param after: The ID of the existing block that the new block should be appended after.
+
+        :returns: `notion.api.Block`
         """
         block_mapping = parent_object._append(
-            BlockChildren([ParagraphBlocktype(rich_text, block_color=block_color)]),
+            BlockChildren(
+                [ParagraphBlocktype(rich_text, block_color=block_color)], after=after
+            )
         )
-        paragraph_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return paragraph_block
+
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def quote(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
+        after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a quote block. https://developers.notion.com/reference/block#quote-blocks
 
         :param rich_text: list of `notion.properties.RichText` objects.
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
         block_mapping = parent_object._append(
-            BlockChildren([QuoteBlocktype(rich_text, block_color=block_color)])
+            BlockChildren(
+                [QuoteBlocktype(rich_text, block_color=block_color)], after=after
+            )
         )
-        quote_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return quote_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def callout(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
         icon: Optional[str] = None,
+        after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a callout block. https://developers.notion.com/reference/block#callout-blocks
 
         :param rich_text: list of `notion.properties.RichText` objects.
         :param icon: url to external source for icon.
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-
         block_mapping = parent_object._append(
             BlockChildren(
-                [CalloutBlocktype(rich_text, icon=icon, block_color=block_color)]
-            ),
+                [CalloutBlocktype(rich_text, icon=icon, block_color=block_color)],
+                after=after,
+            )
         )
-        callout_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return callout_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def heading1(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
-        block_color: Optional[BlockColor | str] = None,
         is_toggleable: Optional[bool] = False,
+        after: Optional[str] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a heading 1 block. https://developers.notion.com/reference/block#heading-one-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
         block_mapping = parent_object._append(
             BlockChildren(
@@ -493,25 +506,25 @@ class Block(_TokenBlockMixin):
                     Heading1BlockType(
                         rich_text, block_color=block_color, is_toggleable=is_toggleable
                     )
-                ]
-            ),
+                ],
+                after=after,
+            )
         )
-        heading1_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return heading1_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def heading2(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
-        block_color: Optional[BlockColor | str] = None,
         is_toggleable: Optional[bool] = False,
+        after: Optional[str] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a heading 2 block. https://developers.notion.com/reference/block#heading-two-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
         block_mapping = parent_object._append(
             BlockChildren(
@@ -519,25 +532,25 @@ class Block(_TokenBlockMixin):
                     Heading2BlockType(
                         rich_text, block_color=block_color, is_toggleable=is_toggleable
                     )
-                ]
-            ),
+                ],
+                after=after,
+            )
         )
-        heading2_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return heading2_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def heading3(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
-        block_color: Optional[BlockColor | str] = None,
         is_toggleable: Optional[bool] = False,
+        after: Optional[str] = None,
+        block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a heading 3 block. https://developers.notion.com/reference/block#heading-three-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
         block_mapping = parent_object._append(
             BlockChildren(
@@ -545,78 +558,84 @@ class Block(_TokenBlockMixin):
                     Heading3BlockType(
                         rich_text, block_color=block_color, is_toggleable=is_toggleable
                     )
-                ]
-            ),
+                ],
+                after=after,
+            )
         )
-        heading3_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return heading3_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def bulleted_list(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
+        after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a bulleted list block. https://developers.notion.com/reference/block#bulleted-list-item-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
         block_mapping = parent_object._append(
             BlockChildren(
-                [BulletedListItemBlocktype(rich_text, block_color=block_color)]
-            ),
+                [BulletedListItemBlocktype(rich_text, block_color=block_color)],
+                after=after,
+            )
         )
-        bulleted_list_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return bulleted_list_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def numbered_list(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
+        after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a numbered list block. https://developers.notion.com/reference/block#numbered-list-item-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
         block_mapping = parent_object._append(
             BlockChildren(
-                [NumberedListItemBlocktype(rich_text, block_color=block_color)]
-            ),
+                [NumberedListItemBlocktype(rich_text, block_color=block_color)],
+                after=after,
+            )
         )
-        numbered_list_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return numbered_list_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def toggle(
         cls,
         parent_object: Page | Block,
         rich_text: Sequence[RichText | Mention],
-        /,
         *,
+        after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a toggle block. https://developers.notion.com/reference/block#toggle-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-
         block_mapping = parent_object._append(
-            BlockChildren([ToggleBlocktype(rich_text, block_color=block_color)])
+            BlockChildren(
+                [ToggleBlocktype(rich_text, block_color=block_color)], after=after
+            )
         )
-        toggle_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return toggle_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ EXTERNAL URL BLOCKS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
     @classmethod
-    def embed_url(cls, parent_object: Page | Block, embedded_url: str, /) -> Block:
+    def embed_url(
+        cls,
+        parent_object: Page | Block,
+        embedded_url: str,
+        /,
+        after: Optional[str] = None,
+    ) -> Block:
         """
         ##### WARNING: embed block types through the API are not reliable and often cause errors.
 
@@ -641,115 +660,120 @@ class Block(_TokenBlockMixin):
 
         https://developers.notion.com/reference/block#embed-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-
         block_mapping = parent_object._append(
-            BlockChildren([EmbedBlocktype(embedded_url)])
+            BlockChildren([EmbedBlocktype(embedded_url)], after=after)
         )
-        embed_url_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return embed_url_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
-    def video(cls, parent_object: Page | Block, url: str, /) -> Block:
+    def video(
+        cls, parent_object: Page | Block, url: str, /, after: Optional[str] = None
+    ) -> Block:
         """Creates a video block. https://developers.notion.com/reference/block#video
         Supported video types:
         .amv .asf .avi .f4v .flv .gifv .mkv .mov .mpg .mpeg .mpv .mp4 .m4v .qt .wmv
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-        block_mapping = parent_object._append(BlockChildren([VideoBlockType(url)]))
-        video_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return video_block
+        block_mapping = parent_object._append(
+            BlockChildren([VideoBlockType(url)], after=after)
+        )
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
-    def image(cls, parent_object: Page | Block, url: str, /) -> Block:
+    def image(
+        cls, parent_object: Page | Block, url: str, /, after: Optional[str] = None
+    ) -> Block:
         """Creates an image block.
         Supported image types: .bmp .gif .heic .jpeg .jpg .png .svg .tif .tiff
         https://developers.notion.com/reference/block#image
         """
-        block_mapping = parent_object._append(BlockChildren([ImageBlockType(url)]))
-        image_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return image_block
+        block_mapping = parent_object._append(
+            BlockChildren([ImageBlockType(url)], after=after)
+        )
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def bookmark(
         cls,
         parent_object: Page | Block,
         bookmark_url: str,
-        /,
         *,
+        after: Optional[str] = None,
         caption: Optional[Sequence[RichText | Mention]] = None,
     ) -> Block:
         """Creates a bookmark block. https://developers.notion.com/reference/block#bookmark-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-
         block_mapping = parent_object._append(
-            BlockChildren([BookmarkBlocktype(bookmark_url, caption=caption)])
+            BlockChildren([BookmarkBlocktype(bookmark_url, caption=caption)], after=after)
         )
-        bookmark_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return bookmark_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MISC BLOCKS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
     @classmethod
-    def link_to_page(cls, parent_object: Page | Block, page_id: str, /) -> Block:
+    def link_to_page(
+        cls, parent_object: Page | Block, page_id: str, /, after: Optional[str] = None
+    ) -> Block:
         """Creates a link_to_page block. https://developers.notion.com/reference/block#link-to-page-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-
         block_mapping = parent_object._append(
-            BlockChildren([LinkToPageBlockType(page_id)])
+            BlockChildren([LinkToPageBlockType(page_id)], after=after)
         )
-        link_to_page_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return link_to_page_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
     def table_of_contents(
         cls,
         parent_object: Page | Block,
-        /,
         *,
+        after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
     ) -> Block:
         """Creates a table of contents block.
         https://developers.notion.com/reference/block#table-of-contents-blocks
 
-        :returns: `notion.api.notionblock.Block`
+        :returns: `notion.api.Block`
         """
-
         block_mapping = parent_object._append(
-            BlockChildren([TableOfContentsBlocktype(block_color=block_color)])
+            BlockChildren(
+                [TableOfContentsBlocktype(block_color=block_color)], after=after
+            )
         )
-        table_of_contents_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return table_of_contents_block
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
-    def breadcrumb(cls, parent_object: Page | Block) -> Block:
+    def breadcrumb(
+        cls, parent_object: Page | Block, after: Optional[str] = None
+    ) -> Block:
         """Creates a breadcrumb block.
         https://developers.notion.com/reference/block#breadcrumb-blocks
         """
-        block_mapping = parent_object._append(BlockChildren([BreadcrumbBlock()]))
-        breadcrumb_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return breadcrumb_block
+        block_mapping = parent_object._append(
+            BlockChildren([BreadcrumbBlock()], after=after)
+        )
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
-    def divider(cls, parent_object: Page | Block) -> Block:
+    def divider(cls, parent_object: Page | Block, after: Optional[str] = None) -> Block:
         """Creates a divider block.
         https://developers.notion.com/reference/block#divider-blocks
         """
-        block_mapping = parent_object._append(BlockChildren([DividerBlock()]))
-        divider_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return divider_block
+        block_mapping = parent_object._append(
+            BlockChildren([DividerBlock()], after=after)
+        )
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     @classmethod
-    def newline(cls, parent_object: Page | Block) -> Block:
+    def newline(cls, parent_object: Page | Block, after: Optional[str] = None) -> Block:
         """Creates a newline break."""
-        block_mapping = parent_object._append(BlockChildren([NewLineBreak]))
-        newline_block = cls(cast(str, block_mapping["results"][0]["id"]))
-        return newline_block
+        block_mapping = parent_object._append(BlockChildren([NewLineBreak], after=after))
+        return cls(cast(str, block_mapping["results"][0]["id"]))
 
     # Column blocks are not currently supported by this library.

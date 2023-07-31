@@ -222,6 +222,11 @@ class Page(_TokenBlockMixin):
         return cast(str, self.retrieve()["url"])
 
     @property
+    def public_url(self) -> str:
+        """When a page or database has been shared publicly, the response body will include a public_url value"""
+        return cast(str, (self.retrieve()["public_url"]))
+
+    @property
     def delete_self(self) -> None:
         if self.is_archived:
             return

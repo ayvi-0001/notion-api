@@ -49,6 +49,8 @@ from notion.api.block_ext import (
     ToDoBlock,
 )
 
+check_for_pkg_update()
+
 __all__: Sequence[str] = (
     "Page",
     "Database",

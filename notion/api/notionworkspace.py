@@ -20,17 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from functools import partial, partialmethod
 from typing import Any, MutableMapping, Optional, Sequence, cast
 
 from notion.api._about import __base_url__
-from notion.api.client import _NotionClient
+from notion.api._pagination import paginated_response_endpoint
+from notion.api.client import _NLOG, _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
 from notion.properties.build import NotionObject, build_payload
 from notion.properties.common import Parent, UserObject
 from notion.properties.richtext import Mention, RichText
 from notion.query.sort import EntryTimestampSort
-
 
 __all__: Sequence[str] = ["Workspace"]
 
@@ -52,6 +53,7 @@ class Workspace(_NotionClient):
 
     def __init__(self, token: Optional[str] = None) -> None:
         super().__init__(token=token)
+        self.logger = _NLOG.getChild(self.__repr__())
 
     def __repr__(self) -> str:
         return f"notion.{self.__class__.__name__}()"
@@ -161,9 +163,14 @@ class Workspace(_NotionClient):
         thread: Page | Block | str,
         *,
         page_size: Optional[int] = None,
-        start_cursor: Optional[str] = None
+        start_cursor: Optional[str] = None,
     ) -> MutableMapping[str, Any]:
-        """When retrieving comments, one or more Comment objects will be returned in the form of an array,
+        """
+        **retrieve_comments() method deprecated in > v0.5.2.**
+        **In a future update, this will be replaced with the new method `retrieve_all_comments()` added in v0.6.0 that iterates through all pages from results.**
+        **This method will still remain under a new name for anyone wanting the original request.**
+
+        When retrieving comments, one or more Comment objects will be returned in the form of an array,
         sorted in ascending chronological order.
 
         Retrieving comments from a page parent will return all comments on the page,
@@ -174,6 +181,8 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/retrieve-a-comment
         """
+        self.logger.warning(_RETRIEVE_COMMENTS_DEPRECATION_NOTICE)
+
         if isinstance(thread, Page | Block):
             block_id = thread.id
         else:
@@ -183,6 +192,33 @@ class Workspace(_NotionClient):
             block_id=block_id, page_size=page_size, start_cursor=start_cursor
         )
         return self._get(comments_endpoint)
+
+    def retrieve_all_comments(
+        self, thread: Page | Block | str, *, max_page_size: Optional[int] = None
+    ) -> list[MutableMapping[str, Any]]:
+        """When retrieving comments, one or more Comment objects will be returned in the form of an array,
+        sorted in ascending chronological order.
+
+        Retrieving comments from a page parent will return all comments on the page,
+        but not comments from any blocks inside the page.
+
+        :param thread: (required) Either a notion.Page or notion.Block object,
+                       or the string of a page/block/discussion_thread ID.
+        :param max_page_size: (optional) The max number of pages to include in results.\
+                               If left blank, will iterate until all comments in results are included.
+
+        https://developers.notion.com/reference/retrieve-a-comment
+        """
+        if isinstance(thread, Page | Block):
+            block_id = thread.id
+        else:
+            block_id = thread
+
+        return paginated_response_endpoint(
+            partialmethod(self._get),
+            partial(self._comments_endpoint, block_id=block_id),
+            max_page_size,
+        )
 
     def comment(
         self,
@@ -305,3 +341,8 @@ class Workspace(_NotionClient):
             payload.set("sort", EntryTimestampSort.last_edited_time_ascending())
 
         return self._post(self._workspace_endpoint(search=True), payload=payload)
+
+
+_RETRIEVE_COMMENTS_DEPRECATION_NOTICE = """retrieve_comments() method deprecated in > v0.5.2. \
+In a future update, this will be replaced with the new method `retrieve_all_comments()` added in v0.6.0 that iterates through all pages from results. \
+This method will still remain under a new name for anyone wanting the original request."""

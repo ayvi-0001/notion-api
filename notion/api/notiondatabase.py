@@ -20,17 +20,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+# mypy: disable-error-code="no-redef"
+
 from __future__ import annotations
 
 from functools import cached_property
 from types import ModuleType
 from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, cast
 
+from notion.api._pagination import paginated_response_payload
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
 from notion.api.notionblock import Block
 from notion.exceptions.errors import NotionValidationError
-from notion.properties.build import NotionObject, build_payload
+from notion.properties.build import build_payload
 from notion.properties.common import Parent
 from notion.properties.files import Cover, Icon
 from notion.properties.options import FunctionFormat, NumberFormat
@@ -72,9 +75,9 @@ try:
 
     _json: ModuleType = orjson
 except ModuleNotFoundError:
-    import json 
+    import json
 
-    _json: ModuleType = json # type: ignore[no-redef]
+    _json: ModuleType = json
 
 __all__: Sequence[str] = ["Database"]
 
@@ -276,6 +279,11 @@ class Database(_TokenBlockMixin):
         return cast(str, (self.retrieve["url"]))
 
     @property
+    def public_url(self) -> str:
+        """When a page or database has been shared publicly, the response body will include a public_url value"""
+        return cast(str, (self.retrieve["public_url"]))
+
+    @property
     def delete_self(self) -> None:
         if self.is_archived:
             return
@@ -319,8 +327,11 @@ class Database(_TokenBlockMixin):
         start_cursor: Optional[str] = None,
     ) -> MutableMapping[str, Any]:
         """
-        Gets a list of Pages contained in the database, 
-        filtered/ordered to the filter conditions/sort criteria provided in request.
+        **query() method deprecated in > v0.5.2.**
+        **In a future update, this will be replaced with the new method `query_all()` added in v0.6.0 that iterates through all pages from results.**
+        **This method will still remain under a new name for anyone wanting the original request.**
+
+        Gets a list of Pages contained in the database, filtered/ordered to the filter conditions/sort criteria provided in request.
         Responses from paginated endpoints contain a `next_cursor` property,
         which can be used in a query payload to continue the list.
 
@@ -335,14 +346,16 @@ class Database(_TokenBlockMixin):
 
         https://developers.notion.com/reference/post-database-query
         """
-        payload: NotionObject = NotionObject()
-        url = self._database_endpoint(self.id, query=True)
+        self.logger.warning(_QUERY_DEPRECATION_NOTICE)
+
+        payload: dict[str, Any] = {}
+        endpoint = self._database_endpoint(self.id, query=True)
 
         if filter_property_values:
-            url += "?"
+            endpoint += "?"
             for name in filter_property_values:
                 name_id = self[name].get("id")
-                url += f"filter_properties={name_id}&"
+                endpoint += f"filter_properties={name_id}&"
 
         if filter:
             payload |= filter
@@ -353,7 +366,7 @@ class Database(_TokenBlockMixin):
         if start_cursor:
             payload |= {"start_cursor": start_cursor}
 
-        return self._post(url, payload=payload)
+        return self._post(endpoint, payload=payload)
 
     def query_pages(
         self,
@@ -364,7 +377,10 @@ class Database(_TokenBlockMixin):
         start_cursor: Optional[str] = None,
     ) -> list[Page]:
         """
-        :return: list of notion.Page objects
+        **query_pages() method deprecated in > v0.5.2.**
+        **In a future update, this will be replaced with the new method `query_all_pages()` added in v0.6.0 that iterates through all pages from results.**
+
+        Runs Database.query(...) but returns a notion.Page object for every page_id in the query response.
 
         :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
         :param sort: (optional) notion.query.sort.SortFilter
@@ -373,8 +389,12 @@ class Database(_TokenBlockMixin):
         :param start_cursor: (optional) When supplied, returns a page of results starting after the cursor provided.\
                               If not supplied, this endpoint will return the first page of results.
 
+        :return: list of notion.Page objects
+
         https://developers.notion.com/reference/post-database-query
         """
+        self.logger.warning(_QUERY_PAGES_DEPRECATION_NOTICE)
+
         query = self.query(
             filter=filter,
             sort=sort,
@@ -385,6 +405,73 @@ class Database(_TokenBlockMixin):
         from notion.api.notionpage import Page
 
         return [Page(_object["id"]) for _object in query.get("results", [])]
+
+    def query_all(
+        self,
+        *,
+        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
+        sort: Optional[SortFilter] = None,
+        filter_property_values: Optional[list[str]] = None,
+        max_page_size: Optional[int] = None,
+    ) -> list[MutableMapping[str, Any]]:
+        """
+        Queries all pages in a database, filtered/ordered to the filter conditions/sort criteria provided in request.
+        Will iterate through all pages in response where a `next_cursor` key is present and the list of results is
+        less than `max_page_size`.
+
+        :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
+        :param sort: (optional) notion.query.sort.SortFilter
+        :param filter_property_values: (optional) Return only the selected properties.
+        :param max_page_size: (optional) The max number of pages to include in results.\
+                               If left blank, will iterate until all pages in results are included.
+
+        :return: list of page object mappings.
+
+        https://developers.notion.com/reference/post-database-query
+        """
+        endpoint = self._database_endpoint(self.id, query=True)
+        payload: dict[str, Any] = {}
+
+        if filter_property_values:
+            endpoint += "?"
+            for name in filter_property_values:
+                name_id = self[name].get("id")
+                endpoint += f"filter_properties={name_id}&"
+
+        if filter:
+            payload |= filter
+        if sort:
+            payload |= sort
+
+        return paginated_response_payload(self._post, endpoint, payload, max_page_size)
+
+    def query_all_pages(
+        self,
+        *,
+        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
+        sort: Optional[SortFilter] = None,
+        max_page_size: Optional[int] = None,
+    ) -> list[Page]:
+        """
+        Runs Database.query_all(...) but returns a notion.Page object for every page_id in the query response.
+
+        :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
+        :param sort: (optional) notion.query.sort.SortFilter
+        :param max_page_size: (optional) The max number of pages to include in results.\
+                               If left blank, will iterate until all pages in results are included.
+
+        :return: list of notion.Page objects
+
+        https://developers.notion.com/reference/post-database-query
+        """
+        from notion.api.notionpage import Page
+
+        return [
+            Page(row["id"])
+            for row in self.query_all(
+                filter=filter, sort=sort, max_page_size=max_page_size
+            )
+        ]
 
     def dual_relation_column(
         self, property_name: str, /, database_id: str, synced_property_name: str
@@ -596,3 +683,11 @@ class Database(_TokenBlockMixin):
         https://developers.notion.com/reference/property-object#people
         """
         self._update(Properties(PeoplePropertyObject(property_name)))
+
+
+_QUERY_DEPRECATION_NOTICE = """query() method deprecated in > v0.5.2. \
+In a future update, this will be replaced with new method `query_all()` added in v0.6.0 that iterates through all pages from results. \
+This method will still remain under a new name for anyone wanting the original request."""
+
+_QUERY_PAGES_DEPRECATION_NOTICE = """query_pages() method deprecated in > v0.5.2. \
+In a future update, this will be replaced with new method `query_all_pages()` added in v0.6.0 that iterates through all pages from results."""

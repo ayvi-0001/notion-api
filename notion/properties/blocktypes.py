@@ -67,6 +67,7 @@ class BlockChildren(NotionObject):
         block_type_objects_array: Optional[
             Sequence[NotionObject | MutableMapping[str, Any]]
         ] = None,
+        after: Optional[str] = None,
     ) -> None:
         """https://developers.notion.com/reference/block"""
         super().__init__()
@@ -74,6 +75,8 @@ class BlockChildren(NotionObject):
             block_type_objects_array = []
 
         self.set("children", block_type_objects_array)
+        if after:
+            self.set("after", after)
 
 
 class OriginalSyncedBlockType(NotionObject):

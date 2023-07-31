@@ -70,7 +70,10 @@ parent_db = notion.Database(homepage.parent_id)
 # will also look for env var `TZ` to set the default timezone. If not found, will default to local timezone.
 ```
 
-`__getitem__` searchs for page property values when indexing a Page, and for property objects when indexing a Database.
+Indexing a page will search for page property values, and indexing a Database will search for property objects.  
+A full list can be retrieved for both using;  
+- `retrieve()` method for a Page, with the optional `filter_properties` parameter.
+- `retrieve` attribute for a Database.
 
 ```py
 homepage['dependencies']
@@ -128,8 +131,8 @@ homepage.icon = "https://www.notion.so/icons/alien-pixel_purple.svg"
 
 ## Creating Pages/Databases/Blocks
 
-The current version of the Notion api does not allow pages to be created to the parent `workspace`.  
-Create objects by passing an existing Page/Database instance as an arg to the `create` classmethods.
+Create objects by passing an existing Page/Database instance to the `create` classmethods.  
+The current version of the Notion api does not allow pages/databases to be created to the parent `workspace`.  
 
 ```py
 new_database = notion.Database.create(
@@ -143,8 +146,11 @@ new_database = notion.Database.create(
 new_page = notion.Page.create(new_database, page_title="A new database row")
 ```
 
-Blocks are also created using the classmethods of `Block`. They all require a parent instance of either `Page` or `Block` to append the new block too.
-The newly created block is returned as an instance of `Block`, which can be used as the parent instance to a nested block. 
+Blocks are also created using classmethods. They require a parent instance of either `Page` or `Block` to append the new block too.
+The newly created block is returned as an instance of `Block`, which can be used as the parent instance to another nested block. 
+
+By default, blocks are appended to the bottom of the parent block.  
+To append the block somewhere else other than the bottom of the parent block, use the `after` parameter and set its value to the ID of the block that the new block should be appended after. The block_id used in the `after` paramater must still be a child to the parent instance.  
 ```py
 from notion import properties as prop
 
@@ -243,16 +249,16 @@ If a property of that name already exists, but it's a different type than the me
 The original parameters will be saved if you decide to switch back (i.e. if you change a formula column to a select column, upon changing it back to a formula column, the original formula expression will still be there).   
 
 ```py
-new_database.formula_column("page id", expression="id()")
+new_database.formula_column("page_id", expression="id()")
 
 new_database.delete_property("url")
 
 new_database.multiselect_column(
-    "new options column",
+    "New Options Column",
     options=[
-        prop.Option("option-a", prop.PropertyColor.red),
-        prop.Option("option-b", prop.PropertyColor.green),
-        prop.Option("option-c", prop.PropertyColor.blue),
+        prop.Option("Option A", prop.PropertyColor.red),
+        prop.Option("Option B", prop.PropertyColor.green),
+        prop.Option("Option C", prop.PropertyColor.blue),
     ],
 )
 
@@ -267,10 +273,13 @@ new_page.set_multiselect("options", ["option-a", "option-b"])
 ## Database Queries
 
 A single `notion.query.PropertyFilter` is equivalent to filtering one property type in Notion.
-To build filters equivalent to Notion's 'advanced filters', use `notion.query.CompoundFilter`.
+To build nested filters, use `notion.query.CompoundFilter` and group property filters chained together by `_and(...)` / `_or(...)`.
 
 The database method `query()` will return the raw response from the API.  
 The method `query_pages()` will extract the page ID for each object in the array of results, and return a list of `notion.Page` objects.
+
+> note: in v0.6.0, new query methods were added: `query_all()` & `query_all_pages()` - these handle pagination, and instead of providing the `next_cursor` and `has_more` keys,
+> they will iterate through all the results, or up to the `max_page_size` paramater. These 2 methods will replace the original ones in a later update.
 
 ```py
 from datetime import datetime
@@ -334,19 +343,21 @@ Error 400: The request body does not match the schema for the expected parameter
 ```
 
 Possible errors are:
- - `NotionInvalidJson`
- - `NotionInvalidRequestUrl`
- - `NotionInvalidRequest`
- - `NotionValidationError`
- - `NotionMissingVersion`
- - `NotionUnauthorized`
- - `NotionRestrictedResource`
- - `NotionObjectNotFound`
  - `NotionConflictError`
- - `NotionRateLimited`
- - `NotionInternalServerError`
- - `NotionServiceUnavailable`
  - `NotionDatabaseConnectionUnavailable`
+ - `NotionGatewayTimeout`
+ - `NotionInvalidGrant`
+ - `NotionInternalServerError`
+ - `NotionInvalidJson`
+ - `NotionInvalidRequest`
+ - `NotionInvalidRequestUrl`
+ - `NotionMissingVersion`
+ - `NotionObjectNotFound`
+ - `NotionRateLimited`
+ - `NotionRestrictedResource`
+ - `NotionServiceUnavailable`
+ - `NotionUnauthorized`
+ - `NotionValidationError`
 
 A common error to look out for is `NotionObjectNotFound`. This error is often raised because your bot has not been added as a connection to the page. 
 
