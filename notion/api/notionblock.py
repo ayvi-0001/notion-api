@@ -37,7 +37,6 @@ https://developers.notion.com/reference/block
 
 from __future__ import annotations
 
-from functools import cached_property
 from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, Union
 
 from notion.api import block_ext
@@ -81,7 +80,7 @@ class Block(_TokenBlockMixin):
         super().__init__(id, token=token)
         self.logger = _NLOG.getChild(repr(self))
 
-    @cached_property
+    @property
     def retrieve(self) -> MutableMapping[str, Any]:
         """
         Retrieves a Block object using the ID specified.
@@ -157,20 +156,28 @@ class Block(_TokenBlockMixin):
         )
 
     def delete_child(
-        self, children_id: Optional[list[str]] = None, *, all: Optional[bool] = False
+        self,
+        child_block_ids: Optional[list[str]] = None,
+        *,
+        all: Optional[bool] = False,
     ) -> None:
+        """
+        If a list of child block ids is not provided, block attempts to delete all children.
+        If no child blocks exist, nothing happens.
+
+        :param all: Is deprecated and does not do anything.
+        """
         if not self.has_children:
             return
-
-        if all:
-            children = [block["id"] for block in self.retrieve_children()["results"]]
-            for id in children:
-                self._delete(self._block_endpoint(id))
+        elif child_block_ids:
+            for block_id in child_block_ids:
+                self._delete(self._block_endpoint(block_id))
             return
-
-        if children_id:
-            for id in children_id:
-                self._delete(self._block_endpoint(id))
+        else:
+            children = [block["id"] for block in self.retrieve_children()["results"]]
+            for block_id in children:
+                self._delete(self._block_endpoint(block_id))
+            return
 
     def update(
         self, payload: MutableMapping[str, Any] | str | bytes | bytearray

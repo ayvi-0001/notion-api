@@ -24,9 +24,9 @@
 
 from __future__ import annotations
 
-from functools import cached_property
-from types import ModuleType
-from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, cast
+import json
+from contextlib import suppress
+from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence
 
 from notion.api._pagination import paginated_response_payload
 from notion.api.blockmixin import _TokenBlockMixin
@@ -142,14 +142,18 @@ class Database(_TokenBlockMixin):
         return database
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
-        if property_name in self.property_schema:
-            return cast(MutableMapping[str, Any], self.property_schema[property_name])
-        raise KeyError(f"{property_name} not found in page property values.")
+        try:
+            item: MutableMapping[str, Any] = self.property_schema[property_name]
+            return item
+        except KeyError:
+            raise KeyError(f"{property_name} not found in page property values.")
 
-    def __delitem__(self, property_name_or_id: str) -> None:
-        self._update({"properties": {property_name_or_id: None}})
+    @property
+    def object(self) -> str:
+        _object: str = self.retrieve["object"]
+        return _object
 
-    @cached_property
+    @property
     def retrieve(self) -> MutableMapping[str, Any]:
         """
         Retrieves the database object, information that describes the structure and columns of a database.
@@ -262,16 +266,10 @@ class Database(_TokenBlockMixin):
 
     @property
     def delete_self(self) -> None:
-        if self.is_archived:
-            return
-
         self._delete(self._block_endpoint(self.id))
 
     @property
     def restore_self(self) -> None:
-        if not self.is_archived:
-            return None
-
         self._patch(self._database_endpoint(self.id), payload=(b'{"archived": false}'))
 
     def _update(
@@ -294,7 +292,7 @@ class Database(_TokenBlockMixin):
 
     def rename_property(self, old_name: str, new_name: str) -> None:
         """https://developers.notion.com/reference/update-property-schema-object#renaming-a-property"""
-        self._update(_json.dumps({"properties": {old_name: {"name": new_name}}}))
+        self._update(json.dumps({"properties": {old_name: {"name": new_name}}}))
 
     def query(
         self,
@@ -475,12 +473,10 @@ class Database(_TokenBlockMixin):
         # Notion UI will default to `Related to {original database name} ({property name})`,
         # regardless of what name is included in the request.
         # This is a temporary fix until Notion patches this.
-        try:
+        with suppress(NotionValidationError):
             Database(database_id).rename_property(
                 f"Related to {self.title} ({property_name})", synced_property_name
             )
-        except NotionValidationError:
-            pass
 
     def single_relation_column(self, property_name: str, /, database_id: str) -> None:
         """

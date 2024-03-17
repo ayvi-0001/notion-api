@@ -31,7 +31,7 @@ from typing import Any, MutableMapping, Optional, Sequence
 
 import requests
 
-from notion.api._about import __base_url__, __content_type__
+from notion.api._about import __base_url__, __content_type__, __notion_version__
 from notion.exceptions import NotionUnauthorized, validate_response
 
 __all__: Sequence[str] = ("_NotionClient", "_NLOG")
@@ -43,6 +43,9 @@ _NLOG = logging.getLogger("notion-api")
 
 class _NotionClient:
     """Base Class to inherit: token, headers, requests, and endpoints."""
+
+    content_type = __content_type__
+    version = os.getenv("NOTION_VERSION", __notion_version__)
 
     def __init__(self, *, token: Optional[str] = None) -> None:
         if token:
@@ -56,18 +59,11 @@ class _NotionClient:
                     "Check if `NOTION_TOKEN` is set in environment variables"
                 )
 
-        try:
-            __notion_version__ = os.environ["NOTION_VERSION"]
-        except KeyError:
-            from notion.api._about import __notion_version__
-
-        __auth__ = f"Bearer {self.token}"
-
         self.headers: dict[str, str] = {
-            "Authorization": __auth__,
-            "Accept": __content_type__,
-            "Content-type": __content_type__,
-            "Notion-Version": __notion_version__,
+            "Authorization": f"Bearer {self.token}",
+            "Accept": self.content_type,
+            "Content-type": self.content_type,
+            "Notion-Version": self.version,
         }
 
     @staticmethod

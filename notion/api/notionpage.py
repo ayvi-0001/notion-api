@@ -22,9 +22,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
-from functools import cached_property
-from typing import Any, MutableMapping, Optional, Sequence, cast
+from datetime import datetime
+from typing import Any, MutableMapping, Optional, Sequence
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
@@ -111,9 +110,6 @@ class Page(_TokenBlockMixin):
 
         new_page_map = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
         page = cls(new_page_map["id"])
-        page.logger.debug(
-            f"Page created in {parent_instance.__repr__()}. Url: {new_page_map['url']}"
-        )
 
         if icon_url:
             page.icon = icon_url
@@ -122,23 +118,26 @@ class Page(_TokenBlockMixin):
 
         return page
 
-    def __getattr__(self, attr: str) -> PropertyItem:
-        def lower_alnum(s: str) -> str:
-            return "".join([c if c.isalnum() else "_" for c in s]).lower()
-
-        for property in self.properties:
-            if lower_alnum(attr) == lower_alnum(property):
-                return PropertyItem(
-                    map=self.retrieve_property_item(property), source_page=self.id
-                )
-
-        raise AttributeError(f"{attr} not found in page property values.")
+    def __getattr__(self, __name: str) -> PropertyItem:
+        if __name not in self.__dict__.keys():
+            for prop in self.properties:
+                if __name == "".join([c if c.isalnum() else "_" for c in prop]).lower():
+                    return PropertyItem(
+                        _map=self.retrieve_property_item(prop), source_page=self.id
+                    )
+        raise AttributeError(f"{__name} not found in page property values.")
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
-        if property_name in self.properties:
-            return cast(MutableMapping[str, Any], self.properties[property_name])
-        raise KeyError(f"{property_name} not found in page property values.")
+        try:
+            item: MutableMapping[str, Any] = self.properties[property_name]
+            return item
+        except KeyError:
+            raise KeyError(f"{property_name} not found in page property values.")
 
+    @property
+    def object(self) -> str:
+        _object: str = self.retrieve()["object"]
+        return _object
 
     @property
     def properties(self) -> MutableMapping[str, Any]:
@@ -152,16 +151,15 @@ class Page(_TokenBlockMixin):
         title setter:
         >>> page.title = "New Title"
         """
-        try:
-            if ("workspace" or "page_id") in self.parent_type:
-                return cast(str, self.properties["title"]["title"][0]["plain_text"])
-            else:
-                database_title_property = self.properties[
-                    [k for k, v in self.properties.items() if "title" in v][0]
-                ]
-                return cast(str, database_title_property["title"][0]["plain_text"])
-        except IndexError:
-            return ""  # title is empty
+        if any([k in self.parent_type for k in ("workspace" or "page_id")]):
+            title_object: dict[str, str] = self.properties["title"]["title"][0]
+            return title_object.get("plain_text", "")
+        else:
+            database_title_property = self.properties[
+                [k for k, v in self.properties.items() if "title" in v][0]
+            ]
+            title_object: dict[str, str] = database_title_property["title"][0]  # type: ignore[no-redef]
+            return title_object.get("plain_text", "")
 
     @title.setter
     def title(self, new_title: str) -> None:
@@ -217,16 +215,10 @@ class Page(_TokenBlockMixin):
 
     @property
     def delete_self(self) -> None:
-        if self.is_archived:
-            return
-
         self._delete(self._block_endpoint(self.id))
 
     @property
     def restore_self(self) -> None:
-        if not self.is_archived:
-            return
-
         self._patch(
             self._pages_endpoint(self.id),
             payload=(b'{"archived": false}'),
@@ -462,6 +454,7 @@ class Page(_TokenBlockMixin):
 
         :param array_of_files: (required) An array of objects containing information about the files.\
                                 Either InternalFile(), ExternalFile() or a combination of both.
+                                Each file object must have the `name` parameter provided.
 
         https://developers.notion.com/reference/page-property-values#files
         """
@@ -541,4 +534,3 @@ class Page(_TokenBlockMixin):
                 propertyvalues.URLPropertyValue(property_name, url),
             ),
         )
-

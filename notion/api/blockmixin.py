@@ -24,19 +24,13 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, tzinfo
-from functools import cached_property
-from typing import Any, MutableMapping, Optional, Sequence, cast
+from typing import Any, MutableMapping, Optional, Sequence
 
-from pytz import timezone
-from tzlocal import get_localzone_name
+from pytz import UnknownTimeZoneError, timezone
 
-from notion.api._about import __base_url__
 from notion.api.client import _NotionClient
 
-LOCAL_TIMEZONE = get_localzone_name()
-
-
-__all__: Sequence[str] = ["_TokenBlockMixin"]
+__all__: Sequence[str] = ("_TokenBlockMixin",)
 
 
 class _TokenBlockMixin(_NotionClient):
@@ -48,13 +42,18 @@ class _TokenBlockMixin(_NotionClient):
 
     def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(token=token)
-
         self.id: str = id.replace("-", "")
 
         try:
-            self.tz = timezone(os.environ["TZ"])
-        except KeyError:
-            self.tz = timezone(LOCAL_TIMEZONE)
+            tz = os.getenv("TZ")
+            if not tz:
+                from tzlocal import get_localzone_name  # type: ignore[import-untyped]
+
+                tz = get_localzone_name()
+
+            self.tz = timezone(tz)
+        except UnknownTimeZoneError:
+            self.tz = timezone("UTC")
 
     def __repr__(self) -> str:
         return f"notion.{self.__class__.__name__}('{getattr(self, 'id', '')}')"
@@ -66,12 +65,9 @@ class _TokenBlockMixin(_NotionClient):
                     Class will first check for environment variable `TZ`.\
                     If not found, class default checks the system-configured timezone.
         """
-        if isinstance(tz, tzinfo):
-            self.__setattr__("tz", tz)
-        elif isinstance(tz, str):
-            self.__setattr__("tz", timezone(tz))
+        self.tz = tz if isinstance(tz, tzinfo) else timezone(tz)  # type: ignore[assignment]
 
-    @cached_property
+    @property
     def _block(self) -> MutableMapping[str, Any]:
         """
         Same result as retrieve() for notion.api.notionblock.Block.
