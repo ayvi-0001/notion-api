@@ -38,7 +38,7 @@ __all__: Sequence[str] = (
     "NotionServiceUnavailable",
     "NotionUnauthorized",
     "NotionValidationError",
-    "_NotionErrors",
+    "NotionUnknownError",
 )
 
 
@@ -74,15 +74,15 @@ class NotionInvalidRequest(_NotionErrors):
         self.__notes__: list[str] = ["Error 400: This request is not supported."]
 
 
-
 class NotionInvalidGrant(_NotionErrors):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
         self.__notes__: list[str] = [
-            "Error 400: The provided authorization grant (e.g., authorization code, resource owner credentials) or refresh token is", 
-            "invalid, expired, revoked, does not match the redirection URI used in the authorization request, or was issued to another client.", 
+            "Error 400: The provided authorization grant (e.g., authorization code, resource owner credentials) "
+            "or refresh token is invalid, expired, revoked, does not match the redirection URI "
+            "used in the authorization request, or was issued to another client. "
             "See OAuth 2.0 documentation for more information."
-            ]
+        ]
 
 
 class NotionValidationError(_NotionErrors):
@@ -175,3 +175,9 @@ class NotionGatewayTimeout(_NotionErrors):
         self.__notes__: list[str] = [
             "Error 504: Notion timed out while attempting to complete this request. Please try again later."
         ]
+
+
+class NotionUnknownError(_NotionErrors):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+        self.__notes__: list[str] = ["Unknown error occured."]

@@ -22,17 +22,8 @@
 
 from __future__ import annotations
 
-from types import ModuleType
-from typing import Any, MutableMapping, Optional, Sequence, cast
-
-try:
-    import orjson
-
-    _json: ModuleType = orjson
-except ModuleNotFoundError:
-    import json
-
-    _json: ModuleType = json  # type: ignore[no-redef]
+from json import dumps
+from typing import Any, MutableMapping, Optional, Sequence
 
 __all__: Sequence[str] = ("build_payload",)
 
@@ -41,7 +32,7 @@ def build_payload(*objects: MutableMapping[str, Any]) -> str:
     final: dict[str, Any] = {}
     for o in objects:
         final.update(o)
-    return cast(str | bytes, _json.dumps(final))
+    return dumps(final)
 
 
 class NotionObject(dict[str, Any]):

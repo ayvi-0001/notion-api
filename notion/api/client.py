@@ -24,26 +24,17 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-from types import ModuleType
-from typing import Any, MutableMapping, Optional, Sequence, cast
-
-try:
-    import orjson
-
-    _json: ModuleType = orjson
-except ModuleNotFoundError:
-    import json
-
-    _json: ModuleType = json
+from typing import Any, MutableMapping, Optional, Sequence
 
 import requests
 
 from notion.api._about import __base_url__, __content_type__
 from notion.exceptions import NotionUnauthorized, validate_response
 
-__all__: Sequence[str] = ["_NotionClient"]
+__all__: Sequence[str] = ("_NotionClient", "_NLOG")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -131,46 +122,63 @@ class _NotionClient:
             ]
         )
 
+    @staticmethod
+    def _users_endpoint(
+        user_id: Optional[str] = None,
+        /,
+        me: bool = False,
+    ) -> str:
+        return "".join(
+            [
+                __base_url__,
+                "users",
+                f"/{user_id}",
+                f"/me" if me else "",
+            ]
+        )
+
     def _get(
-        self, url: str, payload: MutableMapping[str, Any] | str | bytes | None = None
+        self,
+        url: str,
+        payload: Optional[MutableMapping[str, Any] | str | bytes] = None,
     ) -> MutableMapping[str, Any]:
         if not payload:
-            response = _json.loads(requests.get(url, headers=self.headers).text)
+            request = requests.get(url, headers=self.headers).text
+            response = validate_response(request)
         else:
             if isinstance(payload, dict):
-                payload = _json.dumps(payload)
-            response = _json.loads(
-                requests.post(url, headers=self.headers, json=payload).text
-            )
-        validate_response(response)
-        return cast(MutableMapping[str, Any], response)
+                payload = json.dumps(payload)
+            request = requests.post(url, headers=self.headers, data=payload).text
+            response = validate_response(request)
+        return response
 
     def _post(
-        self, url: str, payload: MutableMapping[str, Any] | str | bytes | None = None
+        self,
+        url: str,
+        payload: Optional[MutableMapping[str, Any] | str | bytes] = None,
     ) -> MutableMapping[str, Any]:
         if not payload:
-            response = _json.loads(requests.post(url, headers=self.headers).text)
+            request = requests.post(url, headers=self.headers).text
+            response = validate_response(request)
         else:
             if isinstance(payload, dict):
-                payload = _json.dumps(payload)
-            response = _json.loads(
-                requests.post(url, headers=self.headers, data=payload).text
-            )
-        validate_response(response)
-        return cast(MutableMapping[str, Any], response)
+                payload = json.dumps(payload)
+            request = requests.post(url, headers=self.headers, data=payload).text
+            response = validate_response(request)
+        return response
 
     def _patch(
-        self, url: str, payload: MutableMapping[str, Any] | str | bytes
+        self,
+        url: str,
+        payload: MutableMapping[str, Any] | str | bytes,
     ) -> MutableMapping[str, Any]:
         if isinstance(payload, dict):
-            payload = _json.dumps(payload)
-        response = _json.loads(
-            requests.patch(url, headers=self.headers, data=payload).text
-        )
-        validate_response(response)
-        return cast(MutableMapping[str, Any], response)
+            payload = json.dumps(payload)
+        request = requests.patch(url, headers=self.headers, data=payload).text
+        response = validate_response(request)
+        return response
 
     def _delete(self, url: str) -> MutableMapping[str, Any]:
-        response = _json.loads(requests.delete(url, headers=self.headers).text)
-        validate_response(response)
-        return cast(MutableMapping[str, Any], response)
+        request = requests.delete(url, headers=self.headers).text
+        response = validate_response(request)
+        return response
