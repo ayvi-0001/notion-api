@@ -30,36 +30,14 @@ from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
 from notion.api.notionblock import Block
 from notion.api.notiondatabase import Database
+from notion.properties import files, propertyvalues
 from notion.properties.build import build_payload
 from notion.properties.common import Parent, UserObject, _NotionUUID
-from notion.properties.files import (
-    Cover,
-    ExternalFile,
-    FilesPropertyValue,
-    Icon,
-    InternalFile,
-)
 from notion.properties.propertyobjects import Option
-from notion.properties.propertyvalues import (
-    CheckboxPropertyValue,
-    DatePropertyValue,
-    EmailPropertyValue,
-    MultiSelectPropertyValue,
-    NumberPropertyValue,
-    PeoplePropertyValue,
-    PhoneNumberPropertyValue,
-    Properties,
-    RelationPropertyValue,
-    RichTextPropertyValue,
-    SelectPropertyValue,
-    StatusPropertyValue,
-    TitlePropertyValue,
-    URLPropertyValue,
-)
 from notion.properties.richtext import RichText
 from notion.propertyitems.base import PropertyItem
 
-__all__: Sequence[str] = ["Page"]
+__all__: Sequence[str] = ("Page",)
 
 
 class Page(_TokenBlockMixin):
@@ -90,15 +68,15 @@ class Page(_TokenBlockMixin):
     https://developers.notion.com/reference/page
     """
 
-    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
-        super().__init__(id, token=token)
+    def __init__(self, page_id: str, /, *, token: Optional[str] = None) -> None:
+        super().__init__(page_id, token=token)
         self.logger = _NLOG.getChild(self.__repr__())
 
     @classmethod
     def create(
         cls,
         parent_instance: Page | Database | Block,
-        page_title: str,
+        page_title: str = "",
         *,
         cover_url: Optional[str] = None,
         icon_url: Optional[str] = None,
@@ -119,16 +97,19 @@ class Page(_TokenBlockMixin):
         if "child_database" in parent_instance.type:
             payload = build_payload(
                 Parent.database(parent_instance.id),
-                Properties(TitlePropertyValue([RichText(page_title)])),
+                propertyvalues.Properties(
+                    propertyvalues.TitlePropertyValue([RichText(page_title)])
+                ),
             )
         else:
             payload = build_payload(
                 Parent.page(parent_instance.id),
-                Properties(TitlePropertyValue([RichText(page_title)])),
+                propertyvalues.Properties(
+                    propertyvalues.TitlePropertyValue([RichText(page_title)])
+                ),
             )
 
         new_page_map = cls._post(parent_instance, cls._pages_endpoint(), payload=payload)
-
         page = cls(new_page_map["id"])
         page.logger.debug(
             f"Page created in {parent_instance.__repr__()}. Url: {new_page_map['url']}"
@@ -158,9 +139,11 @@ class Page(_TokenBlockMixin):
             return cast(MutableMapping[str, Any], self.properties[property_name])
         raise KeyError(f"{property_name} not found in page property values.")
 
-    @cached_property
+
+    @property
     def properties(self) -> MutableMapping[str, Any]:
-        return cast(MutableMapping[str, Any], self.retrieve()["properties"])
+        properties: MutableMapping[str, Any] = self.retrieve()["properties"]
+        return properties
 
     @property
     def title(self) -> str:
@@ -182,7 +165,11 @@ class Page(_TokenBlockMixin):
 
     @title.setter
     def title(self, new_title: str) -> None:
-        self._patch_properties(Properties(TitlePropertyValue([RichText(new_title)])))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.TitlePropertyValue([RichText(new_title)])
+            ),
+        )
 
     @property
     def icon(self) -> str | None:
@@ -191,14 +178,15 @@ class Page(_TokenBlockMixin):
         icon setter:
         >>> page.icon = "https://www.notion.so/icons/code_gray.svg"
         """
-        icon = self.retrieve()["icon"]
+        icon = self.retrieve().get("icon")
         if icon:
-            return cast(str, icon["external"]["url"])
+            icon_url: str = icon["external"]["url"]
+            return icon_url
         return None
 
     @icon.setter
     def icon(self, icon_url: str) -> None:
-        self._patch_properties(Icon(icon_url))
+        self._patch_properties(files.Icon(icon_url))
 
     @property
     def cover(self) -> str | None:
@@ -207,24 +195,25 @@ class Page(_TokenBlockMixin):
         cover setter:
         >>> page.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
         """
-        cover = self.retrieve()["cover"]
+        cover = self.retrieve().get("cover")
         if cover:
-            return cast(str, cover["external"]["url"])
+            cover_url: str = cover["external"]["url"]
+            return cover_url
         return None
 
     @cover.setter
     def cover(self, cover_url: str) -> None:
-        self._patch_properties(Cover(cover_url))
+        self._patch_properties(files.Cover(cover_url))
 
     @property
     def url(self) -> str:
         """:return: (str) url of page"""
-        return cast(str, self.retrieve()["url"])
+        return self.retrieve().get("url", "")
 
     @property
     def public_url(self) -> str:
         """When a page or database has been shared publicly, the response body will include a public_url value"""
-        return cast(str, (self.retrieve()["public_url"]))
+        return self.retrieve().get("public_url", "")
 
     @property
     def delete_self(self) -> None:
@@ -238,7 +227,10 @@ class Page(_TokenBlockMixin):
         if not self.is_archived:
             return
 
-        self._patch(self._pages_endpoint(self.id), payload=(b'{"archived": false}'))
+        self._patch(
+            self._pages_endpoint(self.id),
+            payload=(b'{"archived": false}'),
+        )
 
     def retrieve(
         self, *, filter_properties: Optional[list[str]] = None
@@ -262,7 +254,8 @@ class Page(_TokenBlockMixin):
 
     def _retrieve_property_id(self, property_name: str) -> str:
         """Internal function to retrieve the id of a property."""
-        return cast(str, self[property_name]["id"])
+        property_id: str = self[property_name]["id"]
+        return property_id
 
     def retrieve_property_item(self, property_name: str) -> MutableMapping[str, Any]:
         """Retrieves a property_item object for a given page_id and property_id.
@@ -277,7 +270,11 @@ class Page(_TokenBlockMixin):
         """
         property_id = self._retrieve_property_id(property_name)
         return self._get(
-            self._pages_endpoint(self.id, properties=True, property_id=property_id)
+            self._pages_endpoint(
+                self.id,
+                properties=True,
+                property_id=property_id,
+            )
         )
 
     def _patch_properties(
@@ -290,7 +287,10 @@ class Page(_TokenBlockMixin):
 
         https://developers.notion.com/reference/patch-page
         """
-        return self._patch(self._pages_endpoint(self.id), payload=payload)
+        return self._patch(
+            self._pages_endpoint(self.id),
+            payload=payload,
+        )
 
     def retrieve_page_content(
         self, start_cursor: Optional[str] = None, page_size: Optional[int] = None
@@ -305,13 +305,19 @@ class Page(_TokenBlockMixin):
         """
         return self._get(
             self._block_endpoint(
-                self.id, children=True, page_size=page_size, start_cursor=start_cursor
+                self.id,
+                children=True,
+                page_size=page_size,
+                start_cursor=start_cursor,
             )
         )
 
     def _append(self, payload: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         """https://developers.notion.com/reference/patch-block-children"""
-        return self._patch(self._block_endpoint(self.id, children=True), payload=payload)
+        return self._patch(
+            self._block_endpoint(self.id, children=True),
+            payload=payload,
+        )
 
     def set_select(self, property_name: str, /, select_option: str) -> None:
         """
@@ -321,7 +327,6 @@ class Page(_TokenBlockMixin):
         https://developers.notion.com/reference/page-property-values#select
         """
         parent_db = Database(self.parent_id, token=self.token)
-
         current_options = parent_db[property_name]["select"]["options"]
         names = {o.get("name"): o.get("color") for o in current_options}
 
@@ -330,7 +335,11 @@ class Page(_TokenBlockMixin):
         else:
             option = Option(select_option)
 
-        self._patch_properties(Properties(SelectPropertyValue(property_name, option)))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.SelectPropertyValue(property_name, option)
+            ),
+        )
 
     def set_multiselect(
         self, property_name: str, /, multi_select_options: list[str]
@@ -355,7 +364,12 @@ class Page(_TokenBlockMixin):
                 selected_options.append(Option(option))
 
         self._patch_properties(
-            Properties(MultiSelectPropertyValue(property_name, selected_options))
+            propertyvalues.Properties(
+                propertyvalues.MultiSelectPropertyValue(
+                    property_name,
+                    selected_options,
+                ),
+            )
         )
 
     def set_status(self, property_name: str, /, status_option: str) -> None:
@@ -377,7 +391,11 @@ class Page(_TokenBlockMixin):
         else:
             option = Option(status_option)
 
-        self._patch_properties(Properties(StatusPropertyValue(property_name, option)))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.StatusPropertyValue(property_name, option)
+            ),
+        )
 
     def set_date(
         self,
@@ -406,19 +424,35 @@ class Page(_TokenBlockMixin):
             end = end.astimezone(self.tz).isoformat()
 
         self._patch_properties(
-            Properties(DatePropertyValue(property_name, start=start, end=end))
+            propertyvalues.Properties(
+                propertyvalues.DatePropertyValue(
+                    property_name,
+                    start=start,
+                    end=end,
+                ),
+            )
         )
 
     def set_text(self, property_name: str, /, text: str) -> None:
         """https://developers.notion.com/reference/page-property-values#rich-text"""
         self._patch_properties(
-            Properties(RichTextPropertyValue(property_name, [RichText(text)]))
+            propertyvalues.Properties(
+                propertyvalues.RichTextPropertyValue(
+                    property_name,
+                    [RichText(text)],
+                ),
+            )
         )
 
     def set_files(
-        self, property_name: str, /, array_of_files: Sequence[InternalFile | ExternalFile]
+        self,
+        property_name: str,
+        /,
+        array_of_files: Sequence[files.InternalFile | files.ExternalFile],
     ) -> None:
         """
+        The Notion API does not yet support uploading files to Notion.
+        
         When updating a file property, the value is overwritten by the array of files passed.
         Although Notion doesn't support uploading files, if you pass a file object containing a file hosted by Notion,
         it remains one of the files. To remove any file, just don't pass it in the update response.
@@ -432,13 +466,23 @@ class Page(_TokenBlockMixin):
         https://developers.notion.com/reference/page-property-values#files
         """
         self._patch_properties(
-            Properties(FilesPropertyValue(property_name, array_of_files))
+            propertyvalues.Properties(
+                files.FilesPropertyValue(
+                    property_name,
+                    array_of_files,
+                ),
+            )
         )
 
     def set_phone_number(self, property_name: str, /, phone_number: str) -> None:
         """https://developers.notion.com/reference/page-property-values#phone-number"""
         self._patch_properties(
-            Properties(PhoneNumberPropertyValue(property_name, phone_number))
+            propertyvalues.Properties(
+                propertyvalues.PhoneNumberPropertyValue(
+                    property_name,
+                    phone_number,
+                ),
+            )
         )
 
     def set_related(self, property_name: str, /, related_ids: Sequence[str]) -> None:
@@ -450,27 +494,51 @@ class Page(_TokenBlockMixin):
         """
         list_related_ids = [_NotionUUID(id) for id in related_ids]
         self._patch_properties(
-            Properties(RelationPropertyValue(property_name, list_related_ids))
+            propertyvalues.Properties(
+                propertyvalues.RelationPropertyValue(
+                    property_name,
+                    list_related_ids,
+                ),
+            )
         )
 
     def set_checkbox(self, property_name: str, /, value: bool) -> None:
         """https://developers.notion.com/reference/page-property-values#checkbox"""
-        self._patch_properties(Properties(CheckboxPropertyValue(property_name, value)))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.CheckboxPropertyValue(property_name, value),
+            ),
+        )
 
-    def set_number(
-        self, property_name: str, /, new_number: int | float | timedelta
-    ) -> None:
+    def set_number(self, property_name: str, /, new_number: int | float) -> None:
         """https://developers.notion.com/reference/page-property-values#number"""
-        self._patch_properties(Properties(NumberPropertyValue(property_name, new_number)))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.NumberPropertyValue(property_name, int(new_number)),
+            ),
+        )
 
     def set_people(self, property_name: str, /, user_array: Sequence[UserObject]) -> None:
         """https://developers.notion.com/reference/page-property-values#people"""
-        self._patch_properties(Properties(PeoplePropertyValue(property_name, user_array)))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.PeoplePropertyValue(property_name, user_array),
+            ),
+        )
 
     def set_email(self, property_name: str, /, email: str) -> None:
         """https://developers.notion.com/reference/page-property-values#email"""
-        self._patch_properties(Properties(EmailPropertyValue(property_name, email)))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.EmailPropertyValue(property_name, email),
+            ),
+        )
 
     def set_url(self, property_name: str, /, url: str) -> None:
         """https://developers.notion.com/reference/page-property-values#url"""
-        self._patch_properties(Properties(URLPropertyValue(property_name, url)))
+        self._patch_properties(
+            propertyvalues.Properties(
+                propertyvalues.URLPropertyValue(property_name, url),
+            ),
+        )
+

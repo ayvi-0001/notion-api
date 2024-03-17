@@ -19,23 +19,25 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
 """ 
-#### Main Objects:
->>> notion.Page | notion.Database | notion.Block | notion.Workspace
+```py
+import notion
 
-#### PropertyItems:
->>> from notion import propertyitems
+# main objects:
+notion.Page()
+notion.Database()
+notion.Block() # for block extensions: CodeBlock/ToDoBlock/EquationBlock/RichTextBlock
+notion.Workspace()
 
-#### Queries:
->>> from notion import query
+# for properties:
+from notion import properties as prop
 
-#### Properties:
->>> from notion import properties as prop
+# for queries:
+from notion import query
 
-#### Block Extensions:
->>> notion.CodeBlock | notion.ToDoBlock | notion.EquationBlock | notion.RichTextBlock
-
+# for propertyitems
+from notion import propertyitems
+```
 """
 from typing import Sequence
 
@@ -61,5 +63,4 @@ __all__: Sequence[str] = (
     "ToDoBlock",
     "RichTextBlock",
     "TableBlock",
-    "check_for_pkg_update",
 )

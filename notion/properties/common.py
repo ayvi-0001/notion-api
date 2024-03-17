@@ -37,7 +37,7 @@ __all__: Sequence[str] = (
 class Parent(NotionObject):
     __slots__: Sequence[str] = ()
 
-    def __init__(self, id: str, /, *, type: str) -> None:
+    def __init__(self, parent_id: str, /, *, type: str) -> None:
         """
         Pages, databases, and blocks are either located inside other pages, databases, and blocks,
         or are located at the top level of a workspace. This location is known as the "parent".
@@ -56,27 +56,27 @@ class Parent(NotionObject):
         """
         super().__init__()
         self.nest("parent", "type", type)
-        self.nest("parent", type, id)
+        self.nest("parent", type, parent_id)
 
     @classmethod
-    def page(cls, id: str, /) -> Parent:
+    def page(cls, parent_id: str, /) -> Parent:
         """https://developers.notion.com/reference/parent-object#page-parent"""
-        return cls(id, type="page_id")
+        return cls(parent_id, type="page_id")
 
     @classmethod
-    def database(cls, id: str, /) -> Parent:
+    def database(cls, parent_id: str, /) -> Parent:
         """https://developers.notion.com/reference/parent-object#database-parent"""
-        return cls(id, type="database_id")
+        return cls(parent_id, type="database_id")
 
     @classmethod
-    def block(cls, id: str, /) -> Parent:
+    def block(cls, parent_id: str, /) -> Parent:
         """
         A page may have a block parent if it is created inline in a chunk of text,
         or is located beneath another block like a toggle or bullet block.
 
         https://developers.notion.com/reference/parent-object#block-parent
         """
-        return cls(id, type="block_id")
+        return cls(parent_id, type="block_id")
 
 
 class UserObject(NotionObject):
@@ -138,7 +138,6 @@ class BotObject(NotionObject):
     def __init__(
         self,
         id: str,
-        bot: Optional[dict[str, Any]] = None,
         workspace_name: Optional[str] = None,
         name: Optional[str] = None,
         avatar_url: Optional[str] = None,

@@ -20,8 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# mypy: disable-error-code="return"
-
 from functools import partial, partialmethod
 from typing import Any, Callable, MutableMapping, Optional, Sequence, TypeVar
 
@@ -36,23 +34,24 @@ def paginated_response_endpoint(
     endpoint: partial[str],
     max_page_size: Optional[int] = None,
 ) -> list[T]:
-    all: list[T] = []
+    results: list[T] = []
 
-    def append_results(request: MutableMapping[str, Sequence[T]]) -> list[T] | None:
+    def append_results(request: MutableMapping[str, Sequence[T]]) -> list[T]:
         for result in request["results"]:
-            if max_page_size is not None and len(all) >= max_page_size:
-                return all
-            all.append(result)
+            if max_page_size is not None and len(results) >= max_page_size:
+                return results
+            results.append(result)
 
         if "next_cursor" in request and request["has_more"]:
-            append_results(
+            return append_results(
                 call.func(
                     endpoint(start_cursor=request["next_cursor"], page_size=max_page_size)
                 )
             )
+        return results
 
     append_results(call.func(endpoint()))
-    return all
+    return results
 
 
 def paginated_response_payload(
@@ -61,18 +60,20 @@ def paginated_response_payload(
     payload: dict[str, Any],
     max_page_size: Optional[int] = None,
 ) -> list[T]:
-    all: list[T] = []
+    results: list[T] = []
     request = partial(call, endpoint)
 
-    def append_results(response: MutableMapping[str, Sequence[T]]) -> list[T] | None:
+    def append_results(response: MutableMapping[str, Sequence[T]]) -> list[T]:
         for result in response["results"]:
-            if max_page_size is not None and len(all) >= max_page_size:
-                return all
-            all.append(result)
+            if max_page_size is not None and len(results) >= max_page_size:
+                return results
+            results.append(result)
 
         if "next_cursor" in response and response["has_more"]:
             payload["start_cursor"] = response["next_cursor"]
-            append_results(request(payload))
+            return append_results(request(payload))
+
+        return results
 
     append_results(request(payload))
-    return all
+    return results

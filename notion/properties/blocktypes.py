@@ -75,6 +75,7 @@ class BlockChildren(NotionObject):
             block_type_objects_array = []
 
         self.set("children", block_type_objects_array)
+
         if after:
             self.set("after", after)
 

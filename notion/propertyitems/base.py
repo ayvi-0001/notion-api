@@ -26,29 +26,37 @@ from typing import Any, MutableMapping, Optional, Sequence, cast
 
 import pytz
 
-__all__: Sequence[str] = ("PropertyItem", "UserPropertyItem")
+__all__: Sequence[str] = (
+    "PropertyItem",
+    "UserPropertyItem",
+    "_map_user",
+    "_function_type",
+    "_retrieve_datetime",
+    "_assert_property_type",
+    "NOT_IMPLEMENTED_ERR",
+)
 
 
 class PropertyItem:
-    def __init__(self, map: MutableMapping[str, Any], source_page: str) -> None:
-        self.map = map
+    def __init__(self, _map: MutableMapping[str, Any], source_page: str) -> None:
+        self._map = _map
         self.source_page = source_page
-        self._type = map["type"]
+        self._type = _map["type"]
 
         if self._type == "property_item":
-            self._type = map["property_item"]["type"]
+            self._type = _map["property_item"]["type"]
 
     @property
     def item(self) -> Any:
         if self._type == "rollup":
-            return self.map["property_item"]["rollup"]
+            return self._map["property_item"]["rollup"]
         else:
-            return self.map[self._type]
+            return self._map[self._type]
 
     @property
     def results(self) -> Any:
-        assert self.map["object"] == "list"
-        return self.map["results"]
+        assert self._map["object"] == "list"
+        return self._map["results"]
 
 
 @dataclass
@@ -60,47 +68,47 @@ class UserPropertyItem:
     bot: Optional[dict[str, None]] = None
 
 
-def _map_user(property: PropertyItem) -> UserPropertyItem:
-    if property.item["type"] == "person":
-        email = property.item["person"]["email"]
-        avatar_url = property.item["avatar_url"]
+def _map_user(_property: PropertyItem) -> UserPropertyItem:
+    if _property.item["type"] == "person":
+        email = _property.item["person"]["email"]
+        avatar_url = _property.item["avatar_url"]
 
         return UserPropertyItem(
-            id=property.item["id"],
-            name=property.item["name"],
+            id=_property.item["id"],
+            name=_property.item["name"],
             email=email if email else None,
             avatar_url=avatar_url if avatar_url else None,
         )
 
     else:
-        avatar_url = property.item["avatar_url"]
+        avatar_url = _property.item["avatar_url"]
 
         return UserPropertyItem(
-            id=property.item["id"],
-            name=property.item["name"],
-            bot=property.item["bot"],
+            id=_property.item["id"],
+            name=_property.item["name"],
+            bot=_property.item["bot"],
             avatar_url=avatar_url if avatar_url else None,
         )
 
 
-def _function_type(property: PropertyItem) -> str:
-    return cast(str, property.map["property_item"]["rollup"]["function"])
+def _function_type(_property: PropertyItem) -> str:
+    return cast(str, _property._map["property_item"]["rollup"]["function"])
 
 
-def _retrieve_datetime(property: PropertyItem) -> datetime | tuple[datetime, datetime]:
-    if property._type == "rollup" or property._type == "formula":
-        date = property.item["date"]
+def _retrieve_datetime(_property: PropertyItem) -> datetime | tuple[datetime, datetime]:
+    if _property._type in ("rollup", "formula"):
+        date = _property.item["date"]
         start = date["start"]
         end = date["end"]
         time_zone = date["time_zone"]
     else:
-        start = property.item["start"]
-        end = property.item["end"]
-        time_zone = property.item["time_zone"]
+        start = _property.item["start"]
+        end = _property.item["end"]
+        time_zone = _property.item["time_zone"]
 
-    start = datetime.fromisoformat(str(start))
+    start = datetime.fromisoformat(f"{start}")
     if end is not None:
-        end = datetime.fromisoformat(str(end))
+        end = datetime.fromisoformat(f"{end}")
     if time_zone is not None:
         start = start.astimezone(tz=pytz.timezone(time_zone))
         if end:
@@ -113,9 +121,9 @@ def _retrieve_datetime(property: PropertyItem) -> datetime | tuple[datetime, dat
         return start
 
 
-def _assert_property_type(property: PropertyItem, t: str) -> TypeError | None:
-    if property._type != t:
-        raise TypeError(f"Expected type '{t}', got '{property._type}'")
+def _assert_property_type(_property: PropertyItem, t: str) -> TypeError | None:
+    if _property._type != t:
+        raise TypeError(f"Expected type '{t}', got '{_property._type}'")
     return None
 
 

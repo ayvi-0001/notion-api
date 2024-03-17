@@ -34,27 +34,27 @@ except ModuleNotFoundError:
 
     _json: ModuleType = json  # type: ignore[no-redef]
 
-__all__: Sequence[str] = ["build_payload"]
+__all__: Sequence[str] = ("build_payload",)
 
 
-def build_payload(*__obj: MutableMapping[str, Any]) -> str | bytes:
+def build_payload(*objects: MutableMapping[str, Any]) -> str:
     final: dict[str, Any] = {}
-    for o in __obj:
+    for o in objects:
         final.update(o)
     return cast(str | bytes, _json.dumps(final))
 
 
 class NotionObject(dict[str, Any]):
-    def set(self, __key: str, __val: Any) -> None:
-        self[__key] = __val
+    def set(self, _key: str, _val: Any) -> None:
+        self[_key] = _val
 
-    def nest(self, __Pkey: str, __Ckey: Optional[str], __val: Any) -> None:
-        if __Pkey not in self:
-            self.set(__Pkey, {__Ckey: __val})
+    def nest(self, _Pkey: str, _Ckey: Optional[str], _val: Any) -> None:
+        if _Pkey not in self:
+            self.set(_Pkey, {_Ckey: _val})
         else:
-            self[__Pkey].update({__Ckey: __val})
+            self[_Pkey].update({_Ckey: _val})
 
     def set_array(
-        self, __key: str, values: bytes | MutableMapping[str, Any] | Sequence[bytes | Any]
+        self, _key: str, values: bytes | MutableMapping[str, Any] | Sequence[bytes | Any]
     ) -> None:
-        self[__key] = list(values)
+        self[_key] = list(values)

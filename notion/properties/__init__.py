@@ -22,6 +22,8 @@
 
 from typing import Sequence
 
+from notion.properties import files, options
+from notion.properties.common import BotObject, Parent, UserObject
 from notion.properties.files import ExternalFile, InternalFile
 from notion.properties.options import (
     BlockColor,
@@ -34,6 +36,11 @@ from notion.properties.propertyobjects import Option
 from notion.properties.richtext import Annotations, Equation, Mention, RichText
 
 __all__: Sequence[str] = (
+    "files",
+    "options",
+    "BotObject",
+    "Parent",
+    "UserObject",
     "RichText",
     "Annotations",
     "Mention",

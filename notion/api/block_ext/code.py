@@ -20,12 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.properties.options import CodeBlockLang
 
-__all__: Sequence[str] = ["CodeBlock"]
+__all__: Sequence[str] = ("CodeBlock",)
 
 
 class CodeBlock(_TokenBlockMixin):
@@ -39,7 +39,7 @@ class CodeBlock(_TokenBlockMixin):
 
     @property
     def language(self) -> str:
-        return cast(str, self._block["code"]["language"])
+        return f"{self._block['code']['language']}"
 
     @language.setter
     def language(self, value: CodeBlockLang | str) -> None:
@@ -50,11 +50,9 @@ class CodeBlock(_TokenBlockMixin):
     @property
     def code(self) -> str:
         try:
-            code = cast(str, self._block["code"]["rich_text"][0]["text"]["content"])
+            return f"{self._block['code']['rich_text'][0]['text']['content']}"
         except IndexError:
             return ""
-
-        return code
 
     @code.setter
     def code(self, value: str) -> None:
@@ -69,7 +67,7 @@ class CodeBlock(_TokenBlockMixin):
     @property
     def caption(self) -> str:
         try:
-            return cast(str, self._block["code"]["caption"][0]["plain_text"])
+            return f"{self._block['code']['caption'][0]['plain_text']}"
         except IndexError:
             return ""
 

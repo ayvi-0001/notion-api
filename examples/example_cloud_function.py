@@ -7,6 +7,7 @@ import notion
 
 # Set NOTION_TOKEN and database ID's as env variables.
 
+
 @functions_framework.http
 def main(request: Request) -> str:
     # Setup databases.

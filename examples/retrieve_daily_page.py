@@ -6,7 +6,7 @@ from notion import query
 
 
 def retrieve_daily_page(database: notion.Database) -> notion.Page:
-    """ 
+    """
     This function is meant to be used on a database where you only create a single page per day.
     For example, a daily journal or a daily to-do list.
 
@@ -35,7 +35,7 @@ def retrieve_daily_page(database: notion.Database) -> notion.Page:
             created_property, "created_time", "before", TOMORROW.isoformat()
         ),
     )
-    
+
     page = database.query_pages(filter=query_filter, page_size=1)[0]
 
     return page

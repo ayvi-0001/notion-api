@@ -33,33 +33,10 @@ from notion.api.blockmixin import _TokenBlockMixin
 from notion.api.client import _NLOG
 from notion.api.notionblock import Block
 from notion.exceptions.errors import NotionValidationError
+from notion.properties import files, propertyobjects
 from notion.properties.build import build_payload
 from notion.properties.common import Parent
-from notion.properties.files import Cover, Icon
 from notion.properties.options import FunctionFormat, NumberFormat
-from notion.properties.propertyobjects import (
-    CheckboxPropertyObject,
-    CreatedByPropertyObject,
-    CreatedTimePropertyObject,
-    DatabaseDescription,
-    DatePropertyObject,
-    EmailPropertyObject,
-    FilesPropertyObject,
-    FormulaPropertyObject,
-    LastEditedByPropertyObject,
-    LastEditedTimePropertyObject,
-    MultiSelectPropertyObject,
-    NumberPropertyObject,
-    Option,
-    PeoplePropertyObject,
-    PhoneNumberPropertyObject,
-    RelationPropertyObject,
-    RichTextPropertyObject,
-    RollupPropertyObject,
-    SelectPropertyObject,
-    TitlePropertyObject,
-    URLPropertyObject,
-)
 from notion.properties.propertyvalues import Properties, TitlePropertyValue
 from notion.properties.richtext import RichText
 from notion.query.compound import CompoundFilter
@@ -70,16 +47,8 @@ from notion.query.timestamp import TimestampFilter
 if TYPE_CHECKING:
     from notion.api.notionpage import Page
 
-try:
-    import orjson
 
-    _json: ModuleType = orjson
-except ModuleNotFoundError:
-    import json
-
-    _json: ModuleType = json
-
-__all__: Sequence[str] = ["Database"]
+__all__: Sequence[str] = ("Database",)
 
 
 class Database(_TokenBlockMixin):
@@ -115,17 +84,17 @@ class Database(_TokenBlockMixin):
         # this is to raise right away if the id is not a database and catch the error sooner.
         target_block = Block(id, token=token)
         if target_block.type != "child_database":
-            raise TypeError(f"{target_block.__repr__()} does not reference a Database.")
+            raise TypeError(f"{repr(target_block)} does not reference a Database.")
         return super().__new__(cls)
 
-    def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
-        super().__init__(id, token=token)
-        self.logger = _NLOG.getChild(self.__repr__())
+    def __init__(self, database_id: str, /, *, token: Optional[str] = None) -> None:
+        super().__init__(database_id, token=token)
+        self.logger = _NLOG.getChild(repr(self))
 
     @classmethod
     def create(
         cls,
-        parent_instance: Page,
+        parent_instance: "Page",
         database_title: str,
         name_column: Optional[str] = None,
         *,
@@ -192,13 +161,14 @@ class Database(_TokenBlockMixin):
 
     @property
     def property_schema(self) -> MutableMapping[str, Any]:
-        return cast(MutableMapping[str, Any], self.retrieve["properties"])
+        properties: MutableMapping[str, Any] = self.retrieve["properties"]
+        return properties
 
     @property
     def title(self) -> str:
         """:return: (str) title of database."""
         try:
-            return cast(str, self.retrieve["title"][0]["text"]["content"])
+            return f"{self.retrieve['title'][0]['text']['content']}"
         except IndexError:
             return ""  # title is empty.
 
@@ -213,12 +183,16 @@ class Database(_TokenBlockMixin):
         Has the value true if the database appears in the page as an inline block.
         Otherwise has the value false if the database appears as a child page.
         """
-        return cast(bool, (self.retrieve["is_inline"]))
+        is_inline: bool = self.retrieve["is_inline"]
+        return is_inline
 
     @is_inline.setter
     def is_inline(self, __inline: bool) -> None:
         self._patch(
-            self._database_endpoint(self.id), payload=_json.dumps({"is_inline": __inline})
+            self._database_endpoint(self.id),
+            payload=json.dumps(
+                {"is_inline": __inline},
+            ),
         )
 
     @property
@@ -230,14 +204,16 @@ class Database(_TokenBlockMixin):
         >>> database.description = "This is a description of the database."
         """
         try:
-            description = self.retrieve["description"][0]["text"]["content"]
-            return cast(str, description)
+            description: str = self.retrieve["description"][0]["plain_text"]
+            return description
         except IndexError:
             return ""  # description is empty.
 
     @description.setter
     def description(self, description: str) -> None:
-        self._update(DatabaseDescription([RichText(description)]))
+        self._update(
+            propertyobjects.DatabaseDescription([RichText(description)]),
+        )
 
     @property
     def icon(self) -> str | None:
@@ -249,12 +225,13 @@ class Database(_TokenBlockMixin):
         """
         icon = self.retrieve["icon"]
         if icon:
-            return cast(str, icon["external"]["url"])
+            icon_url: str = icon["external"]["url"]
+            return icon_url
         return None
 
     @icon.setter
     def icon(self, icon_url: str) -> None:
-        self._update(Icon(icon_url))
+        self._update(files.Icon(icon_url))
 
     @property
     def cover(self) -> str | None:
@@ -266,22 +243,22 @@ class Database(_TokenBlockMixin):
         """
         cover = self.retrieve["cover"]
         if cover:
-            return cast(str, cover["external"]["url"])
+            return f'{cover["external"]["url"]}'
         return None
 
     @cover.setter
     def cover(self, cover_url: str) -> None:
-        self._update(Cover(cover_url))
+        self._update(files.Cover(cover_url))
 
     @property
     def url(self) -> str:
         """:return: (str) url of database"""
-        return cast(str, (self.retrieve["url"]))
+        return f'{(self.retrieve["url"])}'
 
     @property
     def public_url(self) -> str:
         """When a page or database has been shared publicly, the response body will include a public_url value"""
-        return cast(str, (self.retrieve["public_url"]))
+        return f'{(self.retrieve["public_url"])}'
 
     @property
     def delete_self(self) -> None:
@@ -297,7 +274,9 @@ class Database(_TokenBlockMixin):
 
         self._patch(self._database_endpoint(self.id), payload=(b'{"archived": false}'))
 
-    def _update(self, payload: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+    def _update(
+        self, payload: MutableMapping[str, Any] | str
+    ) -> MutableMapping[str, Any]:
         """Updates an existing database as specified by the parameters.
 
         :param payload: (required) json payload for updated properties parameters.
@@ -476,7 +455,8 @@ class Database(_TokenBlockMixin):
     def dual_relation_column(
         self, property_name: str, /, database_id: str, synced_property_name: str
     ) -> None:
-        """Creates or replaces a `Relation` property with `Separate Directions` toggled on.
+        """
+        Create or replace a `Relation` property with `Separate Directions` toggled on.
 
         :param property_name: (required) Name to give to property.
         :param database_id: (required) The database that the relation property refers to.\
@@ -486,7 +466,7 @@ class Database(_TokenBlockMixin):
         
         https://developers.notion.com/reference/property-object#relation
         """
-        relation_property = RelationPropertyObject.dual(
+        relation_property = propertyobjects.RelationPropertyObject.dual(
             property_name, database_id, synced_property_name
         )
         self._update(Properties(relation_property))
@@ -503,7 +483,8 @@ class Database(_TokenBlockMixin):
             pass
 
     def single_relation_column(self, property_name: str, /, database_id: str) -> None:
-        """Creates or replaces a `Relation` property with `Separate Directions` toggled off.
+        """
+        Create or replace a `Relation` property with `Separate Directions` toggled off.
 
         :param property_name: (required) Name to give to property.
         :param database_id: (required) The database id that this property will relate to.\
@@ -512,7 +493,9 @@ class Database(_TokenBlockMixin):
         https://developers.notion.com/reference/property-object#relation
         """
         self._update(
-            Properties(RelationPropertyObject.single(property_name, database_id))
+            Properties(
+                propertyobjects.RelationPropertyObject.single(property_name, database_id),
+            )
         )
 
     def rollup_column(
@@ -523,7 +506,8 @@ class Database(_TokenBlockMixin):
         rollup_property_name: str,
         function: Optional[FunctionFormat | str] = FunctionFormat.show_original.value,
     ) -> None:
-        """Creates or replaces a `Rollup` property.
+        """
+        Create or replace a `Rollup` property.
         A rollup database property is rendered in the Notion UI as a column with 
         values that are rollups, specific properties that are pulled from a related database.
 
@@ -532,7 +516,7 @@ class Database(_TokenBlockMixin):
                                         i.e. if this class is databaseA, and has a column named "Related to databaseB",\
                                         then `relation_property_name` would be "Related to databaseB".
         :param rollup_property_name: (required) The name of the rollup property.\
-                                      i.e if this class is databaseA, and has a column named "Related to databaseB,
+                                      i.e if this class is databaseA, and has a column named "Related to databaseB,\
                                       and you want to rollup a property in databaseB named "Number of items",\
                                       then `rollup_property_name` would be "Number of items". 
         :param function: (required) The function that computes the rollup value from the related pages.\
@@ -540,21 +524,23 @@ class Database(_TokenBlockMixin):
 
         https://developers.notion.com/reference/property-object#rollup
         """
-        rollup_property = RollupPropertyObject(
+        rollup_property = propertyobjects.RollupPropertyObject(
             property_name, relation_property_name, rollup_property_name, function
         )
         self._update((Properties(rollup_property)))
 
-    def select_column(self, property_name: str, /, options: Sequence[Option]) -> None:
-        """Creates or replaces a `Select` property.
+    def select_column(
+        self, property_name: str, /, options: Sequence[propertyobjects.Option]
+    ) -> None:
+        """
+        Create or replace a `Select` property.
 
         If `property_name` is a select column that already exists,
         then this method will overwrite the current options - UNLESS
         if one of the options already exists and you try to change the color.
-        This will raise:
-        ```sh
-        notion.exceptions.errors.NotionValidationError: Cannot update color of select with name: `property_name`
-        ```
+
+        :raises: NotionValidationError: Cannot update color of select with name: `property_name`
+
         You can pass an empty list to the `options` parameter to clear all choices, 
         and then re-add them with custom colors.
 
@@ -564,20 +550,24 @@ class Database(_TokenBlockMixin):
                          
         https://developers.notion.com/reference/property-object#select
         """
-        self._update(Properties(SelectPropertyObject(property_name, options=options)))
+        self._update(
+            Properties(
+                propertyobjects.SelectPropertyObject(property_name, options=options)
+            )
+        )
 
     def multiselect_column(
-        self, property_name: str, /, options: Sequence[Option]
+        self, property_name: str, /, options: Sequence[propertyobjects.Option]
     ) -> None:
-        """Creates or replaces a `Multi-select` property.
+        """
+        Create or replace a `Multi-select` property.
 
         If `property_name` is a multi_select column that already exists,
         then this method will overwrite the current options - UNLESS
         if one of the options already exists and you try to change the color.
-        This will raise:
-        ```sh
-        notion.exceptions.errors.NotionValidationError: Cannot update color of select with name: `property_name`
-        ```
+
+        :raises: NotionValidationError: Cannot update color of select with name: `property_name`
+
         You can pass an empty list to the `options` parameter to clear all choices, 
         and then re-add them with custom colors.
 
@@ -588,7 +578,9 @@ class Database(_TokenBlockMixin):
         https://developers.notion.com/reference/property-object#multi-select
         """
         self._update(
-            Properties(MultiSelectPropertyObject(property_name, options=options))
+            Properties(
+                propertyobjects.MultiSelectPropertyObject(property_name, options=options)
+            )
         )
 
     def number_column(
@@ -597,89 +589,129 @@ class Database(_TokenBlockMixin):
         /,
         format: Optional[NumberFormat | str] = NumberFormat.number.value,
     ) -> None:
-        """Creates or replaces a `Number` property.
+        """
+        Create or replace a `Number` property.
         https://developers.notion.com/reference/property-object#number
         """
-        self._update(Properties(NumberPropertyObject(property_name, format)))
+        self._update(
+            Properties(propertyobjects.NumberPropertyObject(property_name, format)),
+        )
 
     def checkbox_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Checkbox` property.
+        """
+        Create or replace a `Checkbox` property.
         https://developers.notion.com/reference/property-object#checkbox
         """
-        self._update(Properties(CheckboxPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.CheckboxPropertyObject(property_name)),
+        )
 
     def date_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Date` property.
+        """
+        Create or replace a `Date` property.
         https://developers.notion.com/reference/property-object#date
         """
-        self._update(Properties(DatePropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.DatePropertyObject(property_name)),
+        )
 
     def text_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Text` property.
+        """
+        Create or replace a `Text` property.
         https://developers.notion.com/reference/property-object#rich-text
         """
-        self._update(Properties(RichTextPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.RichTextPropertyObject(property_name)),
+        )
 
     def formula_column(self, property_name: str, /, expression: str) -> None:
-        """Creates or replaces a `Formula` property.
+        """
+        Create or replace a `Formula` property.
 
         :param expression: (required) The formula that is used to compute the values for this property.\
                             Refer to https://www.notion.so/help/formulas for more information about formula syntax.
             
         https://developers.notion.com/reference/property-object#formula
         """
-        self._update(Properties(FormulaPropertyObject(property_name, expression)))
+        self._update(
+            Properties(propertyobjects.FormulaPropertyObject(property_name, expression)),
+        )
 
     def created_time_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Created time` property.
+        """
+        Create or replace a `Created time` property.
         https://developers.notion.com/reference/property-object#created-time
         """
-        self._update(Properties(CreatedTimePropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.CreatedTimePropertyObject(property_name)),
+        )
 
     def created_by_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Created by` property.
+        """
+        Create or replace a `Created by` property.
         https://developers.notion.com/reference/property-object#created-by
         """
-        self._update(Properties(CreatedByPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.CreatedByPropertyObject(property_name)),
+        )
 
     def last_edited_time_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Last edited time` property.
+        """
+        Create or replace a `Last edited time` property.
         https://developers.notion.com/reference/property-object#last-edited-time
         """
-        self._update(Properties(LastEditedTimePropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.LastEditedTimePropertyObject(property_name)),
+        )
 
     def last_edited_by_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Last edited by` property.
+        """
+        Create or replace a `Last edited by` property.
         https://developers.notion.com/reference/property-object#last-edited-by
         """
-        self._update(Properties(LastEditedByPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.LastEditedByPropertyObject(property_name)),
+        )
 
     def files_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Files` property.
+        """
+        Create or replace a `Files` property.
         https://developers.notion.com/reference/property-object#files
         """
-        self._update(Properties(FilesPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.FilesPropertyObject(property_name)),
+        )
 
     def email_column(self, property_name: str, /) -> None:
-        """Creates an `Email` property.
+        """
+        Create or replace an `Email` property.
         https://developers.notion.com/reference/property-object#email
         """
-        self._update(Properties(EmailPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.EmailPropertyObject(property_name)),
+        )
 
     def url_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `URL` property.
+        """
+        Create or replace a `URL` property.
         https://developers.notion.com/reference/property-object#url
         """
-        self._update(Properties(URLPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.URLPropertyObject(property_name)),
+        )
 
     def phone_number_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Phone` property.
+        """
+        Create or replace a `Phone` property.
         https://developers.notion.com/reference/property-object#phone-number
         """
-        self._update(Properties(PhoneNumberPropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.PhoneNumberPropertyObject(property_name)),
+        )
 
     def person_column(self, property_name: str, /) -> None:
-        """Creates or replaces a `Person` property.
+        """
+        Create or replace a `Person` property.
         https://developers.notion.com/reference/property-object#people
         """
         self._update(Properties(PeoplePropertyObject(property_name)))

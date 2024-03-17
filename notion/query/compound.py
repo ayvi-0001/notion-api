@@ -23,13 +23,11 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from typing_extensions import Self
-
 from notion.properties.build import NotionObject
 from notion.query.propfilter import PropertyFilter
 from notion.query.timestamp import TimestampFilter
 
-__all__: Sequence[str] = ["CompoundFilter"]
+__all__: Sequence[str] = ("CompoundFilter",)
 
 
 class CompoundFilter(NotionObject):
@@ -37,7 +35,6 @@ class CompoundFilter(NotionObject):
 
     def __init__(self) -> None:
         """Create a separate CompoundFilter object to nest an `and` operator inside another `and` or `or`.
-        NOTE: only up to two nesting levels deep.
 
         :method: _and() combine all filters in an `and` grouping.
         :method: _or() combine all filters in an `or` grouping.
@@ -46,16 +43,22 @@ class CompoundFilter(NotionObject):
         """
         super().__init__()
 
-    def _and(self, *filters: PropertyFilter | CompoundFilter | TimestampFilter) -> Self:
-        """Example compound filter conditions
+    def _and(
+        self, *filters: PropertyFilter | CompoundFilter | TimestampFilter
+    ) -> CompoundFilter:
+        """
+        Example compound filter conditions
         https://developers.notion.com/reference/post-database-query-filter#example-compound-filter-conditions
         """
         filter_objects = [f["filter"] if "filter" in f else f for f in filters]
         self.nest("filter", "and", filter_objects)
         return self
 
-    def _or(self, *filters: PropertyFilter | CompoundFilter | TimestampFilter) -> Self:
-        """Example compound filter conditions
+    def _or(
+        self, *filters: PropertyFilter | CompoundFilter | TimestampFilter
+    ) -> CompoundFilter:
+        """
+        Example compound filter conditions
         https://developers.notion.com/reference/post-database-query-filter#example-compound-filter-conditions
         """
         filter_objects = [f["filter"] if "filter" in f else f for f in filters]

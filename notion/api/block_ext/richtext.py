@@ -20,13 +20,13 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Any, MutableMapping, Optional, Sequence, cast
+from typing import Optional, Sequence
 
 from notion.api.blockmixin import _TokenBlockMixin
 from notion.properties.options import BlockColor
 from notion.properties.richtext import Annotations, RichText
 
-__all__: Sequence[str] = ["RichTextBlock"]
+__all__: Sequence[str] = ("RichTextBlock",)
 
 TEXT_EDITABLE_BLOCKS = [
     "paragraph",
@@ -74,25 +74,22 @@ class RichTextBlock(_TokenBlockMixin):
                 return "".join(text)
 
             else:
-                text = self._block[self.type]["rich_text"][0]["text"]["content"]
-                return cast(str, text)
+                return f"{self._block[self.type]['rich_text'][0]['text']['content']}"
         except IndexError:
             return ""
 
     def set_text(self, value: Sequence[RichText]) -> None:
         text = self._block
         text.pop(self.type)
-        text |= {self.type: {"rich_text": value}}
+        text.update({self.type: {"rich_text": value}})
         self._patch(self._block_endpoint(self.id), payload=text)
 
     @property
     def href(self) -> str:
         try:
-            href = cast(str, self._block[self.type]["rich_text"][0]["href"])
+            return f"{self._block[self.type]['rich_text'][0]['href']}"
         except IndexError:
             return ""
-
-        return href
 
     @href.setter
     def href(self, url: str) -> None:

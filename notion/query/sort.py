@@ -94,16 +94,28 @@ class EntryTimestampSort(NotionObject):
 
     @classmethod
     def created_time_ascending(cls) -> EntryTimestampSort:
-        return cls(timestamp="created_time", direction="ascending")
+        return cls(
+            timestamp="created_time",
+            direction="ascending",
+        )
 
     @classmethod
     def created_time_descending(cls) -> EntryTimestampSort:
-        return cls(timestamp="created_time", direction="descending")
+        return cls(
+            timestamp="created_time",
+            direction="descending",
+        )
 
     @classmethod
     def last_edited_time_ascending(cls) -> EntryTimestampSort:
-        return cls(timestamp="last_edited_time", direction="ascending")
+        return cls(
+            timestamp="last_edited_time",
+            direction="ascending",
+        )
 
     @classmethod
     def last_edited_time_descending(cls) -> EntryTimestampSort:
-        return cls(timestamp="last_edited_time", direction="descending")
+        return cls(
+            timestamp="last_edited_time",
+            direction="descending",
+        )

@@ -27,7 +27,7 @@ from typing import Any, MutableMapping, Optional, Sequence
 from notion.properties.build import NotionObject
 from notion.query.conditions import DateConditions
 
-__all__: Sequence[str] = ["TimestampFilter"]
+__all__: Sequence[str] = ("TimestampFilter",)
 
 
 class TimestampFilter(NotionObject):

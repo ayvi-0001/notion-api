@@ -1,3 +1,6 @@
+<!-- markdownlint-disable MD033 MD045-->
+
+# Block Extensions
 
 ```py
 import notion
@@ -11,12 +14,7 @@ from notion import properties as prop
 ```py
 example_block = notion.EquationBlock("4dcbfce3aa1f4beb9b685cf729994dda")
 
-expression = r"""
-|x| = \begin{cases}
-  x, &\quad x \geq 0 \\
- -x, &\quad x < 0
-\end{cases}
-"""
+expression = '|x| = \\begin{cases}\nx, &\\quad x \\geq 0 \\\\\n-x, &\\quad x < 0\n\\end{cases}'
 
 example_block.expression = expression
 ```
@@ -88,7 +86,6 @@ table.edit_cell(2, 0, value="Index 2")
 
 <p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/edit_table_cells.png?raw=true"></p>
 
-
 or overwrite an entire row.
 
 ```py
@@ -101,6 +98,7 @@ table.overwrite_row(1, ["", "", "", "Here", "", ""])
 ```py
 print(table.get_cell(1, 3))
 ```
+
 ```py
 >>> Here
 ```
@@ -148,7 +146,6 @@ Example:
 
 <p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/todo_block.png?raw=true"></p>
 
-
 ```py
 textblock = notion.RichTextBlock("fffb528fd1604bc08386310ee8de0300")
 textblock.set_text(
@@ -164,7 +161,6 @@ textblock.set_text(
 
 <p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/edited_text_block.png?raw=true"></p>
 
-
 ## `ToDoBlock`
 
 This block inherits from `notion.RichTextBlock`, so we could have done the above with just the `ToDoBlock`.
@@ -175,7 +171,6 @@ This block inherits from `notion.RichTextBlock`, so we could have done the above
 todoblock = notion.ToDoBlock(textblock.id)
 todoblock.checked = True
 ```
-
 
 <p align="center"><img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/edited_todo_block.png?raw=true"></p>
 

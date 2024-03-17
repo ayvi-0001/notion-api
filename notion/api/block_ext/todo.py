@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence
 
 from notion.api.block_ext.richtext import RichTextBlock
 
-__all__: Sequence[str] = ["ToDoBlock"]
+__all__: Sequence[str] = ("ToDoBlock",)
 
 
 class ToDoBlock(RichTextBlock):
@@ -38,7 +38,8 @@ class ToDoBlock(RichTextBlock):
 
     @property
     def checked(self) -> bool:
-        return cast(bool, self._block["to_do"]["checked"])
+        checked: bool = self._block["to_do"]["checked"]
+        return checked
 
     @checked.setter
     def checked(self, value: bool) -> None:

@@ -1,9 +1,11 @@
-## Examples: Retrieving Property Items
+<!-- markdownlint-disable MD033 MD045-->
+
+# Examples: Retrieving Property Items
 
 ```py
 import notion
 
-# Set `NOTION_TOKEN` as env var.
+# Set `NOTION_TOKEN` in environment variables.
 
 home_page = notion.Page("7750e01edd574e2ea81b21d19e46c1f1")
 ```
@@ -12,12 +14,11 @@ Page properties can be retrieved 1 of 2 ways;
     - as property values.
     - as property items.
 
-Our home page has the rich text property type "Welcome Message" 
+Our home page has the rich text property type "Welcome Message"
 
 <p align="center">
     <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/welcome-message.png?raw=true">
 </p>
-
 
 This wrapper supports accessing property values by indexing a page with the name of the property
 
@@ -114,10 +115,12 @@ message: str = propertyitems.rich_text(home_page.welcome_message)
 ```
 
 ```py
->>> hello world.
+>>> message
+hello world.
 ```
 
 The available functions are:
+
 - `checkbox`
 - `number`
 - `date`
@@ -146,14 +149,13 @@ If you prefer to handle the responses another way, the property value and proper
 
 ---
 
-### Example: Relation
+## Example: Relation
 
 We have 2 databases related to each other, `Database A` and `Database B`
 
 <p align="center">
     <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/related-page-ids.png?raw=true">
 </p>
-
 
 To get the ID's of the pages in `Database B` that are related to the page `home-page` in `Database A`
 
@@ -162,13 +164,15 @@ home_page = notion.Page("20d9ecd7e0c3442b9cd4696a97fca1e2")
 
 related_page_ids: list[str] = propertyitems.relation(page.related_database_b)
 ```
+
 ```py
->>> ['ea84e68e-8e2e-495d-bb61-8db827d11850', 'c4c7bbba-0433-4e5f-b4ae-b222e0aecf21', '2ada2b98-e44e-4c5b-969a-e17f3ee38624']
+>>> related_page_ids
+['ea84e68e-8e2e-495d-bb61-8db827d11850', 'c4c7bbba-0433-4e5f-b4ae-b222e0aecf21', '2ada2b98-e44e-4c5b-969a-e17f3ee38624']
 ```
 
 ---
 
-### Example: Rollup | Limitations (Unsupported functions/types)
+## Example: Rollup | Limitations (Unsupported functions/types)
 
 There are some limitations, for example `percent-per-group` and `count-per-group` are currently unsupported as rollup types.
 
@@ -211,14 +215,11 @@ But say we wanted to calculate the percent per group for a status property. We c
 
 We can add a formula to `Database B` that returns `true` if the status contains `In progress`.
 
-
 <p align="center">
     <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/status-formula.png?raw=true">
 </p>
 
-
 Then setup a rollup property aggregating the `if in-progress` property from the relation `related-database-b`, using the `Percent Checked` calculation.
-
 
 <p align="center">
     <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/status-rollup.png?raw=true">
@@ -229,11 +230,14 @@ Since we are returning a percent, the rollup type is `number`, so we can use the
 ```py
 percent_in_progress: float = propertyitems.number_rollup(home_page.in_progress)
 ```
+
 ```py
->>> 0.6666666666666666
+>>> percent_in_progress
+0.6666666666666666
 ```
 
 > Other unsupported types by the current version of the Notion API:
+>
 > - `show_unique`
 > - `median`
 >
@@ -241,10 +245,9 @@ percent_in_progress: float = propertyitems.number_rollup(home_page.in_progress)
 
 ---
 
-### Example: Date
+## Example: Date
 
 Date properties in Notion always include a `start` date. If the date is a range, then it'll also include an `end` date denoting the end of the range. There is also a `timezone` parameter.
-
 
 For the example below, the `date-range` rollup is calculating the date range of the `start-date` property for the related pages in `Database B`.
 
@@ -279,28 +282,34 @@ sub_page_c = notion.Page("2ada2b98e44e4c5b969ae17f3ee38624")
 # casting datetime here since we know it has no end, and won't be tuple[datetime, datetime].
 start_date_C = cast(datetime, propertyitems.date(sub_page_c.start_date))
 ```
+
 ```py
->>> 2023-04-01 00:00:00
+>>> start_date_C
+2023-04-01 00:00:00
 ```
+
 ```py
 # since this is a rollup returning a date, we use the `date_rollup` function.
 date_range = cast(
     tuple[datetime, datetime], propertyitems.date_rollup(testpageA1.date_range)
 )
 ```
+
 ```py
->>> (datetime.datetime(2023, 4, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2023, 4, 30, 0, 0, tzinfo=datetime.timezone.utc))
+>>> date_range
+(datetime.datetime(2023, 4, 1, 0, 0, tzinfo=datetime.timezone.utc), datetime.datetime(2023, 4, 30, 0, 0, tzinfo=datetime.timezone.utc))
 ```
+
 ```py
 range_start: datetime = date_range[0]
 range_end: datetime = date_range[1]
 ```
+
 ```py
->>> 2023-04-01 00:00:00+00:00
->>> 2023-04-30 00:00:00+00:00
+>>> range_start
+2023-04-01 00:00:00+00:00
+>>> range_end
+2023-04-30 00:00:00+00:00
 ```
 
 ---
-
-
-

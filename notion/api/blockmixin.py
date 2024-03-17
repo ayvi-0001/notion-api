@@ -57,9 +57,7 @@ class _TokenBlockMixin(_NotionClient):
             self.tz = timezone(LOCAL_TIMEZONE)
 
     def __repr__(self) -> str:
-        # This is to avoid certain errors occuring before the object is fully initialized
-        id = getattr(self, "id", "")
-        return f"notion.{self.__class__.__name__}('{id}')"
+        return f"notion.{self.__class__.__name__}('{getattr(self, 'id', '')}')"
 
     def set_tz(self, tz: tzinfo | str) -> None:
         """
@@ -86,23 +84,22 @@ class _TokenBlockMixin(_NotionClient):
 
     @property
     def type(self) -> str:
-        return cast(str, self._block["type"])
-
-    @property
-    def object(self) -> str:
-        return cast(str, (self._block["object"]))
+        _type: str = self._block["type"]
+        return _type
 
     @property
     def has_children(self) -> bool:
-        return cast(bool, self._block["has_children"])
+        has_children: bool = self._block["has_children"]
+        return has_children
 
     @property
     def is_archived(self) -> bool:
-        return cast(bool, self._block["archived"])
+        is_archived: bool = self._block["archived"]
+        return is_archived
 
     @property
     def parent_type(self) -> str:
-        ptype = cast(str, self._block["parent"]["type"])
+        ptype: str = self._block["parent"]["type"]
         if "workspace" in ptype:
             return "workspace"
         return ptype
@@ -111,11 +108,11 @@ class _TokenBlockMixin(_NotionClient):
     def parent_id(self) -> str:
         _parent_id = self._block["parent"][self.parent_type]
         if _parent_id is True:  # parent is workspace
-            workspace = self._get(f"{__base_url__}users/me")
+            workspace = self._get(self._users_endpoint(me=True))
             # return workspace name
             return f"workspace:{workspace['bot']['workspace_name']}"
         else:
-            return cast(str, _parent_id.replace("-", ""))
+            return f"{_parent_id.replace('-', '')}"
 
     @property
     def last_edited_time(self) -> datetime:
@@ -142,13 +139,13 @@ class _TokenBlockMixin(_NotionClient):
         return dt.astimezone(tz=self.tz)
 
     @property
-    def last_edited_by(self) -> str:
-        user_id = self._block["last_edited_by"]["id"]
-        user = self._get(f"{__base_url__}users/{user_id}")
-        return cast(str, user)
+    def last_edited_by(self) -> MutableMapping[str, Any]:
+        return self._get(
+            self._users_endpoint(self._block["last_edited_by"]["id"]),
+        )
 
     @property
-    def created_by(self) -> str:
-        user_id = self._block["created_by"]["id"]
-        user = self._get(f"{__base_url__}users/{user_id}")
-        return cast(str, user)
+    def created_by(self) -> MutableMapping[str, Any]:
+        return self._get(
+            self._users_endpoint(self._block["created_by"]["id"]),
+        )

@@ -51,7 +51,7 @@ class TableBlock(_TokenBlockMixin):
 
     def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(id, token=token)
-        self.logger = _NLOG.getChild(self.__repr__())
+        self.logger = _NLOG.getChild(repr(self))
 
         if self.type != "table":
             raise TypeError(

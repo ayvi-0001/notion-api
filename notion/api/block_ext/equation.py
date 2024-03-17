@@ -20,11 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence
 
 from notion.api.blockmixin import _TokenBlockMixin
 
-__all__: Sequence[str] = ["EquationBlock"]
+__all__: Sequence[str] = ("EquationBlock",)
 
 
 class EquationBlock(_TokenBlockMixin):
@@ -38,7 +38,7 @@ class EquationBlock(_TokenBlockMixin):
 
     @property
     def expression(self) -> str:
-        return cast(str, self._block["equation"]["expression"])
+        return f"{self._block['equation']['expression']}"
 
     @expression.setter
     def expression(self, value: str) -> None:

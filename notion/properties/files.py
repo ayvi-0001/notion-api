@@ -46,7 +46,7 @@ __all__: Sequence[str] = (
 
 
 class FilesPropertyValue(PagePropertyValue, NotionObject):
-    __slots__: Sequence[str] = ["name"]
+    __slots__: Sequence[str] = ()
 
     def __init__(
         self, property_name: str, array_of_files: Sequence[InternalFile | ExternalFile]
@@ -98,17 +98,25 @@ class ExternalFile(NotionObject):
     __slots__: Sequence[str] = ()
 
     def __init__(
-        self, url: str, /, *, caption: Optional[Sequence[RichText | Mention]] = None
+        self,
+        url: str,
+        name: Optional[str] = None,
+        *,
+        caption: Optional[Sequence[RichText | Mention]] = None,
     ) -> None:
         """
         The Notion API supports adding, retrieving, and updating links to external files.
         For "external" file objects, the name is the same as the file's host URL.
+        
+        :param name: This parameter only needs to be provided if the external file is being\
+                     uploaded through the method notion.Page().set_files().
 
         https://developers.notion.com/reference/file-object#external-files
         """
         super().__init__()
         self.set("type", "external")
         self.set("external", _NotionURL(url))
+        self.set("name", name) if name else None
         self.set("caption", caption) if caption else None
 
 

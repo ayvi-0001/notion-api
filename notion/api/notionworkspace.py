@@ -33,7 +33,7 @@ from notion.properties.common import Parent, UserObject
 from notion.properties.richtext import Mention, RichText
 from notion.query.sort import EntryTimestampSort
 
-__all__: Sequence[str] = ["Workspace"]
+__all__: Sequence[str] = ("Workspace",)
 
 
 class Workspace(_NotionClient):
@@ -53,10 +53,10 @@ class Workspace(_NotionClient):
 
     def __init__(self, token: Optional[str] = None) -> None:
         super().__init__(token=token)
-        self.logger = _NLOG.getChild(self.__repr__())
+        self.logger = _NLOG.getChild(repr(self))
 
     def __repr__(self) -> str:
-        return f"notion.{self.__class__.__name__}()"
+        return f"notion.Workspace()"
 
     @staticmethod
     def _workspace_endpoint(
@@ -94,7 +94,8 @@ class Workspace(_NotionClient):
         )
 
     def retrieve_token_bot(self) -> MutableMapping[str, Any]:
-        """Retrieves the bot User associated with the API token provided in the authorization header.
+        """
+        Retrieves the bot User associated with the API token provided in the authorization header.
         The bot will have an owner field with information about the person who authorized the integration.
 
         https://developers.notion.com/reference/get-self
@@ -104,7 +105,8 @@ class Workspace(_NotionClient):
     def list_all_users(
         self, *, page_size: Optional[int] = None, next_cursor: Optional[str] = None
     ) -> MutableMapping[str, Any]:
-        """Returns a paginated list of Users for the workspace.
+        """
+        Returns a paginated list of Users for the workspace.
         https://developers.notion.com/reference/get-users
         """
         if any([page_size, next_cursor]):
@@ -228,7 +230,8 @@ class Workspace(_NotionClient):
         block: Optional[Block | str] = None,
         discussion_id: Optional[str] = None,
     ) -> MutableMapping[str, Any] | None:
-        """ Creates a comment in a page or existing discussion thread.
+        """
+        Creates a comment in a page or existing discussion thread.
         There are two locations you can add a new comment to:
          - A page
          - An existing discussion thread
