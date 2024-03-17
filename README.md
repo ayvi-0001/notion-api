@@ -179,8 +179,9 @@ Below is an example using `CodeBlock`. The others are `TableBlock`, `EquationBlo
 code_block = notion.CodeBlock("84c5721d8a954667902a757f0033f9e0")
 
 git_graph = r"""
-%%{init: { 'logLevel': 'debug', 'theme': 'default' , 'themeVariables': { 'darkMode':'true', 'git0': '#ff0000', 'git1': '#00ff00', 'git2': '#0000ff', 'git3': '#ff00ff', 'git4': '#00ffff', 'git5': '#ffff00', 'git6': '#ff00ff', 'git7': '#00ffff' } } }%%
-gitGraph
+%%{init:{'logLevel':'debug','theme':'default', 'darkMode': true, 'gitGraph':{'rotateCommitLabel':true}, 'themeVariables': {'commitLabelColor':'#ffffff','commitLabelBackground':'#000000', 'tagLabelFontSize': '10px'}}}%%
+gitGraph LR:
+%% @backgroundColor(#000000)
        commit
        branch develop
        commit tag:"v1.0.0"
@@ -285,8 +286,13 @@ To build nested filters, use `notion.query.CompoundFilter` and group property fi
 The database method `query()` will return the raw response from the API.  
 The method `query_pages()` will extract the page ID for each object in the array of results, and return a list of `notion.Page` objects.
 
-> note: in v0.6.0, new query methods were added: `query_all()` & `query_all_pages()` - these handle pagination, and instead of providing the `next_cursor` and `has_more` keys,
-> they will iterate through all the results, or up to the `max_page_size` paramater. These 2 methods will replace the original ones in a later update.
+> [!IMPORTANT]  
+> In v0.6.0, the methods `query` and `query_pages` were deprecated and 2 new methods, `query_all()` & `query_all_pages()` were added.
+> The new methods would iterate through all results, up to the `max_page_size` parameter, instead of returning a `next_cursor` key and the 100 page max from the original endpoints.
+>
+> In v0.7.0 the original deprecated methods were renamed to `_query` and `_query_pages` (left incase anyone wanted the original endpoints),
+> and the new query methods were renamed to take their place: `query_all` -> `query`, `query_all_pages` -> `query_pages`
+>
 
 ```py
 import os
@@ -319,7 +325,6 @@ query_sort = query.SortFilter(
 query_result = new_database.query(
     filter=query_filter,
     sort=query_sort,
-    page_size=5,
     filter_property_values=["name", "options"],
 )
 ```
@@ -370,13 +375,16 @@ Possible errors are:
 - `NotionUnauthorized`
 - `NotionValidationError`
 
-A common error to look out for is `NotionObjectNotFound`. This error is often raised because your bot has not been added as a connection to the page.
-
-<p align="center">
-    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/directory_add_connections.png?raw=true">  
-</p>
-
-By default, a bot will have access to the children of any Parent object it has access too. Be sure to double check this connection when moving pages.  
-If you're working on a page that your token has access to via its parent page/database, but you never explicitly granted access to the child page -  and you later move that child page out, then it will lose access.
-
+> [!TIP]
+> A common error to look out for is `NotionObjectNotFound`.\
+> This error is often raised because your bot has not been added as a connection to the page.
+>
+> <p align="center">
+>     <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/directory_add_connections.png?raw=true">  
+> </p>
+>
+> By default, a bot will have access to the children of any Parent object it has access too. Be sure to double check this connection when moving pages.  
+>
+> If you're working on a page that your token has access to via its parent page/database, but you never explicitly granted access to the child page -  and you later move that child page out, then it will lose access.
+>
 ---

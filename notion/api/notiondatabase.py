@@ -96,6 +96,7 @@ class Database(_TokenBlockMixin):
         cls,
         parent_instance: "Page",
         database_title: str,
+        title_column: Optional[str] = None,
         name_column: Optional[str] = None,
         *,
         is_inline: Optional[bool] = False,
@@ -109,26 +110,34 @@ class Database(_TokenBlockMixin):
         ---
         :param parent_instance: (required) Parent instance for a database must be a Page.
         :param database_title: (required) Database Title.
-        :param name_column: (required) Name for column containing page names. Defaults to "Name".
+        :param title_column: (required) Name for default title column. Defaults to "title".
         :param is_inline: (optional) If true, the database will be displayed inline in the parent page.
         :param description: (optional) Description of the database.
         :param cover_url: (optional) Url of image to use as cover.
         :param icon_url: (optional) Url of image to use as icon.
 
+        :param name_column: **deprecated** - This parameter is marked for removal.\
+                            (optional) Name for column containing page names.\
+                            Replaced with :param title_column:.
+
         https://developers.notion.com/reference/create-a-database
         """
+        title_column_name = title_column or name_column or "title"
+
         payload = build_payload(
             Parent.page(parent_instance.id),
             TitlePropertyValue([RichText(database_title)]),
-            Properties(TitlePropertyObject(name_column if name_column else "Name")),
+            Properties(propertyobjects.TitlePropertyObject(title_column_name)),
         )
 
         new_db_map = cls._post(parent_instance, cls._database_endpoint(), payload=payload)
-
         database = cls(new_db_map["id"])
-        database.logger.debug(
-            f"Database created in {parent_instance.__repr__()}. Url: {new_db_map['url']}"
-        )
+
+        if name_column is not None:
+            database.logger.warn(
+                "Param name_column is deprecated and marked for removal. "
+                "Use title_column instead."
+            )
 
         if is_inline:
             database.is_inline = is_inline
@@ -300,95 +309,6 @@ class Database(_TokenBlockMixin):
         filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
         sort: Optional[SortFilter] = None,
         filter_property_values: Optional[list[str]] = None,
-        page_size: Optional[int] = 100,
-        start_cursor: Optional[str] = None,
-    ) -> MutableMapping[str, Any]:
-        """
-        **query() method deprecated in > v0.5.2.**
-        **In a future update, this will be replaced with the new method `query_all()` added in v0.6.0 that iterates through all pages from results.**
-        **This method will still remain under a new name for anyone wanting the original request.**
-
-        Gets a list of Pages contained in the database, filtered/ordered to the filter conditions/sort criteria provided in request.
-        Responses from paginated endpoints contain a `next_cursor` property,
-        which can be used in a query payload to continue the list.
-
-        ---
-        :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
-        :param sort: (optional) notion.query.sort.SortFilter
-        :param page_size: (optional) The number of items from the full list desired in the response.\
-                           Default: 100 page_size Maximum: 100.
-        :param start_cursor: (optional) When supplied, returns a page of results starting after the cursor provided.\
-                              If not supplied, this endpoint will return the first page of results.
-        :param filter_property_values: (optional) Return only the selected properties.
-
-        https://developers.notion.com/reference/post-database-query
-        """
-        self.logger.warning(_QUERY_DEPRECATION_NOTICE)
-
-        payload: dict[str, Any] = {}
-        endpoint = self._database_endpoint(self.id, query=True)
-
-        if filter_property_values:
-            endpoint += "?"
-            for name in filter_property_values:
-                name_id = self[name].get("id")
-                endpoint += f"filter_properties={name_id}&"
-
-        if filter:
-            payload |= filter
-        if sort:
-            payload |= sort
-        if page_size:
-            payload |= {"page_size": page_size}
-        if start_cursor:
-            payload |= {"start_cursor": start_cursor}
-
-        return self._post(endpoint, payload=payload)
-
-    def query_pages(
-        self,
-        *,
-        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
-        sort: Optional[SortFilter] = None,
-        page_size: Optional[int] = 100,
-        start_cursor: Optional[str] = None,
-    ) -> list[Page]:
-        """
-        **query_pages() method deprecated in > v0.5.2.**
-        **In a future update, this will be replaced with the new method `query_all_pages()` added in v0.6.0 that iterates through all pages from results.**
-
-        Runs Database.query(...) but returns a notion.Page object for every page_id in the query response.
-
-        :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
-        :param sort: (optional) notion.query.sort.SortFilter
-        :param page_size: (optional) The number of items from the full list desired in the response.\
-                           Default: 100 page_size Maximum: 100.
-        :param start_cursor: (optional) When supplied, returns a page of results starting after the cursor provided.\
-                              If not supplied, this endpoint will return the first page of results.
-
-        :return: list of notion.Page objects
-
-        https://developers.notion.com/reference/post-database-query
-        """
-        self.logger.warning(_QUERY_PAGES_DEPRECATION_NOTICE)
-
-        query = self.query(
-            filter=filter,
-            sort=sort,
-            page_size=page_size,
-            start_cursor=start_cursor,
-        )
-
-        from notion.api.notionpage import Page
-
-        return [Page(_object["id"]) for _object in query.get("results", [])]
-
-    def query_all(
-        self,
-        *,
-        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
-        sort: Optional[SortFilter] = None,
-        filter_property_values: Optional[list[str]] = None,
         max_page_size: Optional[int] = None,
     ) -> list[MutableMapping[str, Any]]:
         """
@@ -422,15 +342,15 @@ class Database(_TokenBlockMixin):
 
         return paginated_response_payload(self._post, endpoint, payload, max_page_size)
 
-    def query_all_pages(
+    def query_pages(
         self,
         *,
         filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
         sort: Optional[SortFilter] = None,
         max_page_size: Optional[int] = None,
-    ) -> list[Page]:
+    ) -> list["Page"]:
         """
-        Runs Database.query_all(...) but returns a notion.Page object for every page_id in the query response.
+        Runs Database.query(...) but returns a notion.Page object for every page_id in the query response.
 
         :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
         :param sort: (optional) notion.query.sort.SortFilter
@@ -441,14 +361,11 @@ class Database(_TokenBlockMixin):
 
         https://developers.notion.com/reference/post-database-query
         """
+        all_pages = self.query(filter=filter, sort=sort, max_page_size=max_page_size)
+
         from notion.api.notionpage import Page
 
-        return [
-            Page(row["id"])
-            for row in self.query_all(
-                filter=filter, sort=sort, max_page_size=max_page_size
-            )
-        ]
+        return list(map(lambda r: Page(r["id"]), all_pages))
 
     def dual_relation_column(
         self, property_name: str, /, database_id: str, synced_property_name: str
@@ -710,12 +627,96 @@ class Database(_TokenBlockMixin):
         Create or replace a `Person` property.
         https://developers.notion.com/reference/property-object#people
         """
-        self._update(Properties(PeoplePropertyObject(property_name)))
+        self._update(
+            Properties(propertyobjects.PeoplePropertyObject(property_name)),
+        )
 
+    def _query(
+        self,
+        *,
+        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
+        sort: Optional[SortFilter] = None,
+        filter_property_values: Optional[list[str]] = None,
+        page_size: Optional[int] = 100,
+        start_cursor: Optional[str] = None,
+    ) -> MutableMapping[str, Any]:
+        """
+        **This method is deprecated since > v0.5.2.**
+        It's been replaced with the new query_pages() method that iterates through all results.
+        This is the original endpoint and will return a max of 100 pages, and a cursor to use in the next query if the results are greater than 100.
 
-_QUERY_DEPRECATION_NOTICE = """query() method deprecated in > v0.5.2. \
-In a future update, this will be replaced with new method `query_all()` added in v0.6.0 that iterates through all pages from results. \
-This method will still remain under a new name for anyone wanting the original request."""
+        ---
 
-_QUERY_PAGES_DEPRECATION_NOTICE = """query_pages() method deprecated in > v0.5.2. \
-In a future update, this will be replaced with new method `query_all_pages()` added in v0.6.0 that iterates through all pages from results."""
+        Gets a list of Pages contained in the database, filtered/ordered to the filter conditions/sort criteria provided in request.
+        Responses from paginated endpoints contain a `next_cursor` property,
+        which can be used in a query payload to continue the list.
+
+        ---
+        :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
+        :param sort: (optional) notion.query.sort.SortFilter
+        :param page_size: (optional) The number of items from the full list desired in the response.\
+                           Default: 100 page_size Maximum: 100.
+        :param start_cursor: (optional) When supplied, returns a page of results starting after the cursor provided.\
+                              If not supplied, this endpoint will return the first page of results.
+        :param filter_property_values: (optional) Return only the selected properties.
+
+        https://developers.notion.com/reference/post-database-query
+        """
+        payload: dict[str, Any] = {}
+        endpoint = self._database_endpoint(self.id, query=True)
+
+        if filter_property_values:
+            endpoint += "?"
+            for name in filter_property_values:
+                name_id = self[name].get("id")
+                endpoint += f"filter_properties={name_id}&"
+
+        if filter:
+            payload |= filter
+        if sort:
+            payload |= sort
+        if page_size:
+            payload |= {"page_size": page_size}
+        if start_cursor:
+            payload |= {"start_cursor": start_cursor}
+
+        return self._post(endpoint, payload=payload)
+
+    def _query_pages(
+        self,
+        *,
+        filter: Optional[CompoundFilter | PropertyFilter | TimestampFilter] = None,
+        sort: Optional[SortFilter] = None,
+        page_size: Optional[int] = 100,
+        start_cursor: Optional[str] = None,
+    ) -> list["Page"]:
+        """
+        **This method is deprecated since > v0.5.2.**
+        It's been replaced with the new query_pages() method that iterates through all results.
+        This is the original endpoint and will return a max of 100 pages, and a cursor to use in the next query if the results are greater than 100.
+
+        ---
+        
+        Runs Database.query(...) but returns a notion.Page object for every page_id in the query response.
+
+        :param filter: (optional) notion.query.compound.CompoundFilter or notion.query.propfilter.PropertyFilter
+        :param sort: (optional) notion.query.sort.SortFilter
+        :param page_size: (optional) The number of items from the full list desired in the response.\
+                           Default: 100 page_size Maximum: 100.
+        :param start_cursor: (optional) When supplied, returns a page of results starting after the cursor provided.\
+                              If not supplied, this endpoint will return the first page of results.
+
+        :return: list of notion.Page objects
+
+        https://developers.notion.com/reference/post-database-query
+        """
+        query = self._query(
+            filter=filter,
+            sort=sort,
+            page_size=page_size,
+            start_cursor=start_cursor,
+        )
+
+        from notion.api.notionpage import Page
+
+        return list(map(lambda r: Page(r["id"]), query['"results"']))
