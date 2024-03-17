@@ -21,7 +21,7 @@
 # SOFTWARE.
 
 from functools import partial, partialmethod
-from typing import Any, MutableMapping, Optional, Sequence, cast
+from typing import Any, MutableMapping, Optional, Sequence
 
 from notion.api._about import __base_url__
 from notion.api._pagination import paginated_response_endpoint
@@ -29,7 +29,7 @@ from notion.api.client import _NLOG, _NotionClient
 from notion.api.notionblock import Block
 from notion.api.notionpage import Page
 from notion.properties.build import NotionObject, build_payload
-from notion.properties.common import Parent, UserObject
+from notion.properties.common import Parent
 from notion.properties.richtext import Mention, RichText
 from notion.query.sort import EntryTimestampSort
 
@@ -109,20 +109,19 @@ class Workspace(_NotionClient):
         Returns a paginated list of Users for the workspace.
         https://developers.notion.com/reference/get-users
         """
-        if any([page_size, next_cursor]):
-            payload = NotionObject()
+        payload = NotionObject()
+
+        if page_size or next_cursor:
             if page_size:
                 payload.set("page_size", page_size)
             if next_cursor:
                 payload.set("next_cursor", next_cursor)
 
-            return self._get(self._workspace_endpoint(users=True), payload=payload)
-
-        return self._get(self._workspace_endpoint(users=True))
+        return self._get(self._workspace_endpoint(users=True), payload=payload)
 
     def retrieve_user(
         self, *, user_name: Optional[str] = None, user_id: Optional[str] = None
-    ) -> UserObject:
+    ) -> MutableMapping[str, Any]:
         """Retrieves a User using either the user name or ID specified.
 
         :param user_name: (1 of user_name or user_id required) User name in Notion.
@@ -130,75 +129,30 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/get-users
         """
-        if not any([user_name, user_id]):
+        if not (user_name or user_id):
             raise ValueError("Must input either user_name or user_id.")
 
+        all_users: list[MutableMapping[str, Any]] = self.list_all_users()["results"]
+
         if user_name:
-            all_users = {
-                n.get("name"): n.get("id")
-                for n in self.list_all_users().get("results", [])
-            }
-            if set([user_name]).issubset(all_users):
-                user_id = cast(str, all_users.get(user_name))
+            for idx, user in enumerate(all_users):
+                if user["name"] == user_name:
+                    return all_users[idx]
+        else:
+            for idx, user in enumerate(all_users):
+                if user["id"] == user_id:
+                    return all_users[idx]
 
-        user = self._get(self._workspace_endpoint(users=True, user_id=user_id))
-
-        if user["type"] == "bot":
-            raise TypeError("User is a bot. Use retrieve_token_bot() instead.")
-
-        try:
-            return UserObject(
-                id=user["id"],
-                name=user["name"],
-                avatar_url=user["avatar_url"] if user["avatar_url"] else None,
-                email=user["person"]["email"] if user["person"]["email"] else None,
-            )
-        except KeyError:
-            raise ValueError(
-                f"{self.__repr__()}: Could not find user with name: {user_name}. "
-                "Only members and guests in the integration's workspace are visible."
-            )
+        raise ValueError(
+            f"{self}: Could not find user with name: {user_name}. "
+            "Only members and guests in the integration's workspace are visible."
+        )
 
     def retrieve_comments(
-        self,
-        /,
-        thread: Page | Block | str,
-        *,
-        page_size: Optional[int] = None,
-        start_cursor: Optional[str] = None,
-    ) -> MutableMapping[str, Any]:
-        """
-        **retrieve_comments() method deprecated in > v0.5.2.**
-        **In a future update, this will be replaced with the new method `retrieve_all_comments()` added in v0.6.0 that iterates through all pages from results.**
-        **This method will still remain under a new name for anyone wanting the original request.**
-
-        When retrieving comments, one or more Comment objects will be returned in the form of an array,
-        sorted in ascending chronological order.
-
-        Retrieving comments from a page parent will return all comments on the page,
-        but not comments from any blocks inside the page.
-
-        :param thread: (required) Either a notion.Page or notion.Block object,
-                       or the string of a page/block/discussion_thread ID.
-
-        https://developers.notion.com/reference/retrieve-a-comment
-        """
-        self.logger.warning(_RETRIEVE_COMMENTS_DEPRECATION_NOTICE)
-
-        if isinstance(thread, Page | Block):
-            block_id = thread.id
-        else:
-            block_id = thread
-
-        comments_endpoint = self._comments_endpoint(
-            block_id=block_id, page_size=page_size, start_cursor=start_cursor
-        )
-        return self._get(comments_endpoint)
-
-    def retrieve_all_comments(
         self, thread: Page | Block | str, *, max_page_size: Optional[int] = None
     ) -> list[MutableMapping[str, Any]]:
-        """When retrieving comments, one or more Comment objects will be returned in the form of an array,
+        """
+        When retrieving comments, one or more Comment objects will be returned in the form of an array,
         sorted in ascending chronological order.
 
         Retrieving comments from a page parent will return all comments on the page,
@@ -211,7 +165,7 @@ class Workspace(_NotionClient):
 
         https://developers.notion.com/reference/retrieve-a-comment
         """
-        if isinstance(thread, Page | Block):
+        if isinstance(thread, (Page, Block)):
             block_id = thread.id
         else:
             block_id = thread
@@ -276,14 +230,14 @@ class Workspace(_NotionClient):
 
         if block:
             if isinstance(block, Block):
-                comment_thread = self.retrieve_comments(thread=block.id).get("results")
+                comment_thread = self.retrieve_comments(thread=block.id)
             else:  # if str of block.id
-                comment_thread = self.retrieve_comments(thread=block).get("results")
+                comment_thread = self.retrieve_comments(thread=block)
 
             if not comment_thread:
                 raise ValueError(
-                    "Did not find a comment thread in this block. ",
-                    "Starting new comment threads on a block not supported.",
+                    "Did not find a comment thread in this block. "
+                    "Starting new comment threads on a block not supported."
                 )
             # The next comment will always appear last regardless of which discussion_id
             # in a comment thread is used,, so we only get the first discussion_id.
@@ -345,7 +299,36 @@ class Workspace(_NotionClient):
 
         return self._post(self._workspace_endpoint(search=True), payload=payload)
 
+    def _retrieve_comments(
+        self,
+        /,
+        thread: Page | Block | str,
+        *,
+        page_size: Optional[int] = None,
+        start_cursor: Optional[str] = None,
+    ) -> MutableMapping[str, Any]:
+        """
+        **This method is deprecated since > v0.5.2.**
+        It's been replaced with the new retrieve_comments() method that iterates through all results.
+        This is the original endpoint and will return a max of 100 pages, and a cursor to use in the next query if the results are greater than 100.
 
-_RETRIEVE_COMMENTS_DEPRECATION_NOTICE = """retrieve_comments() method deprecated in > v0.5.2. \
-In a future update, this will be replaced with the new method `retrieve_all_comments()` added in v0.6.0 that iterates through all pages from results. \
-This method will still remain under a new name for anyone wanting the original request."""
+        When retrieving comments, one or more Comment objects will be returned in the form of an array,
+        sorted in ascending chronological order.
+
+        Retrieving comments from a page parent will return all comments on the page,
+        but not comments from any blocks inside the page.
+
+        :param thread: (required) Either a notion.Page or notion.Block object,
+                       or the string of a page/block/discussion_thread ID.
+
+        https://developers.notion.com/reference/retrieve-a-comment
+        """
+        if isinstance(thread, (Page, Block)):
+            block_id = thread.id
+        else:
+            block_id = thread
+
+        comments_endpoint = self._comments_endpoint(
+            block_id=block_id, page_size=page_size, start_cursor=start_cursor
+        )
+        return self._get(comments_endpoint)
