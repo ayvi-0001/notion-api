@@ -20,10 +20,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from datetime import datetime
-from typing import Sequence, cast
+import json
+from datetime import datetime, tzinfo
+from typing import Any, MutableMapping, Sequence, cast
 
-from notion.propertyitems import base
+from pytz import UnknownTimeZoneError, timezone
 
 __all__: Sequence[str] = (
     "verification",
@@ -53,8 +54,41 @@ __all__: Sequence[str] = (
 )
 
 
-def verification(_property: base.PropertyItem) -> bool:
-    base._assert_property_type(_property, "verification")
+class PropertyItem:
+    __slots__ = ("_map", "_type", "tz")
+
+    def __init__(self, _map: MutableMapping[str, Any], tz: tzinfo) -> None:
+        self._map = _map
+        self._type = _map["type"]
+        self.tz = tz
+
+        if self._type == "property_item":
+            self._type = _map["property_item"]["type"]
+
+    def __repr__(self) -> str:
+        return json.dumps(self._map)
+
+    @property
+    def item(self) -> Any:
+        if self._type == "rollup":
+            return self._map["property_item"]["rollup"]
+        else:
+            return self._map[self._type]
+
+    @property
+    def results(self) -> Any:
+        assert self._map["object"] == "list"
+        return self._map["results"]
+
+
+def _assert_property_type(_property: PropertyItem, _type: str) -> TypeError | None:
+    if _property._type != _type:
+        raise TypeError(f"Expected type '{_type}', got '{_property._type}'")
+    return None
+
+
+def verification(_property: PropertyItem) -> bool:
+    _assert_property_type(_property, "verification")
     match _property.item.state:
         case "verified":
             return True
@@ -62,123 +96,144 @@ def verification(_property: base.PropertyItem) -> bool:
             return False
 
 
-def checkbox(_property: base.PropertyItem) -> bool:
-    base._assert_property_type(_property, "checkbox")
+def checkbox(_property: PropertyItem) -> bool:
+    _assert_property_type(_property, "checkbox")
     return cast(bool, _property.item)
 
 
-def number(_property: base.PropertyItem) -> float:
-    base._assert_property_type(_property, "number")
+def number(_property: PropertyItem) -> float:
+    _assert_property_type(_property, "number")
     return cast(float, _property.item)
 
 
-def date(_property: base.PropertyItem) -> datetime | tuple[datetime, datetime]:
+def date(_property: PropertyItem) -> datetime | tuple[datetime, datetime] | None:
     """
     :returns: If the property is a date range, returns a tuple of (start, end) dates.\
               Otherwise, returns a single start date.
     """
-    base._assert_property_type(_property, "date")
-    return base._retrieve_datetime(_property)
+    _assert_property_type(_property, "date")
+    return _retrieve_datetime(_property)
 
 
-def select(_property: base.PropertyItem) -> str:
+def select(_property: PropertyItem) -> str | None:
     """:returns: The name of the selected option."""
-    base._assert_property_type(_property, "select")
-    return f"{_property.item['name']}"
+    _assert_property_type(_property, "select")
+    item = _property.item
+    if item:
+        select: str | None = item.get("name")
+        return select
+    return None
 
 
-def multi_select(_property: base.PropertyItem) -> list[str]:
+def multi_select(_property: PropertyItem) -> list[str]:
     """:returns: A list of the names of the selected options."""
-    base._assert_property_type(_property, "multi_select")
-    return [f"{select['name']}" for select in _property.item]
+    _assert_property_type(_property, "multi_select")
+    values = []
+    for item in _property.item:
+        select = item.get("name")
+        if select:
+            values.append(select)
+    return values
 
 
-def status(_property: base.PropertyItem) -> str:
+def status(_property: PropertyItem) -> str:
     """:returns: The name of the selected status."""
-    base._assert_property_type(_property, "status")
-    return f"{_property.item['name']}"
+    _assert_property_type(_property, "status")
+    status: str = _property.item["name"]
+    return status
 
 
-def rich_text(_property: base.PropertyItem) -> str:
-    base._assert_property_type(_property, "rich_text")
-    return f"{_property.results[0]['rich_text']['plain_text']}"
+def rich_text(_property: PropertyItem) -> str | None:
+    _assert_property_type(_property, "rich_text")
+    results = _property.results
+    if results:
+        text: str = results[0]["rich_text"]["plain_text"]
+        return text
+    return None
 
 
-def number_formula(_property: base.PropertyItem) -> float:
+def number_formula(_property: PropertyItem) -> float | None:
     """:returns: The result of the formula. The formula property must return a number."""
-    base._assert_property_type(_property, "formula")
+    _assert_property_type(_property, "formula")
 
     formula_type = _property.item["type"]
     if formula_type == "number":
-        return float(_property.item["number"])
+        number: float = _property.item.get("number")
+        return number if number else None
     else:
         raise TypeError(f"Expected formula type 'number', got '{formula_type}'")
 
 
-def string_formula(_property: base.PropertyItem) -> str:
+def string_formula(_property: PropertyItem) -> str | None:
     """:returns: The result of the formula. The formula property must return a string."""
-    base._assert_property_type(_property, "formula")
+    _assert_property_type(_property, "formula")
 
     formula_type = _property.item["type"]
     if formula_type == "string":
-        return f"{_property.item['string']}"
+        string: str = _property.item.get("string")
+        return string if string else None
     else:
         raise TypeError(f"Expected formula type 'string', got '{formula_type}'")
 
 
-def boolean_formula(_property: base.PropertyItem) -> bool:
+def boolean_formula(_property: PropertyItem) -> bool:
     """:returns: The result of the formula. The formula property must return a boolean."""
-    base._assert_property_type(_property, "formula")
+    _assert_property_type(_property, "formula")
 
     formula_type = _property.item["type"]
     if formula_type == "boolean":
-        return bool(_property.item["boolean"])
+        return cast(bool, _property.item["boolean"])
     else:
         raise TypeError(f"Expected formula type 'boolean', got '{formula_type}'")
 
 
-def date_formula(_property: base.PropertyItem) -> datetime | tuple[datetime, datetime]:
+def date_formula(
+    _property: PropertyItem,
+) -> datetime | tuple[datetime, datetime] | None:
     """:returns: The result of the formula. The formula property must return a date."""
-    base._assert_property_type(_property, "formula")
+    _assert_property_type(_property, "formula")
 
     formula_type = _property.item["type"]
     if formula_type == "date":
-        return base._retrieve_datetime(_property)
+        return _retrieve_datetime(_property)
     else:
         raise TypeError(f"Expected formula type 'date', got '{formula_type}'")
 
 
-def people(_property: base.PropertyItem) -> list[base.UserPropertyItem]:
-    """:returns: A list of Userbase.PropertyItem objects."""
-    base._assert_property_type(_property, "people")
+def people(_property: PropertyItem) -> list[dict[str, Any]]:
+    """:returns: A list of User mappings."""
+    _assert_property_type(_property, "people")
 
     list_people = []
-    for user in _property.results:
-        list_people.append(base._map_user(user))
+    for item in _property.results:
+        list_people.append(item["people"])
     return list_people
 
 
-def email(_property: base.PropertyItem) -> str:
+def email(_property: PropertyItem) -> str | None:
     """:returns: The email address as a string."""
-    base._assert_property_type(_property, "email")
-    return f"{_property.item}"
+    _assert_property_type(_property, "email")
+    email: str | None = _property.item
+    return email
 
 
-def phone_number(_property: base.PropertyItem) -> str:
+def phone_number(_property: PropertyItem) -> str | None:
     """:returns: The phone number as a string."""
-    base._assert_property_type(_property, "phone_number")
-    return f"{_property.item}"
+    _assert_property_type(_property, "phone_number")
+    phone_number: str | None = _property.item
+    return phone_number
 
 
-def url(_property: base.PropertyItem) -> str:
+def url(_property: PropertyItem) -> str | None:
     """:returns: The URL as a string."""
-    base._assert_property_type(_property, "url")
-    return f"{_property.item}"
+    _assert_property_type(_property, "url")
+    url: str | None = _property.item
+    return url
 
 
-def files(_property: base.PropertyItem) -> list[str]:
+def files(_property: PropertyItem) -> list[str]:
     """:returns: A list of URLs to the files."""
-    base._assert_property_type(_property, "files")
+    _assert_property_type(_property, "files")
 
     file_urls: list[str] = []
     for file in _property.item:
@@ -186,41 +241,52 @@ def files(_property: base.PropertyItem) -> list[str]:
     return file_urls
 
 
-def created_time(_property: base.PropertyItem) -> datetime:
+def created_time(_property: PropertyItem) -> datetime:
     """:returns: The datetime the page was created."""
-    base._assert_property_type(_property, "created_time")
-    return datetime.fromisoformat(f"{_property._map['created_time']}")
+    _assert_property_type(_property, "created_time")
+    return datetime.fromisoformat(_property._map["created_time"])
 
 
-def created_by(_property: base.PropertyItem) -> base.UserPropertyItem:
+def created_by(_property: PropertyItem) -> dict[str, Any]:
     """:returns: The user who created the page."""
-    base._assert_property_type(_property, "created_by")
-    return base._map_user(_property)
+    _assert_property_type(_property, "created_by")
+    return dict(_property.item)
 
 
-def last_edited_time(_property: base.PropertyItem) -> datetime:
+def last_edited_time(_property: PropertyItem) -> datetime:
     """:returns: The datetime the page was last edited."""
-    base._assert_property_type(_property, "last_edited_time")
-    return datetime.fromisoformat(f"{_property._map['last_edited_time']}")
+    _assert_property_type(_property, "last_edited_time")
+    return datetime.fromisoformat(_property._map["last_edited_time"])
 
 
-def last_edited_by(_property: base.PropertyItem) -> base.UserPropertyItem:
+def last_edited_by(_property: PropertyItem) -> dict[str, Any]:
     """:returns: The user who last edited the page."""
-    base._assert_property_type(_property, "last_edited_by")
-    return base._map_user(_property)
+    _assert_property_type(_property, "last_edited_by")
+    return dict(_property.item)
 
 
-def relation(_property: base.PropertyItem) -> list[str]:
+def relation(_property: PropertyItem) -> list[str]:
     """:returns: A list of page IDs that are related to the page."""
-    base._assert_property_type(_property, "relation")
+    _assert_property_type(_property, "relation")
     return [_page["relation"]["id"] for _page in _property.results]
 
 
-def number_rollup(_property: base.PropertyItem) -> float:
+UNSUPPORTED_ROLLUP_AGGREGATIONS = [
+    "show_original",
+    "show_unique",
+    "median",
+    "percent_per_group",
+    "count_per_group",
+]
+
+
+def number_rollup(_property: PropertyItem) -> float:
     """:returns: The result of the rollup. The rollup property must return a number."""
-    base._assert_property_type(_property, "rollup")
-    if (func := base._function_type(_property)) in base.NOT_IMPLEMENTED_FUNCTIONS:
-        raise base.NOT_IMPLEMENTED_ERR(func)
+    _assert_property_type(_property, "rollup")
+
+    ftype: str = _property._map["property_item"]["rollup"]["function"]
+    if ftype in UNSUPPORTED_ROLLUP_AGGREGATIONS:
+        raise not_implemented_error(ftype)
 
     if _property._map["property_item"]["rollup"]["type"] == "number":
         return cast(float, _property._map["property_item"]["rollup"]["number"])
@@ -228,17 +294,67 @@ def number_rollup(_property: base.PropertyItem) -> float:
     raise TypeError("rollup type is not number.")
 
 
-def date_rollup(_property: base.PropertyItem) -> datetime | tuple[datetime, datetime]:
+def date_rollup(
+    _property: PropertyItem,
+) -> datetime | tuple[datetime, datetime] | None:
     """ 
     :returns: The result of the rollup. The rollup property must return a date.\
               If the rollup is a date range, a tuple of (start, end) is returned.\
               Otherwise, a single datetime is returned.
     """
-    base._assert_property_type(_property, "rollup")
-    if (func := base._function_type(_property)) in base.NOT_IMPLEMENTED_FUNCTIONS:
-        raise base.NOT_IMPLEMENTED_ERR(func)
+    _assert_property_type(_property, "rollup")
+
+    ftype: str = _property._map["property_item"]["rollup"]["function"]
+    if ftype in UNSUPPORTED_ROLLUP_AGGREGATIONS:
+        raise not_implemented_error(ftype)
 
     if _property._map["property_item"]["rollup"]["type"] == "date":
-        return base._retrieve_datetime(_property)
+        return _retrieve_datetime(_property)
 
     raise TypeError("rollup type is not date.")
+
+
+def not_implemented_error(notion_function: str) -> NotImplementedError:
+    if notion_function == "show_original":
+        return NotImplementedError(
+            "`show_original` rollup calculation is not yet implemented."
+        )
+    return NotImplementedError(f"Unsupported rollup aggregation: {notion_function}.")
+
+
+def _retrieve_datetime(
+    _property: PropertyItem,
+) -> datetime | tuple[datetime, datetime] | None:
+    if _property._type in ("rollup", "formula"):
+        date = _property.item["date"]
+    else:
+        date = _property.item
+
+    if date is None:
+        return None
+
+    start = date["start"]
+    end = date["end"]
+    time_zone = date["time_zone"]
+
+    if time_zone is not None:
+        try:
+            time_zone = timezone(time_zone)
+        except UnknownTimeZoneError:
+            pass
+    if time_zone is None:
+        time_zone = _property.tz
+
+    start = datetime.fromisoformat(start)
+    if end is not None:
+        end = datetime.fromisoformat(end)
+    if time_zone is not None:
+        start = start.astimezone(time_zone)
+        if end:
+            end = end.astimezone(time_zone)
+            return (start, end)
+    if start and end:
+        return (start, end)
+    else:
+        assert isinstance(start, datetime)
+        return start

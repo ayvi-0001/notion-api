@@ -8,7 +8,7 @@ authors = [
     {name = "Alan Vickers", email = "alan.k.vickers@gmail.com"},
 ]
 description = "An unofficial wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion."
-dynamic = ["version", "readme", "license"]
+dynamic = ["version", "readme"]
 requires-python = ">=3.10"
 keywords = [
     "notion", 

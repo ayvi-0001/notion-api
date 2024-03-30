@@ -19,9 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-# mypy: disable-error-code="no-redef"
-
 from __future__ import annotations
 
 from typing import Any, Collection, MutableMapping, Optional, Sequence
@@ -61,6 +58,9 @@ class TableBlock(_TokenBlockMixin):
         self.table_width = int(self._block["table"]["table_width"])
         self.rows = self.retrieve_children().get("results", [])
 
+    def __repr__(self) -> str:
+        return f'notion.TableBlock("{getattr(self, "id", "")}")'
+
     def get_row(self, row_index: int) -> list[str]:
         """:returns: A list of cell contents in horizontal display order."""
         table_row = self.rows[row_index]["table_row"]
@@ -84,7 +84,7 @@ class TableBlock(_TokenBlockMixin):
             table.append(self.get_row(index))
         return table
 
-    def edit_cell(self, row_index: int, column_index: int, *, value: str) -> None:
+    def edit_cell(self, row_index: int, column_index: int, value: str) -> None:
         """Edits the cell content at the given row and cell index."""
         table_row = self.rows[row_index]
         table_row_id = table_row["id"]
@@ -104,7 +104,7 @@ class TableBlock(_TokenBlockMixin):
             )
 
         else:
-            cells: CELLS_ARRAY = [[RichText(value)] for value in values_array]
+            cells: CELLS_ARRAY = [[RichText(value)] for value in values_array]  # type: ignore[no-redef]
             row = [TableRowBlockType(cells)]
             self._patch(
                 self._block_endpoint(self.id, children=True), payload=BlockChildren(row)

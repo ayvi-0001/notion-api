@@ -36,6 +36,9 @@ class ToDoBlock(RichTextBlock):
                 f"Block type must be 'to_do', not '{self.type}' for ToDoBlock."
             )
 
+    def __repr__(self) -> str:
+        return f'notion.ToDoBlock("{getattr(self, "id", "")}")'
+
     @property
     def checked(self) -> bool:
         checked: bool = self._block["to_do"]["checked"]

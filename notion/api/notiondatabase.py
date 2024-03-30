@@ -19,9 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-# mypy: disable-error-code="no-redef"
-
 from __future__ import annotations
 
 import json
@@ -89,7 +86,9 @@ class Database(_TokenBlockMixin):
 
     def __init__(self, database_id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(database_id, token=token)
-        self.logger = _NLOG.getChild(repr(self))
+
+    def __repr__(self) -> str:
+        return f'notion.Database("{getattr(self, "id", "")}")'
 
     @classmethod
     def create(
@@ -116,9 +115,8 @@ class Database(_TokenBlockMixin):
         :param cover_url: (optional) Url of image to use as cover.
         :param icon_url: (optional) Url of image to use as icon.
 
-        :param name_column: **deprecated** - This parameter is marked for removal.\
+        :param name_column: **deprecated** - This parameter is marked for removal. Replaced with :param title_column:\
                             (optional) Name for column containing page names.\
-                            Replaced with :param title_column:.
 
         https://developers.notion.com/reference/create-a-database
         """
@@ -131,10 +129,11 @@ class Database(_TokenBlockMixin):
         )
 
         new_db_map = cls._post(parent_instance, cls._database_endpoint(), payload=payload)
-        database = cls(new_db_map["id"])
+        database_id = new_db_map["id"]
+        database = cls(database_id)
 
         if name_column is not None:
-            database.logger.warn(
+            _NLOG.getChild(f'notion.Database("{database_id}")').warn(
                 "Param name_column is deprecated and marked for removal. "
                 "Use title_column instead."
             )
@@ -186,8 +185,8 @@ class Database(_TokenBlockMixin):
             return ""  # title is empty.
 
     @title.setter
-    def title(self, __new_title: str) -> None:
-        self._update(TitlePropertyValue([RichText(__new_title)]))
+    def title(self, _new_title: str) -> None:
+        self._update(TitlePropertyValue([RichText(_new_title)]))
 
     @property
     def is_inline(self) -> bool:
@@ -200,12 +199,10 @@ class Database(_TokenBlockMixin):
         return is_inline
 
     @is_inline.setter
-    def is_inline(self, __inline: bool) -> None:
+    def is_inline(self, _inline: bool) -> None:
         self._patch(
             self._database_endpoint(self.id),
-            payload=json.dumps(
-                {"is_inline": __inline},
-            ),
+            payload=json.dumps({"is_inline": _inline}),
         )
 
     @property
@@ -537,7 +534,7 @@ class Database(_TokenBlockMixin):
             Properties(propertyobjects.RichTextPropertyObject(property_name)),
         )
 
-    def formula_column(self, property_name: str, /, expression: str) -> None:
+    def formula_column(self, property_name: str, /, expression: str = "") -> None:
         """
         Create or replace a `Formula` property.
 
@@ -641,7 +638,7 @@ class Database(_TokenBlockMixin):
         start_cursor: Optional[str] = None,
     ) -> MutableMapping[str, Any]:
         """
-        **This method is deprecated since > v0.5.2.**
+        ### This method is deprecated since > v0.5.2.
         It's been replaced with the new query_pages() method that iterates through all results.
         This is the original endpoint and will return a max of 100 pages, and a cursor to use in the next query if the results are greater than 100.
 
@@ -691,7 +688,7 @@ class Database(_TokenBlockMixin):
         start_cursor: Optional[str] = None,
     ) -> list["Page"]:
         """
-        **This method is deprecated since > v0.5.2.**
+        ### This method is deprecated since > v0.5.2.
         It's been replaced with the new query_pages() method that iterates through all results.
         This is the original endpoint and will return a max of 100 pages, and a cursor to use in the next query if the results are greater than 100.
 

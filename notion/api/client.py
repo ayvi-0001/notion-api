@@ -19,9 +19,6 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-
-# mypy: disable-error-code="no-redef"
-
 from __future__ import annotations
 
 import json
@@ -31,7 +28,7 @@ from typing import Any, MutableMapping, Optional, Sequence
 
 import requests
 
-from notion.api._about import __base_url__, __content_type__, __notion_version__
+from notion.api._about import __base_url__, __notion_version__
 from notion.exceptions import NotionUnauthorized, validate_response
 
 __all__: Sequence[str] = ("_NotionClient", "_NLOG")
@@ -44,7 +41,6 @@ _NLOG = logging.getLogger("notion-api")
 class _NotionClient:
     """Base Class to inherit: token, headers, requests, and endpoints."""
 
-    content_type = __content_type__
     version = os.getenv("NOTION_VERSION", __notion_version__)
 
     def __init__(self, *, token: Optional[str] = None) -> None:
@@ -59,10 +55,12 @@ class _NotionClient:
                     "Check if `NOTION_TOKEN` is set in environment variables"
                 )
 
-        self.headers: dict[str, str] = {
+    @property
+    def headers(self) -> dict[str, str]:
+        return {
             "Authorization": f"Bearer {self.token}",
-            "Accept": self.content_type,
-            "Content-type": self.content_type,
+            "Accept": "application/json",
+            "Content-type": "application/json",
             "Notion-Version": self.version,
         }
 

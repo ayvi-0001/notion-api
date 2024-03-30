@@ -41,7 +41,6 @@ from typing import TYPE_CHECKING, Any, MutableMapping, Optional, Sequence, Union
 
 from notion.api import block_ext
 from notion.api.blockmixin import _TokenBlockMixin
-from notion.api.client import _NLOG
 from notion.properties import blocktypes
 from notion.properties.options import BlockColor, CodeBlockLang
 from notion.properties.richtext import Mention, RichText
@@ -78,7 +77,9 @@ class Block(_TokenBlockMixin):
 
     def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(id, token=token)
-        self.logger = _NLOG.getChild(repr(self))
+
+    def __repr__(self) -> str:
+        return f'notion.Block("{getattr(self, "id", "")}")'
 
     @property
     def retrieve(self) -> MutableMapping[str, Any]:
@@ -372,7 +373,7 @@ class Block(_TokenBlockMixin):
     @staticmethod
     def to_do(
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         block_color: Optional[BlockColor | str] = None,
         checked: Optional[bool] = False,
@@ -382,6 +383,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.block.ToDoBlock` object.
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [
@@ -419,7 +425,7 @@ class Block(_TokenBlockMixin):
     def paragraph(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
@@ -431,6 +437,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [blocktypes.ParagraphBlocktype(rich_text, block_color=block_color)],
@@ -444,7 +455,7 @@ class Block(_TokenBlockMixin):
     def quote(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
@@ -454,6 +465,11 @@ class Block(_TokenBlockMixin):
         :param rich_text: list of `notion.properties.RichText` objects.
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [blocktypes.QuoteBlocktype(rich_text, block_color=block_color)],
@@ -466,7 +482,7 @@ class Block(_TokenBlockMixin):
     def callout(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         icon: Optional[str] = None,
         after: Optional[str] = None,
@@ -478,6 +494,11 @@ class Block(_TokenBlockMixin):
         :param icon: url to external source for icon.
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [
@@ -494,7 +515,7 @@ class Block(_TokenBlockMixin):
     def heading_1(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         is_toggleable: Optional[bool] = False,
         after: Optional[str] = None,
@@ -504,6 +525,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [
@@ -520,7 +546,7 @@ class Block(_TokenBlockMixin):
     def heading_2(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         is_toggleable: Optional[bool] = False,
         after: Optional[str] = None,
@@ -530,6 +556,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [
@@ -546,7 +577,7 @@ class Block(_TokenBlockMixin):
     def heading_3(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         is_toggleable: Optional[bool] = False,
         after: Optional[str] = None,
@@ -556,6 +587,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [
@@ -572,7 +608,7 @@ class Block(_TokenBlockMixin):
     def bulleted_list(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
@@ -581,6 +617,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [
@@ -597,7 +638,7 @@ class Block(_TokenBlockMixin):
     def numbered_list(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
@@ -606,6 +647,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [
@@ -622,7 +668,7 @@ class Block(_TokenBlockMixin):
     def toggle(
         cls,
         parent_object: Union["Page", Block],
-        rich_text: Sequence[RichText | Mention],
+        rich_text: Sequence[RichText | Mention] | str | None = None,
         *,
         after: Optional[str] = None,
         block_color: Optional[BlockColor | str] = None,
@@ -631,6 +677,11 @@ class Block(_TokenBlockMixin):
 
         :returns: `notion.api.Block`
         """
+        if rich_text is None:
+            rich_text = [RichText("")]
+        elif isinstance(rich_text, str):
+            rich_text = [RichText(rich_text)]
+
         block_mapping = parent_object._append(
             blocktypes.BlockChildren(
                 [blocktypes.ToggleBlocktype(rich_text, block_color=block_color)],

@@ -36,6 +36,9 @@ class EquationBlock(_TokenBlockMixin):
                 f"Block type must be 'equation', not '{self.type}' for EquationBlock."
             )
 
+    def __repr__(self) -> str:
+        return f'notion.EquationBlock("{getattr(self, "id", "")}")'
+
     @property
     def expression(self) -> str:
         return f"{self._block['equation']['expression']}"

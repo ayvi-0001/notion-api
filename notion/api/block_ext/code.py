@@ -37,6 +37,9 @@ class CodeBlock(_TokenBlockMixin):
                 f"Block type must be 'code', not '{self.type}' for CodeBlock."
             )
 
+    def __repr__(self) -> str:
+        return f'notion.CodeBlock("{getattr(self, "id", "")}")'
+
     @property
     def language(self) -> str:
         return f"{self._block['code']['language']}"

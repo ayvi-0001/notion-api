@@ -61,6 +61,9 @@ class RichTextBlock(_TokenBlockMixin):
         if set([self.type]).isdisjoint(TEXT_EDITABLE_BLOCKS):
             raise TypeError(f"Block type must be one of {TEXT_EDITABLE_BLOCKS}.")
 
+    def __repr__(self) -> str:
+        return f'notion.RichTextBlock("{getattr(self, "id", "")}")'
+
     @property
     def text(self) -> str:
         block = self._block[self.type]
@@ -78,10 +81,15 @@ class RichTextBlock(_TokenBlockMixin):
         except IndexError:
             return ""
 
-    def set_text(self, value: Sequence[RichText]) -> None:
+    def set_text(self, text: Sequence[RichText] | str | None = None) -> None:
+        if text is None:
+            text = [RichText("")]
+        elif isinstance(text, str):
+            text = [RichText(text)]
+
         text = self._block
-        text.pop(self.type)
-        text.update({self.type: {"rich_text": value}})
+        text.pop("request_id")
+        text.update({self.type: {"rich_text": text}})
         self._patch(self._block_endpoint(self.id), payload=text)
 
     @property

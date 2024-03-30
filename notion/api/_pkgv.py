@@ -1,5 +1,3 @@
-# mypy: disable-error-code="no-redef"
-
 import json
 import re
 from contextlib import suppress

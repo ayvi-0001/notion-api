@@ -20,61 +20,163 @@
     <a href="https://github.com/psf/black"><img alt="code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
     &nbsp;
     <a href="https://pycqa.github.io/isort/"><img alt="code style: black" src="https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336"></a>
-
 </p>
 
-__Disclaimer: This is an _unofficial_ package and has no affiliation with Notion.so__  
+**Disclaimer: This is an _unofficial_ package and has no affiliation with Notion.so**
 
-A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.  
-README contains examples of the main functionality, including: creating Pages/Databases/Blocks, adding/removing/editing properties, retrieving property values, and database queries.  
-Some more in-depth walkthroughs can be be found in [`examples/`](https://github.com/ayvi-0001/notion-api/tree/main/examples).  
+A wrapper for Notion's API, aiming to simplify the dynamic nature of interacting with Notion.\
+README contains examples of the main functionality, including: creating Pages/Databases/Blocks, adding/removing/editing properties, retrieving property values, and database queries.
+Some more in-depth walkthroughs can be be found in [`examples/`](https://github.com/ayvi-0001/notion-api/tree/main/examples).
 
-This library is not complete - new features will continue to be added, and current features may change.
-
-<br>
+This package is not complete - new features will continue to be added, and current features may change.
 
 <div border="0" align="center">
-    <table>
-        <tr>
-            <td align="center"><b>Links: Notion API Updates</b></td>
-        </tr>
-            <td> <a href="https://developers.notion.com/reference/intro">API Reference</a></td><tr>
-        </td>
-            <td><a href="https://developers.notion.com/page/changelog">Notion API Changelog </img></a></tr>
-            <td> <a href="https://www.notion.so/releases">Notion.so Releases</a></td></tr>
-        </tr>
-    </table>
+  <table>
+    <tr>
+      <td align="center"><b>Links: Notion API Updates</b></td>
+    </tr>
+      <td align="center"><a href="https://developers.notion.com/reference/intro">API Reference</a></td>
+    <tr>
+      <td align="center"><a href="https://developers.notion.com/page/changelog">Notion API Changelog</a></td>
+    </tr>
+      <td align="center"><a href="https://www.notion.so/releases">Notion.so Releases</a></td>
+  </table>
 </div>
-
-<br>
-
-If you haven't already, you'll need to setup a [Notion Integration](https://www.notion.so/my-integrations) and share specific pages/databases with the integration to interact with the API.  
-Information on integration types and setup can be found [here](https://developers.notion.com/docs/getting-started).
 
 ---
 
-## Install
+## Setup & Install
+
+You'll need an integration token to interact with the Notion API.
+If you don't have this setup already, you can find an integration token after you create an integration on the [integration settings page](https://www.notion.so/my-integrations).
+
+To learn how to create an integration, see the [getting started guide](https://developers.notion.com/docs/getting-started).
+For more information about integration capabilities, see the [Integration capabilities](https://developers.notion.com/reference/capabilities) in the API Reference.
+
+Download the package from PyPi by running the command below.
 
 ```sh
-pip install -U notion-api
+$ pip install -U notion-api
 ```
 
 ## Usage
 
+To authenticate api calls, set your integration token as an environment variable named `NOTION_TOKEN`.
+
 ```py
 import notion
 
-# client will check for 'NOTION_TOKEN' in environment variables.
-
 homepage = notion.Page('773b08ff38b44521b44b115827e850f2')
 parent_db = notion.Database(homepage.parent_id)
-
-# client will also look for env var `TZ` to set the default timezone.
-# If not found, attempts to find the default timezone, or "UTC".
 ```
 
-Indexing a page will search for page property values, and indexing a Database will search for property objects.  
-A full list can be retrieved for both using;  
+The client will also look for the environment variable `TZ` to set the default timezone. If not found, it attempts to find the default timezone, or `UTC`.
+
+Each object requires their respective ID. This will be 32 character long string from the URL, in the following pattern: 8-4-4-4-12 (each number is the length of characters between the hyphens).
+
+Example database ID:
+
+![Example Database ID](https://github.com/ayvi-0001/notion-api/blob/main/examples/images/notion_database_id.png?raw=true)
+_Note: The value for the `v=` parameter is for the current <ins>view</ins> of the database. This will not work and will raise an error_.
+
+---
+
+## Creating Pages & Databases
+
+Create objects by passing an existing Page/Database instance to the `create` classmethods.\
+_Note: The Notion API does not allow pages/databases to be created to the parent `workspace`._
+
+```py
+new_database = notion.Database.create(
+    parent_instance=testpage,
+    database_title="Example Database",
+    title_column="page", # This is the column containing page names. Defaults to "title".
+    is_inline=True, # can also toggle inline with setters.
+    description="Database description can go here.",
+)
+
+# Adding a page to the database created above.
+new_page = notion.Page.create(new_database, page_title="A new database row")
+```
+
+Both Page's and Database's have setters for title/icon/cover.
+
+```py
+homepage.title = "new page"
+homepage.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
+homepage.icon = "https://www.notion.so/icons/alien-pixel_purple.svg"
+```
+
+<p align="center"> <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/new_page.png?raw=true"> </p>
+
+---
+
+## Creating Blocks
+
+Blocks are also created using classmethods. They require a parent instance of either `Page` or `Block` to append the new block too.
+The newly created block is returned as an instance of `Block`, which can be used as the parent instance to another nested block.
+
+By default, blocks are appended to the bottom of the parent block.
+To append the block somewhere else other than the bottom of the parent block, use the `after` parameter, and set its value to the ID of the block that the new block should be appended after.
+The block_id used in the `after` paramater must still be a child to the parent instance.
+
+```py
+from notion import properties as prop
+
+original_synced_block = notion.Block.original_synced_block(homepage)
+
+# Adding content to the synced block
+notion.Block.paragraph(original_synced_block, [prop.RichText("This is a synced block.")])
+
+# Referencing the synced block in a new page.
+notion.Block.duplicate_synced_block(new_page, original_synced_block.id)
+```
+
+There are 5 extensions to the `Block` class, with functions specific to their block type;
+
+- `CodeBlock`
+- `TableBlock`
+- `EquationBlock`
+- `RichTextBlock`
+- `ToDoBlock`
+
+You can see usage for them in [`examples/block_extensions.md`](https://github.com/ayvi-0001/notion-api/blob/main/examples/block_extensions.md).
+Below is an example using `CodeBlock`.
+
+```py
+code_block = notion.CodeBlock("84c5721d8a954667902a757f0033f9e0")
+
+git_graph = r"""
+%%{init:{'theme':'default', 'gitGraph':{'rotateCommitLabel':true}, 'themeVariables': {'commitLabelColor':'#ffffff','commitLabelBackground':'#000000', 'tagLabelFontSize': '10px'}}}%%
+gitGraph LR:
+%% @backgroundColor(#000000)
+       commit
+       branch develop
+       commit tag:"v1.0.0"
+       commit
+       checkout main
+       commit type: HIGHLIGHT
+       commit
+       merge develop
+       commit
+       branch featureA
+       commit
+"""
+
+code_block.language = prop.CodeBlockLang.mermaid
+code_block.code = git_graph
+code_block.caption = "Example from https://mermaid.js.org/syntax/gitgraph.html"
+```
+
+<p align="center">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/code_commit_diagram.png?raw=true">
+</p>
+
+---
+
+## Retrieve Page property values & Database property objects.
+
+Indexing a page will search for page property values, and indexing a Database will search for property objects. A list of all objects/values can be retrieved for both using the following commands:
 
 - `retrieve()` method for a Page, with the optional `filter_properties` parameter.
 - `retrieve` attribute for a Database.
@@ -108,7 +210,7 @@ parent_db['dependencies']
 # }
 ```
 
-**_See usage of retrieving values from a page in [examples/retrieving-property-items.md](https://github.com/ayvi-0001/notion-api/blob/main/examples/retrieving-property-items.md)_**  
+**_See usage of retrieving values from a page in [examples/retrieving-property-items.md](https://github.com/ayvi-0001/notion-api/blob/main/examples/retrieving-property-items.md)_**
 
 Below is a brief example to retrieve the `dependencies` property above from `homepage`.
 
@@ -122,130 +224,6 @@ related_id: list[str] = propertyitems.relation(homepage.dependencies)
 >>> related_id
 ["7bcbc8e6-e237-434b-bd0d-6b56e044200b"]
 ```
-
-Both Page's and Database's have setters for title/icon/cover.
-
-```py
-homepage.title = "new page"
-homepage.cover = "https://www.notion.so/images/page-cover/webb1.jpg"
-homepage.icon = "https://www.notion.so/icons/alien-pixel_purple.svg"
-```
-
-<p align="center"> <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/new_page.png?raw=true"> </p>
-
----
-
-## Creating Pages/Databases/Blocks
-
-Create objects by passing an existing Page/Database instance to the `create` classmethods.  
-The current version of the Notion api does not allow pages/databases to be created to the parent `workspace`.  
-
-```py
-new_database = notion.Database.create(
-    parent_instance=testpage,
-    database_title="Example Database",
-    name_column="page", # This is the column containing page names. Defaults to "Name".
-    is_inline=True, # can also toggle inline with setters.
-    description="Database description can go here.",
-)
-
-new_page = notion.Page.create(new_database, page_title="A new database row")
-```
-
-Blocks are also created using classmethods. They require a parent instance of either `Page` or `Block` to append the new block too.
-The newly created block is returned as an instance of `Block`, which can be used as the parent instance to another nested block.
-
-By default, blocks are appended to the bottom of the parent block.  
-To append the block somewhere else other than the bottom of the parent block, use the `after` parameter and set its value to the ID of the block that the new block should be appended after. The block_id used in the `after` paramater must still be a child to the parent instance.  
-
-```py
-from notion import properties as prop
-
-original_synced_block = notion.Block.original_synced_block(homepage)
-
-# Adding content to the synced block
-notion.Block.paragraph(original_synced_block, [prop.RichText("This is a synced block.")])
-
-# Referencing the synced block in a new page.
-notion.Block.duplicate_synced_block(new_page, original_synced_block.id)
-```
-
----
-
-There are few extensions to the `Block` class that have specific functions unique to their block-type.  
-Below is an example using `CodeBlock`. The others are `TableBlock`, `EquationBlock`, `RichTextBlock`, and `ToDoBlock`. You can see usage for them in [`examples/block_extensions.md`](https://github.com/ayvi-0001/notion-api/blob/main/examples/block_extensions.md).
-
-```py
-code_block = notion.CodeBlock("84c5721d8a954667902a757f0033f9e0")
-
-git_graph = r"""
-%%{init:{'logLevel':'debug','theme':'default', 'darkMode': true, 'gitGraph':{'rotateCommitLabel':true}, 'themeVariables': {'commitLabelColor':'#ffffff','commitLabelBackground':'#000000', 'tagLabelFontSize': '10px'}}}%%
-gitGraph LR:
-%% @backgroundColor(#000000)
-       commit
-       branch develop
-       commit tag:"v1.0.0"
-       commit
-       checkout main
-       commit type: HIGHLIGHT
-       commit
-       merge develop
-       commit
-       branch featureA
-       commit
-"""
-
-code_block.language = prop.CodeBlockLang.mermaid
-code_block.code = git_graph
-code_block.caption = "Example from https://mermaid.js.org/syntax/gitgraph.html"
-```
-
-<p align="center">
-    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/code_commit_diagram.png?raw=true">
-</p>
-
----
-
-**_Example Function: Using `notion.Workspace()` to retrieve a user, and appending blocks in a page to mention user/date._**
-
-```py
-def inline_mention(page: notion.Page, message: str, user_name: str) -> None:
-    mentionblock = notion.Block.paragraph(
-        page,
-        [
-            prop.Mention.user(
-                notion.Workspace().retrieve_user(user_name=user_name),
-                annotations=prop.Annotations(
-                    code=True, bold=True, color=prop.BlockColor.purple
-                ),
-            ),
-            prop.RichText(" - "),
-            prop.Mention.date(
-                datetime.now().astimezone(page.tz).isoformat(),
-                annotations=prop.Annotations(
-                    code=True,
-                    bold=True,
-                    italic=True,
-                    underline=True,
-                    color=prop.BlockColor.gray,
-                ),
-            ),
-            prop.RichText(":"),
-        ]
-    )
-    # First method returned the newly created block that we append to here:
-    notion.Block.paragraph(mentionblock, [prop.RichText(message)])
-    notion.Block.divider(page)
-```
-
-```py
-homepage = notion.Page("0b9eccfa890e4c3390175ee10c664a35")
-inline_mention(page=homepage, message="example", user_name="AYVI")
-```
-
-<p align="center">
-    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/example_function_reminder.png?raw=true">
-</p>
 
 ---
 
@@ -272,9 +250,54 @@ new_database.multiselect_column(
 
 # if an option does not already exist, a new one will be created with a random color.
 # this is not true for `status` column types, which can only be edited via UI.
-
 new_page.set_multiselect("options", ["option-a", "option-b"])
 ```
+
+---
+
+### Example Function
+
+#### Append blocks in a page to mention a user/date, using `notion.Workspace()`.
+
+```py
+def inline_mention(page: notion.Page, message: str, user_name: str) -> None:
+    mentionblock = notion.Block.paragraph(
+        page,
+        [
+            prop.Mention.user(
+                notion.Workspace().retrieve_user(user_name=user_name),
+                annotations=prop.Annotations(
+                    code=True, bold=True, color=prop.BlockColor.purple
+                ),
+            ),
+            prop.RichText(" - "),
+            prop.Mention.date(
+                datetime.now().astimezone(page.tz).isoformat(),
+                annotations=prop.Annotations(
+                    code=True,
+                    bold=True,
+                    italic=True,
+                    underline=True,
+                    color=prop.BlockColor.gray,
+                ),
+            ),
+            prop.RichText(":"),
+        ]
+    )
+    # The `mentionblock` object created in the previous line is passed to the class method `notion.Block.paragraph`.
+    # This will create a new paragraph block as a child of `mentionblock`.
+    notion.Block.paragraph(mentionblock, [prop.RichText(message)])
+    notion.Block.divider(page)
+```
+
+```py
+homepage = notion.Page("0b9eccfa890e4c3390175ee10c664a35")
+inline_mention(page=homepage, message="example", user_name="AYVI")
+```
+
+<p align="center">
+    <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/example_function_reminder.png?raw=true">
+</p>
 
 ---
 
@@ -292,7 +315,6 @@ The method `query_pages()` will extract the page ID for each object in the array
 >
 > In v0.7.0 the original deprecated methods were renamed to `_query` and `_query_pages` (left incase anyone wanted the original endpoints),
 > and the new query methods were renamed to take their place: `query_all` -> `query`, `query_all_pages` -> `query_pages`
->
 
 ```py
 import os
@@ -322,7 +344,15 @@ query_sort = query.SortFilter(
     ]
 )
 
-query_result = new_database.query(
+# Returns a list of mappings.
+result = new_database.query(
+    filter=query_filter,
+    sort=query_sort,
+    filter_property_values=["name", "options"],
+)
+
+# Returns a list of notion.Page objects.
+result = new_database.query_pages(
     filter=query_filter,
     sort=query_sort,
     filter_property_values=["name", "options"],
@@ -337,20 +367,20 @@ Errors in Notion requests return an object with the keys: 'object', 'status', 'c
 Exceptions are raised by matching the error code and returning the message. For example:
 
 ```py
-homepage._patch_properties(payload={'an_incorrect_key':'value'})
+homepage._patch_properties(payload={"an_incorrect_key":"value"})
 # Example error object for line above..
 # {
-#   'object': 'error', 
-#   'status': 400, 
-#   'code': 'validation_error', 
-#   'message': 'body failed validation: body.an_incorrect_key should be not present, instead was `"value"`.'
+#   "object": "error",
+#   "status": 400,
+#   "code": "validation_error",
+#   "message": "body failed validation: body.an_incorrect_key should be not present, instead was `\"value\"`."
 # }
 ```
 
 ```sh
 Traceback (most recent call last):
 File "c:\path\to\file\_.py", line 6, in <module>
-    homepage._patch_properties(payload={'an_incorrect_key':'value'})
+    homepage._patch_properties(payload={"an_incorrect_key":"value"})
 File "c:\...\notion\exceptions\validate.py", line 48, in validate_response
     raise NotionValidationError(message)
 notion.exceptions.errors.NotionValidationError: body failed validation: body.an_incorrect_key should be not present, instead was `"value"`.
@@ -375,6 +405,8 @@ Possible errors are:
 - `NotionUnauthorized`
 - `NotionValidationError`
 
+---
+
 > [!TIP]
 > A common error to look out for is `NotionObjectNotFound`.\
 > This error is often raised because your bot has not been added as a connection to the page.
@@ -383,8 +415,8 @@ Possible errors are:
 >     <img src="https://github.com/ayvi-0001/notion-api/blob/main/examples/images/directory_add_connections.png?raw=true">  
 > </p>
 >
-> By default, a bot will have access to the children of any Parent object it has access too. Be sure to double check this connection when moving pages.  
+> By default, a bot will have access to the children of any Parent object it has access too. Be sure to double check this connection when moving pages.
 >
-> If you're working on a page that your token has access to via its parent page/database, but you never explicitly granted access to the child page -  and you later move that child page out, then it will lose access.
->
+> If you're working on a page that your token has access to via its parent page/database, but you never explicitly granted access to the child page - and you later move that child page out, then it will lose access.
+
 ---

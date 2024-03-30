@@ -23,6 +23,7 @@
 from typing import Sequence
 
 from notion.propertyitems.call import (
+    PropertyItem,
     boolean_formula,
     checkbox,
     created_by,
@@ -74,4 +75,5 @@ __all__: Sequence[str] = (
     "string_formula",
     "url",
     "verification",
+    "PropertyItem",
 )

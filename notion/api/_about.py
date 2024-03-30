@@ -23,7 +23,6 @@
 from typing import Final, Sequence
 
 __all__: Sequence[str] = (
-    "__content_type__",
     "__notion_version__",
     "__base_url__",
     "__version__",
@@ -32,9 +31,8 @@ __all__: Sequence[str] = (
 )
 
 __notion_version__: Final[str] = "2022-06-28"
-__content_type__: Final[str] = "application/json"
 __base_url__: Final[str] = "https://api.notion.com/v1/"
-__version__: Final[str] = "0.7.0"
+__version__: Final[str] = "0.7.4"
 __package_url__: Final[str] = "https://pypi.org/pypi/notion-api/"
 __package_json__: Final[str] = "https://pypi.org/pypi/notion-api/json"
 

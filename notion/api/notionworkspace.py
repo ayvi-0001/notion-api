@@ -308,7 +308,7 @@ class Workspace(_NotionClient):
         start_cursor: Optional[str] = None,
     ) -> MutableMapping[str, Any]:
         """
-        **This method is deprecated since > v0.5.2.**
+        ### This method is deprecated since > v0.5.2.
         It's been replaced with the new retrieve_comments() method that iterates through all results.
         This is the original endpoint and will return a max of 100 pages, and a cursor to use in the next query if the results are greater than 100.
 

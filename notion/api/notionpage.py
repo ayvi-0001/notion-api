@@ -22,11 +22,11 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
-from typing import Any, MutableMapping, Optional, Sequence
+from typing import Any, Iterable, MutableMapping, Optional, Sequence
 
 from notion.api.blockmixin import _TokenBlockMixin
-from notion.api.client import _NLOG
 from notion.api.notionblock import Block
 from notion.api.notiondatabase import Database
 from notion.properties import files, propertyvalues
@@ -34,9 +34,12 @@ from notion.properties.build import build_payload
 from notion.properties.common import Parent, UserObject, _NotionUUID
 from notion.properties.propertyobjects import Option
 from notion.properties.richtext import RichText
-from notion.propertyitems.base import PropertyItem
+from notion.propertyitems import PropertyItem
 
 __all__: Sequence[str] = ("Page",)
+
+
+ALNUM = re.compile(r"[^a-zA-Z0-9]")
 
 
 class Page(_TokenBlockMixin):
@@ -69,7 +72,9 @@ class Page(_TokenBlockMixin):
 
     def __init__(self, page_id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(page_id, token=token)
-        self.logger = _NLOG.getChild(self.__repr__())
+
+    def __repr__(self) -> str:
+        return f'notion.Page("{getattr(self, "id", "")}")'
 
     @classmethod
     def create(
@@ -118,14 +123,19 @@ class Page(_TokenBlockMixin):
 
         return page
 
-    def __getattr__(self, __name: str) -> PropertyItem:
-        if __name not in self.__dict__.keys():
-            for prop in self.properties:
-                if __name == "".join([c if c.isalnum() else "_" for c in prop]).lower():
-                    return PropertyItem(
-                        _map=self.retrieve_property_item(prop), source_page=self.id
-                    )
-        raise AttributeError(f"{__name} not found in page property values.")
+    def __getattr__(self, _name: str) -> PropertyItem:
+        properties = self.properties
+        if match := first(
+            filter(
+                lambda key: _name.lower() == ALNUM.sub("_", key.lower()),
+                properties.keys(),
+            )
+        ):
+            return PropertyItem(
+                self.retrieve_property_item(property_id=properties[match]["id"]), self.tz
+            )
+
+        raise AttributeError(f"{_name} not found in page property values.")
 
     def __getitem__(self, property_name: str) -> MutableMapping[str, Any]:
         try:
@@ -151,7 +161,7 @@ class Page(_TokenBlockMixin):
         title setter:
         >>> page.title = "New Title"
         """
-        if any([k in self.parent_type for k in ("workspace" or "page_id")]):
+        if any([k in self.parent_type for k in ("workspace", "page_id")]):
             title_object: dict[str, str] = self.properties["title"]["title"][0]
             return title_object.get("plain_text", "")
         else:
@@ -249,24 +259,34 @@ class Page(_TokenBlockMixin):
         property_id: str = self[property_name]["id"]
         return property_id
 
-    def retrieve_property_item(self, property_name: str) -> MutableMapping[str, Any]:
+    def retrieve_property_item(
+        self,
+        property_name: Optional[str] = None,
+        property_id: Optional[str] = None,
+    ) -> MutableMapping[str, Any]:
         """Retrieves a property_item object for a given page_id and property_id.
         The object returned will either be:
             - a value.
             - a paginated list of property item values.
 
-        :param property_name: (required) property name in Notion *case-sensitive.
+        :param property_name: (optional) property name in Notion *case-sensitive.
+        :param property_id: (optional) property id in Notion.
+
+        At least one of property_name or property_id must be provided.
 
         Property Item Object: https://developers.notion.com/reference/property-item-object \n
         Retrieve a page property: https://developers.notion.com/reference/retrieve-a-page-property
         """
-        property_id = self._retrieve_property_id(property_name)
-        return self._get(
-            self._pages_endpoint(
-                self.id,
-                properties=True,
-                property_id=property_id,
+        if not (property_name or property_id):
+            raise ValueError(
+                "At least one of property_name or property_id must be provided."
             )
+
+        if property_name:
+            property_id = self._retrieve_property_id(property_name)
+
+        return self._get(
+            self._pages_endpoint(self.id, properties=True, property_id=property_id)
         )
 
     def _patch_properties(
@@ -279,10 +299,7 @@ class Page(_TokenBlockMixin):
 
         https://developers.notion.com/reference/patch-page
         """
-        return self._patch(
-            self._pages_endpoint(self.id),
-            payload=payload,
-        )
+        return self._patch(self._pages_endpoint(self.id), payload=payload)
 
     def retrieve_page_content(
         self, start_cursor: Optional[str] = None, page_size: Optional[int] = None
@@ -534,3 +551,8 @@ class Page(_TokenBlockMixin):
                 propertyvalues.URLPropertyValue(property_name, url),
             ),
         )
+
+
+def first(iterable: Iterable[Any]) -> Any:
+    for item in iterable:
+        return item

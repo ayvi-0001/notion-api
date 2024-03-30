@@ -33,6 +33,18 @@ from notion.api.client import _NotionClient
 __all__: Sequence[str] = ("_TokenBlockMixin",)
 
 
+try:
+    _tz = os.getenv("TZ")
+    if not _tz:
+        from tzlocal import get_localzone_name
+
+        _tz = get_localzone_name()
+
+    TZ = timezone(_tz)
+except UnknownTimeZoneError:
+    TZ = timezone("UTC")
+
+
 class _TokenBlockMixin(_NotionClient):
     """
     Any object you interact with in Notion;
@@ -43,20 +55,7 @@ class _TokenBlockMixin(_NotionClient):
     def __init__(self, id: str, /, *, token: Optional[str] = None) -> None:
         super().__init__(token=token)
         self.id: str = id.replace("-", "")
-
-        try:
-            tz = os.getenv("TZ")
-            if not tz:
-                from tzlocal import get_localzone_name  # type: ignore[import-untyped]
-
-                tz = get_localzone_name()
-
-            self.tz = timezone(tz)
-        except UnknownTimeZoneError:
-            self.tz = timezone("UTC")
-
-    def __repr__(self) -> str:
-        return f"notion.{self.__class__.__name__}('{getattr(self, 'id', '')}')"
+        self.tz: tzinfo = TZ
 
     def set_tz(self, tz: tzinfo | str) -> None:
         """
@@ -65,7 +64,7 @@ class _TokenBlockMixin(_NotionClient):
                     Class will first check for environment variable `TZ`.\
                     If not found, class default checks the system-configured timezone.
         """
-        self.tz = tz if isinstance(tz, tzinfo) else timezone(tz)  # type: ignore[assignment]
+        self.tz = tz if isinstance(tz, tzinfo) else timezone(tz)
 
     @property
     def _block(self) -> MutableMapping[str, Any]:
